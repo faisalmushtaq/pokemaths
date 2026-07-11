@@ -20,7 +20,9 @@ export type GameScreen =
   | 'caught' // journey: battle won at 100% — Pokémon caught
   | 'failed' // journey: wrong answer or ran out of time
   | 'arcadeResult' // arcade: run finished
-  | 'pokedex';
+  | 'pokedex'
+  | 'about'
+  | 'login';
 
 export interface GameState {
   screen: GameScreen;
@@ -90,6 +92,14 @@ export function useGame() {
 
   const goPokedex = useCallback(() => {
     setState((s) => ({ ...s, screen: 'pokedex' }));
+  }, []);
+
+  const goAbout = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'about' }));
+  }, []);
+
+  const goLogin = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'login' }));
   }, []);
 
   const openRegion = useCallback((regionId: string) => {
@@ -260,6 +270,8 @@ export function useGame() {
     goRegionSelect,
     goArcadeSelect,
     goPokedex,
+    goAbout,
+    goLogin,
     openRegion,
     startBattle,
     startArcade,

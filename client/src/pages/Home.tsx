@@ -138,22 +138,21 @@ function NumberKeypad({ onKey, onToggleSign, onDelete, onSubmit, currentInput, a
   onSubmit: () => void; currentInput: string; accent: string;
 }) {
   const keyStyle = (border: string, fs = FS.key, bg = 'linear-gradient(135deg, #1e3a5f, #0d2137)'): CSSProperties => ({
-    fontFamily: PIXEL_FONT, fontSize: fs, padding: 'clamp(0.55rem, 2.2vh, 1rem) 0',
-    background: bg, border: `2px solid ${border}`, cursor: 'pointer',
+    fontFamily: PIXEL_FONT, fontSize: fs, background: bg, border: `2px solid ${border}`, cursor: 'pointer',
   });
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col" style={{ gap: 'clamp(0.4rem, 1.2vh, 0.6rem)' }}>
       <div
-        className="w-full mb-2 px-4 text-center rounded-lg border-2 flex items-center justify-center"
+        className="w-full px-4 text-center rounded-lg border-2 flex items-center justify-center shrink-0"
         style={{
           fontFamily: PIXEL_FONT, fontSize: FS.question, background: 'rgba(0,0,0,0.6)',
           borderColor: '#FFD700', color: currentInput ? '#FFD700' : '#444',
-          minHeight: 'clamp(2.75rem, 8vh, 4rem)', letterSpacing: '0.12em',
+          minHeight: 'clamp(2.75rem, 8vh, 4.5rem)', letterSpacing: '0.12em',
         }}
       >
         {currentInput || '?'}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0" style={{ gridTemplateRows: 'repeat(4, 1fr)' }}>
         {['7','8','9','4','5','6','1','2','3'].map(d => (
           <button key={d} className="flex items-center justify-center rounded-lg text-white select-none active:scale-95 transition-transform"
             style={keyStyle('#38bdf8')} onPointerDown={e => { e.preventDefault(); onKey(d); }}>{d}</button>
@@ -165,7 +164,7 @@ function NumberKeypad({ onKey, onToggleSign, onDelete, onSubmit, currentInput, a
         <button className="flex items-center justify-center rounded-lg text-white select-none active:scale-95 transition-transform"
           style={keyStyle(accent)} onPointerDown={e => { e.preventDefault(); onKey('.'); }}>.</button>
       </div>
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-2 shrink-0" style={{ height: 'clamp(2.75rem, 8vh, 4rem)' }}>
         <button className="flex-1 flex items-center justify-center rounded-lg text-white select-none active:scale-95 transition-transform"
           style={keyStyle('#ef4444', FS.btn, 'linear-gradient(135deg, #4a1a1a, #2d0a0a)')}
           onPointerDown={e => { e.preventDefault(); onDelete(); }}>DEL</button>
@@ -298,10 +297,11 @@ export default function Home() {
                 📕 POKÉDEX ({caughtCount(save)}/{totalCatchable()})
               </button>
             </div>
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#a78bfa', marginTop: 'clamp(1rem,4vw,1.75rem)', textAlign: 'center', lineHeight: 1.9 }}>
-              JOURNEY: CATCH POKÉMON<br />ARCADE: QUICK SCORE ATTACK
-            </p>
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#444', marginTop: 'clamp(0.75rem,3vw,1.25rem)' }}>
+            <div className="flex items-center justify-center gap-5" style={{ marginTop: 'clamp(1rem,4vw,1.75rem)' }}>
+              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
+              <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>
+            </div>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#444', marginTop: 'clamp(0.75rem,3vw,1.25rem)', textAlign: 'center' }}>
               © 2019-2026 MUSHTAQ ARCADE CORP
             </p>
           </Frame>
@@ -343,7 +343,7 @@ export default function Home() {
     };
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="CHOOSE REGION" />
+        <NavBar onHome={game.goMenu} title="CHOOSE REGION" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <div className="flex flex-col gap-2 w-full">
@@ -401,7 +401,7 @@ export default function Home() {
   if (state.screen === 'arcadeSelect') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" />
+        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
@@ -535,7 +535,7 @@ export default function Home() {
   if (state.screen === 'pokedex') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" />
+        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '1rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
@@ -551,6 +551,79 @@ export default function Home() {
                   </div>
                 );
               })}
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // ABOUT
+  // =========================================================================
+  if (state.screen === 'about') {
+    const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+      <div className="w-full rounded-xl" style={{ padding: 'clamp(0.75rem,3vw,1.25rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: 8 }}>{title}</div>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2 }}>{children}</div>
+      </div>
+    );
+    return (
+      <Screen bg={panelBg}>
+        <NavBar onHome={game.goMenu} title="ABOUT" accent="#a78bfa" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame>
+            <div className="flex flex-col gap-3 w-full">
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textAlign: 'center', textShadow: '0 0 14px rgba(255,215,0,0.5)', margin: '0.25rem 0 0.5rem' }}>POKÉMATHS</div>
+              <Section title="WHAT IS IT?">
+                A maths adventure! Answer questions to battle and catch Pokémon across 11 regions, from Kanto to Terarium.
+              </Section>
+              <Section title="JOURNEY">
+                Travel region by region. Each battle is a maths topic — answer every question correctly (100%!) to catch that Pokémon into your Pokédex. Legendary bosses are timed. Clear all nine regions to unlock two secret regions.
+              </Section>
+              <Section title="ARCADE">
+                Quick pick-up-and-play. Choose a level and race a fixed run of questions for score and accuracy — wrong answers are allowed, so it's great for practice.
+              </Section>
+              <Section title="LEARNING">
+                37 topics span the primary maths curriculum, from counting and number bonds up to fractions, decimals, percentages, and early algebra.
+              </Section>
+              <Section title="CREDITS">
+                Made by Mushtaq Arcade Corp. © 2019–2026.<br />
+                Pokémon sprites via PokeAPI. This is an unofficial fan-made educational game and is not affiliated with, endorsed by, or sponsored by Nintendo, Game Freak, or The Pokémon Company.
+              </Section>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // LOGIN (Google sync — coming soon)
+  // =========================================================================
+  if (state.screen === 'login') {
+    return (
+      <Screen bg={panelBg}>
+        <NavBar onHome={game.goMenu} title="LOG IN" accent="#38bdf8" />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.7)', border: '2px solid #38bdf8' }}>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>👤</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>SAVE ACROSS DEVICES</div>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '1.25rem' }}>
+                Sign in with Google to sync your Pokédex and progress to every device.
+              </p>
+              <button disabled aria-disabled
+                className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
+                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: 'rgba(255,255,255,0.1)', color: '#888', border: '1px solid #444', cursor: 'not-allowed' }}>
+                <span>🔒</span> SIGN IN WITH GOOGLE
+              </button>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#eab308', lineHeight: 2, marginTop: '1rem' }}>
+                COMING SOON
+              </p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginTop: '0.5rem' }}>
+                For now, your progress is saved safely on this device.
+              </p>
             </div>
           </Frame>
         </div>
@@ -587,30 +660,32 @@ export default function Home() {
             </>
           }
         />
-        <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center overflow-y-auto" style={{ padding: 'clamp(0.5rem,2vh,1.25rem) 1rem' }}>
-          <Frame style={{ gap: 'clamp(0.6rem, 2.5vh, 1.5rem)' }}>
+        <div className="flex-1 min-h-0 w-full flex items-stretch justify-center" style={{ padding: 'clamp(0.5rem,2vh,1.25rem) clamp(0.5rem,3vw,1rem)' }}>
+          <div className="flex flex-col" style={{ width: FRAME, height: '100%', maxHeight: '46rem', gap: 'clamp(0.5rem, 2vh, 1rem)' }}>
             {/* Wild Pokémon (journey) / progress (arcade) */}
             {journey && b ? (
-              <div className="w-full flex items-center gap-3">
-                <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={68} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
+              <div className="w-full flex items-center gap-3 shrink-0">
+                <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
                 <div className="flex-1">
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 4 }}>{state.total - state.correctCount} MORE TO CATCH!</p>
                 </div>
               </div>
             ) : (
-              <div className="w-full"><PowerBar correct={state.attempted} total={state.total} accentColor={accent} /></div>
+              <div className="w-full shrink-0"><PowerBar correct={state.attempted} total={state.total} accentColor={accent} /></div>
             )}
 
             {/* Question */}
-            <div className="w-full rounded-xl text-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem', background: 'rgba(0,0,0,0.65)', border: `2px solid ${accent}`, boxShadow: `0 0 12px ${accent}22` }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 6 }}>QUESTION {doneCount + 1} OF {state.total}</div>
+            <div className="w-full rounded-xl text-center flex flex-col justify-center shrink-0" style={{ padding: 'clamp(1rem,4vh,2rem) 1rem', background: 'rgba(0,0,0,0.65)', border: `2px solid ${accent}`, boxShadow: `0 0 12px ${accent}22` }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 8 }}>QUESTION {doneCount + 1} OF {state.total}</div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.question, color: '#fff', letterSpacing: '0.04em', lineHeight: 1.5 }}>{state.question?.text ?? '...'}</div>
             </div>
 
-            {/* Keypad */}
-            <NumberKeypad currentInput={input} accent={accent} onKey={appendKey} onToggleSign={toggleSign} onDelete={() => setInput(prev => prev.slice(0, -1))} onSubmit={handleSubmit} />
-          </Frame>
+            {/* Keypad — grows to fill remaining height */}
+            <div className="flex-1 min-h-0">
+              <NumberKeypad currentInput={input} accent={accent} onKey={appendKey} onToggleSign={toggleSign} onDelete={() => setInput(prev => prev.slice(0, -1))} onSubmit={handleSubmit} />
+            </div>
+          </div>
         </div>
 
         {/* Feedback overlay (fixed so keypad never shifts) */}
