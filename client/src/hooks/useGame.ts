@@ -6,7 +6,7 @@ import {
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
-import { getTopic, isAnswerCorrect, type Question } from '@/lib/topics';
+import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
 import { loadSave, recordWin, type SaveData } from '@/lib/pokedex';
 
 export type GameMode = 'journey' | 'arcade';
@@ -38,6 +38,8 @@ export interface GameState {
   total: number; // questions in this run
   score: number;
   elapsed: number; // seconds (arcade run timer)
+  level: number; // current difficulty level of the question in play
+  maxLevel: number; // top level for the current topic
   feedback: string | null;
   feedbackCorrect: boolean;
   timeRemaining: number | null; // journey boss countdown; null otherwise
@@ -61,6 +63,8 @@ const INITIAL: GameState = {
   total: 0,
   score: 0,
   elapsed: 0,
+  level: 1,
+  maxLevel: 1,
   feedback: null,
   feedbackCorrect: false,
   timeRemaining: null,
@@ -119,8 +123,10 @@ export function useGame() {
       mode: 'journey',
       regionId: region.id,
       battleId: battle.id,
-      question: topic.generate(),
+      question: topic.generate(1),
       total: battle.questionCount,
+      level: 1,
+      maxLevel: topic.maxLevel,
       timeRemaining: battle.timeLimitSec ?? null,
     });
   }, []);
@@ -136,15 +142,20 @@ export function useGame() {
       screen: 'playing',
       mode: 'arcade',
       arcadeLevelId: level.id,
-      question: topic.generate(),
+      question: topic.generate(1),
       total: level.questionCount,
+      level: 1,
+      maxLevel: topic.maxLevel,
     });
   }, []);
 
   // --- answering ------------------------------------------------------------
-  const nextArcadeQuestion = (levelId: string): Question => {
+  // Arcade: pick a random topic and grade it by how far through the run we are.
+  const nextArcadeQuestion = (levelId: string, attempted: number, total: number) => {
     const level = getArcadeLevel(levelId)!;
-    return getTopic(randomFrom(level.topics)).generate();
+    const topic = getTopic(randomFrom(level.topics));
+    const lv = levelForProgress(attempted, total, topic.maxLevel);
+    return { question: topic.generate(lv), level: lv, maxLevel: topic.maxLevel };
   };
 
   const submitAnswer = useCallback((typed: number) => {
@@ -164,6 +175,7 @@ export function useGame() {
         const attempted = s.attempted + 1;
         const done = attempted >= s.total;
         questionStart.current = Date.now();
+        const next = done ? null : nextArcadeQuestion(s.arcadeLevelId!, attempted, s.total);
         return {
           ...s,
           screen: done ? 'arcadeResult' : 'playing',
@@ -171,7 +183,9 @@ export function useGame() {
           wrong: s.wrong + (correct ? 0 : 1),
           attempted,
           score: s.score + points,
-          question: done ? s.question : nextArcadeQuestion(s.arcadeLevelId!),
+          question: next ? next.question : s.question,
+          level: next ? next.level : s.level,
+          maxLevel: next ? next.maxLevel : s.maxLevel,
           questionIndex: s.questionIndex + 1,
           feedback: feedbackMsg,
           feedbackCorrect: correct,
@@ -207,11 +221,15 @@ export function useGame() {
         };
       }
       questionStart.current = Date.now();
+      const topic = getTopic(battle.topic);
+      const lv = levelForProgress(nextCorrect, s.total, topic.maxLevel);
       return {
         ...s,
         correctCount: nextCorrect,
         score: s.score + points,
-        question: getTopic(battle.topic).generate(),
+        question: topic.generate(lv),
+        level: lv,
+        maxLevel: topic.maxLevel,
         questionIndex: s.questionIndex + 1,
         feedback: feedbackMsg,
         feedbackCorrect: true,

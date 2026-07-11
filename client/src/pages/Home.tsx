@@ -677,7 +677,12 @@ export default function Home() {
 
             {/* Question */}
             <div className="w-full rounded-xl text-center flex flex-col justify-center shrink-0" style={{ padding: 'clamp(1rem,4vh,2rem) 1rem', background: 'rgba(0,0,0,0.65)', border: `2px solid ${accent}`, boxShadow: `0 0 12px ${accent}22` }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 8 }}>QUESTION {doneCount + 1} OF {state.total}</div>
+              <div className="flex items-center justify-center gap-2" style={{ marginBottom: 8 }}>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>QUESTION {doneCount + 1} OF {state.total}</span>
+                {state.maxLevel > 1 && (
+                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: accent }}>· LV {state.level}/{state.maxLevel}</span>
+                )}
+              </div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.question, color: '#fff', letterSpacing: '0.04em', lineHeight: 1.5 }}>{state.question?.text ?? '...'}</div>
             </div>
 
