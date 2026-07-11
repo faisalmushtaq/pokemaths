@@ -183,14 +183,18 @@ function PowerBar({ correct, total, accentColor }: { correct: number; total: num
 // ---------------------------------------------------------------------------
 // POKEMON SPRITE
 // ---------------------------------------------------------------------------
-function PokemonSprite({ src, name, size = 140, glow, bounce = true }: {
-  src: string; name: string; size?: number; glow?: string; bounce?: boolean;
+function PokemonSprite({ src, name, size = 140, glow, bounce = true, fallback }: {
+  src: string; name: string; size?: number; glow?: string; bounce?: boolean; fallback?: string;
 }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <img
         src={src}
         alt={name}
+        onError={fallback ? (e) => {
+          const img = e.currentTarget;
+          if (img.src !== fallback) img.src = fallback;
+        } : undefined}
         style={{
           width: size,
           height: size,
@@ -379,6 +383,7 @@ export default function Home() {
                 <img
                   src={pixelSprite(b.dex)}
                   alt={b.pokemon}
+                  onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
                   style={{ width: 48, height: 48, objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || won ? 'none' : 'brightness(0)' }}
                 />
                 <div className="flex-1">
@@ -454,7 +459,7 @@ export default function Home() {
             {state.feedback === "Time's up!" ? "TIME'S UP!" : 'IT GOT AWAY!'}
           </div>
           <div className="flex justify-center mb-3">
-            <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={110} bounce={false} />
+            <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={110} bounce={false} fallback={artwork(b.dex)} />
           </div>
           <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.45rem', color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>
             YOU NEED 100% TO CATCH<br />{b.pokemon.toUpperCase()}. TRY AGAIN!
@@ -497,6 +502,7 @@ export default function Home() {
                 <img
                   src={pixelSprite(b.dex)}
                   alt={owned ? b.pokemon : 'Unknown'}
+                  onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
                   style={{ width: 56, height: 56, objectFit: 'contain', imageRendering: 'pixelated', filter: owned ? 'none' : 'brightness(0)' }}
                 />
                 <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.32rem', color: owned ? '#FFD700' : '#555', marginTop: 4, textAlign: 'center' }}>
@@ -542,7 +548,7 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center justify-between px-4 py-4 max-w-sm mx-auto w-full gap-3">
           {/* Wild Pokémon + power bar */}
           <div className="w-full flex items-center gap-3">
-            <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? region.accentColor : undefined} />
+            <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? region.accentColor : undefined} fallback={artwork(b.dex)} />
             <div className="flex-1">
               <PowerBar correct={state.correctCount} total={b.questionCount} accentColor={region.accentColor} />
               <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.38rem', color: '#888', marginTop: 4 }}>
