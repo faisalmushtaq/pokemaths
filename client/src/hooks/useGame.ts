@@ -5,33 +5,40 @@ import {
   WRONG_ANSWER_MESSAGES,
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
+import { getArcadeLevel } from '@/lib/arcade';
 import { getTopic, isAnswerCorrect, type Question } from '@/lib/topics';
-import {
-  loadSave,
-  recordWin,
-  type SaveData,
-} from '@/lib/pokedex';
+import { loadSave, recordWin, type SaveData } from '@/lib/pokedex';
+
+export type GameMode = 'journey' | 'arcade';
 
 export type GameScreen =
   | 'menu'
   | 'regionSelect'
   | 'battleSelect'
+  | 'arcadeSelect'
   | 'playing'
-  | 'caught' // battle won at 100% — Pokémon caught
-  | 'failed' // wrong answer or ran out of time
+  | 'caught' // journey: battle won at 100% — Pokémon caught
+  | 'failed' // journey: wrong answer or ran out of time
+  | 'arcadeResult' // arcade: run finished
   | 'pokedex';
 
 export interface GameState {
   screen: GameScreen;
+  mode: GameMode;
   regionId: string | null;
   battleId: string | null;
+  arcadeLevelId: string | null;
   question: Question | null;
-  questionIndex: number; // 0-based within the battle
+  questionIndex: number; // 0-based within the run
   correctCount: number;
+  wrong: number; // arcade: wrong answers this run
+  attempted: number; // arcade: questions answered this run
+  total: number; // questions in this run
   score: number;
+  elapsed: number; // seconds (arcade run timer)
   feedback: string | null;
   feedbackCorrect: boolean;
-  timeRemaining: number | null; // seconds; null when not a timed boss battle
+  timeRemaining: number | null; // journey boss countdown; null otherwise
 }
 
 function randomFrom<T>(arr: T[]): T {
@@ -40,12 +47,18 @@ function randomFrom<T>(arr: T[]): T {
 
 const INITIAL: GameState = {
   screen: 'menu',
+  mode: 'journey',
   regionId: null,
   battleId: null,
+  arcadeLevelId: null,
   question: null,
   questionIndex: 0,
   correctCount: 0,
+  wrong: 0,
+  attempted: 0,
+  total: 0,
   score: 0,
+  elapsed: 0,
   feedback: null,
   feedbackCorrect: false,
   timeRemaining: null,
@@ -64,11 +77,15 @@ export function useGame() {
   // --- navigation -----------------------------------------------------------
   const goMenu = useCallback(() => {
     clearFeedbackTimer();
-    setState((s) => ({ ...INITIAL, screen: 'menu', score: s.score }));
+    setState({ ...INITIAL, screen: 'menu' });
   }, []);
 
   const goRegionSelect = useCallback(() => {
-    setState((s) => ({ ...s, screen: 'regionSelect' }));
+    setState((s) => ({ ...s, screen: 'regionSelect', mode: 'journey' }));
+  }, []);
+
+  const goArcadeSelect = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'arcadeSelect', mode: 'arcade' }));
   }, []);
 
   const goPokedex = useCallback(() => {
@@ -76,10 +93,10 @@ export function useGame() {
   }, []);
 
   const openRegion = useCallback((regionId: string) => {
-    setState((s) => ({ ...s, screen: 'battleSelect', regionId }));
+    setState((s) => ({ ...s, screen: 'battleSelect', mode: 'journey', regionId }));
   }, []);
 
-  // --- battle lifecycle -----------------------------------------------------
+  // --- journey battles ------------------------------------------------------
   const startBattle = useCallback((battleId: string) => {
     const found = findBattle(battleId);
     if (!found) return;
@@ -87,96 +104,118 @@ export function useGame() {
     const topic = getTopic(battle.topic);
     questionStart.current = Date.now();
     setState({
+      ...INITIAL,
       screen: 'playing',
+      mode: 'journey',
       regionId: region.id,
       battleId: battle.id,
       question: topic.generate(),
-      questionIndex: 0,
-      correctCount: 0,
-      score: 0,
-      feedback: null,
-      feedbackCorrect: false,
+      total: battle.questionCount,
       timeRemaining: battle.timeLimitSec ?? null,
     });
   }, []);
 
-  const submitAnswer = useCallback(
-    (typed: number) => {
-      setState((s) => {
-        if (s.screen !== 'playing' || !s.question || !s.battleId) return s;
-        const found = findBattle(s.battleId);
-        if (!found) return s;
-        const { region, battle } = found;
+  // --- arcade runs ----------------------------------------------------------
+  const startArcade = useCallback((levelId: string) => {
+    const level = getArcadeLevel(levelId);
+    if (!level) return;
+    const topic = getTopic(randomFrom(level.topics));
+    questionStart.current = Date.now();
+    setState({
+      ...INITIAL,
+      screen: 'playing',
+      mode: 'arcade',
+      arcadeLevelId: level.id,
+      question: topic.generate(),
+      total: level.questionCount,
+    });
+  }, []);
 
-        const correct = isAnswerCorrect(s.question, typed);
+  // --- answering ------------------------------------------------------------
+  const nextArcadeQuestion = (levelId: string): Question => {
+    const level = getArcadeLevel(levelId)!;
+    return getTopic(randomFrom(level.topics)).generate();
+  };
 
-        // Wrong answer ends the battle — catching needs 100% accuracy.
-        if (!correct) {
-          return {
-            ...s,
-            screen: 'failed',
-            feedback: randomFrom(WRONG_ANSWER_MESSAGES),
-            feedbackCorrect: false,
-            timeRemaining: null,
-          };
-        }
+  const submitAnswer = useCallback((typed: number) => {
+    setState((s) => {
+      if (s.screen !== 'playing' || !s.question) return s;
+      const correct = isAnswerCorrect(s.question, typed);
+      const elapsed = (Date.now() - questionStart.current) / 1000;
+      const speedBonus =
+        correct && elapsed <= SCORE_CONFIG.speedBonusThreshold ? SCORE_CONFIG.speedBonusPoints : 0;
+      const points = correct ? SCORE_CONFIG.pointsPerCorrect + speedBonus : 0;
+      const feedbackMsg = correct
+        ? randomFrom(CORRECT_ANSWER_MESSAGES) + (speedBonus > 0 ? ` +${speedBonus}` : '')
+        : randomFrom(WRONG_ANSWER_MESSAGES);
 
-        const elapsed = (Date.now() - questionStart.current) / 1000;
-        const speedBonus =
-          elapsed <= SCORE_CONFIG.speedBonusThreshold
-            ? SCORE_CONFIG.speedBonusPoints
-            : 0;
-        const nextCorrect = s.correctCount + 1;
-        const nextScore = s.score + SCORE_CONFIG.pointsPerCorrect + speedBonus;
-        const won = nextCorrect >= battle.questionCount;
-
-        if (won) {
-          // Catch! Persist to the Pokédex.
-          setSave((prev) =>
-            recordWin(prev, battle.id, {
-              dex: battle.dex,
-              name: battle.pokemon,
-              region: region.id,
-              caughtAt: Date.now(),
-            }),
-          );
-          return {
-            ...s,
-            screen: 'caught',
-            correctCount: nextCorrect,
-            score: nextScore + SCORE_CONFIG.evolutionBonus,
-            feedback: null,
-            feedbackCorrect: true,
-            timeRemaining: null,
-          };
-        }
-
-        // Next question
-        const topic = getTopic(battle.topic);
+      // -------- ARCADE: wrong answers allowed, run to a fixed length --------
+      if (s.mode === 'arcade') {
+        const attempted = s.attempted + 1;
+        const done = attempted >= s.total;
         questionStart.current = Date.now();
         return {
           ...s,
-          question: topic.generate(),
+          screen: done ? 'arcadeResult' : 'playing',
+          correctCount: s.correctCount + (correct ? 1 : 0),
+          wrong: s.wrong + (correct ? 0 : 1),
+          attempted,
+          score: s.score + points,
+          question: done ? s.question : nextArcadeQuestion(s.arcadeLevelId!),
           questionIndex: s.questionIndex + 1,
-          correctCount: nextCorrect,
-          score: nextScore,
-          feedback:
-            randomFrom(CORRECT_ANSWER_MESSAGES) +
-            (speedBonus > 0 ? ` +${speedBonus}` : ''),
-          feedbackCorrect: true,
+          feedback: feedbackMsg,
+          feedbackCorrect: correct,
         };
-      });
+      }
 
-      // flash feedback briefly
-      clearFeedbackTimer();
-      feedbackTimer.current = setTimeout(() => {
-        setState((s) => (s.screen === 'playing' ? { ...s, feedback: null } : s));
-      }, 1200);
-    },
-    [],
-  );
+      // -------- JOURNEY: catching needs 100% accuracy ----------------------
+      if (!correct) {
+        return { ...s, screen: 'failed', feedback: feedbackMsg, feedbackCorrect: false, timeRemaining: null };
+      }
+      const found = s.battleId ? findBattle(s.battleId) : undefined;
+      if (!found) return s;
+      const { region, battle } = found;
+      const nextCorrect = s.correctCount + 1;
+      const won = nextCorrect >= s.total;
+      if (won) {
+        setSave((prev) =>
+          recordWin(prev, battle.id, {
+            dex: battle.dex,
+            name: battle.pokemon,
+            region: region.id,
+            caughtAt: Date.now(),
+          }),
+        );
+        return {
+          ...s,
+          screen: 'caught',
+          correctCount: nextCorrect,
+          score: s.score + points + SCORE_CONFIG.evolutionBonus,
+          feedback: null,
+          feedbackCorrect: true,
+          timeRemaining: null,
+        };
+      }
+      questionStart.current = Date.now();
+      return {
+        ...s,
+        correctCount: nextCorrect,
+        score: s.score + points,
+        question: getTopic(battle.topic).generate(),
+        questionIndex: s.questionIndex + 1,
+        feedback: feedbackMsg,
+        feedbackCorrect: true,
+      };
+    });
 
-  // Boss countdown timer
+    // flash feedback briefly
+    clearFeedbackTimer();
+    feedbackTimer.current = setTimeout(() => {
+      setState((s) => (s.screen === 'playing' ? { ...s, feedback: null } : s));
+    }, 1200);
+  }, []);
+
+  // Journey boss countdown
   useEffect(() => {
     if (state.screen !== 'playing' || state.timeRemaining === null) return;
     const id = setInterval(() => {
@@ -191,13 +230,25 @@ export function useGame() {
     return () => clearInterval(id);
   }, [state.screen, state.timeRemaining === null]);
 
+  // Arcade run timer (counts up)
+  useEffect(() => {
+    if (state.screen !== 'playing' || state.mode !== 'arcade') return;
+    const id = setInterval(() => {
+      setState((s) => (s.screen === 'playing' && s.mode === 'arcade' ? { ...s, elapsed: s.elapsed + 1 } : s));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [state.screen, state.mode]);
+
   useEffect(() => () => clearFeedbackTimer(), []);
 
   const retryBattle = useCallback(() => {
     if (state.battleId) startBattle(state.battleId);
   }, [state.battleId, startBattle]);
 
-  // Derived: the region/battle currently in play
+  const replayArcade = useCallback(() => {
+    if (state.arcadeLevelId) startArcade(state.arcadeLevelId);
+  }, [state.arcadeLevelId, startArcade]);
+
   const active = state.battleId ? findBattle(state.battleId) : undefined;
 
   return {
@@ -207,10 +258,13 @@ export function useGame() {
     activeRegion: active?.region ?? null,
     goMenu,
     goRegionSelect,
+    goArcadeSelect,
     goPokedex,
     openRegion,
     startBattle,
+    startArcade,
     submitAnswer,
     retryBattle,
+    replayArcade,
   };
 }

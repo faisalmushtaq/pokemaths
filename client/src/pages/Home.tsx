@@ -17,6 +17,7 @@ import {
   type Region,
 } from '@/lib/regions';
 import { getTopic } from '@/lib/topics';
+import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { caughtCount } from '@/lib/pokedex';
 import {
@@ -276,7 +277,12 @@ export default function Home() {
           <button onClick={game.goRegionSelect}
             className="w-full py-4 rounded-xl font-bold text-black"
             style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255,215,0,0.4)', cursor: 'pointer' }}>
-            ▶ ADVENTURE
+            🗺 JOURNEY
+          </button>
+          <button onClick={game.goArcadeSelect}
+            className="w-full py-4 rounded-xl font-bold"
+            style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', background: 'transparent', border: '2px solid #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
+            ▶ ARCADE
           </button>
           <button onClick={game.goPokedex}
             className="w-full py-4 rounded-xl font-bold"
@@ -284,6 +290,9 @@ export default function Home() {
             📕 POKÉDEX ({caughtCount(save)}/{totalCatchable()})
           </button>
         </div>
+        <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#a78bfa', marginTop: '1.25rem', textAlign: 'center', lineHeight: 1.8 }}>
+          JOURNEY: CATCH POKÉMON<br />ARCADE: QUICK SCORE ATTACK
+        </p>
         <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#444', marginTop: '2rem' }}>
           © 2019-2026 MUSHTAQ ARCADE CORP
         </p>
@@ -408,6 +417,92 @@ export default function Home() {
   }
 
   // =========================================================================
+  // ARCADE — LEVEL SELECT
+  // =========================================================================
+  if (state.screen === 'arcadeSelect') {
+    return (
+      <div className="min-h-screen flex flex-col items-center px-4 py-6" style={{ background: panelBg }}>
+        <h1 style={{ fontFamily: PIXEL_FONT, fontSize: '0.8rem', color: '#38bdf8', marginBottom: '0.25rem', textShadow: '0 0 10px #38bdf8' }}>
+          ARCADE
+        </h1>
+        <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.42rem', color: '#888', marginBottom: '1rem' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
+        <div className="flex flex-col gap-2 w-full max-w-sm">
+          {ARCADE_LEVELS.map((lvl, i) => (
+            <button key={lvl.id} onClick={() => game.startArcade(lvl.id)}
+              className="w-full rounded-xl p-3 text-left flex items-center gap-3"
+              style={{ background: 'rgba(255,255,255,0.04)', border: `2px solid ${lvl.accentColor}`, boxShadow: `0 0 8px ${lvl.accentColor}22`, cursor: 'pointer' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.8rem', color: lvl.accentColor, width: 28, textAlign: 'center' }}>{i + 1}</div>
+              <div className="flex-1">
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.55rem', color: lvl.accentColor }}>{lvl.name.toUpperCase()}</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#aaa', marginTop: 3 }}>{lvl.subtitle}</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.38rem', color: '#777', marginTop: 3 }}>{lvl.questionCount} QUESTIONS</div>
+              </div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', color: lvl.accentColor }}>▶</div>
+            </button>
+          ))}
+        </div>
+        <button onClick={game.goMenu} style={{ fontFamily: PIXEL_FONT, fontSize: '0.55rem', color: '#666', border: '1px solid #333', background: 'transparent', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', marginTop: '1.5rem', cursor: 'pointer' }}>
+          ← MENU
+        </button>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // ARCADE — RESULT
+  // =========================================================================
+  if (state.screen === 'arcadeResult' && state.arcadeLevelId) {
+    const lvl = getArcadeLevel(state.arcadeLevelId)!;
+    const accuracy = state.total > 0 ? Math.round((state.correctCount / state.total) * 100) : 0;
+    const perfect = accuracy === 100;
+    const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8" style={{ background: 'linear-gradient(135deg, #0a0a1a, #1a0a3e)' }}>
+        {perfect && <Confetti />}
+        <div className="w-full max-w-sm rounded-2xl p-6 text-center" style={{ background: 'rgba(0,0,0,0.85)', border: `3px solid ${lvl.accentColor}`, boxShadow: `0 0 40px ${lvl.accentColor}44` }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>{perfect ? '🌟' : '🎮'}</div>
+          <h1 style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', color: lvl.accentColor, marginBottom: '0.25rem' }}>{lvl.name.toUpperCase()}</h1>
+          <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: perfect ? '#FFD700' : '#e2e8f0', marginBottom: '1rem' }}>
+            {perfect ? 'PERFECT RUN!' : 'RUN COMPLETE!'}
+          </p>
+          <div className="rounded-lg p-3 mb-3" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.45rem', color: '#888', marginBottom: 4 }}>SCORE</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: '1.1rem', color: '#FFD700' }}>{state.score.toLocaleString()}</div>
+          </div>
+          <div className="flex gap-2 mb-4">
+            <div className="flex-1 rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#888' }}>ACCURACY</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', color: perfect ? '#22c55e' : '#fff', marginTop: 3 }}>{accuracy}%</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.35rem', color: '#666', marginTop: 3 }}>{state.correctCount}/{state.total}</div>
+            </div>
+            <div className="flex-1 rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#888' }}>TIME</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.7rem', color: '#fff', marginTop: 3 }}>{fmt(state.elapsed)}</div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <button onClick={game.replayArcade}
+              className="w-full py-3 rounded-lg font-bold text-black"
+              style={{ fontFamily: PIXEL_FONT, fontSize: '0.6rem', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>
+              ↻ PLAY AGAIN
+            </button>
+            <button onClick={game.goArcadeSelect}
+              className="w-full py-2 rounded-lg"
+              style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>
+              ☰ CHANGE LEVEL
+            </button>
+            <button onClick={game.goMenu}
+              className="w-full py-2 rounded-lg"
+              style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#555', background: 'transparent', border: '1px solid #333', cursor: 'pointer' }}>
+              ← MENU
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
   // CAUGHT
   // =========================================================================
   if (state.screen === 'caught' && game.activeBattle && game.activeRegion) {
@@ -522,23 +617,35 @@ export default function Home() {
   // =========================================================================
   // PLAYING
   // =========================================================================
-  if (state.screen === 'playing' && game.activeBattle && game.activeRegion) {
+  if (state.screen === 'playing' && state.question) {
+    const journey = state.mode === 'journey';
     const b = game.activeBattle;
     const region = game.activeRegion;
-    const progressPct = Math.min((state.correctCount / b.questionCount) * 100, 100);
+    const arcadeLevel = state.arcadeLevelId ? getArcadeLevel(state.arcadeLevelId) : null;
+
+    const accent = journey ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
+    const bg = journey ? region?.bgGradient ?? panelBg : panelBg;
+    const title = journey ? `${b?.isBoss ? '★ ' : ''}${b?.pokemon.toUpperCase() ?? ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
+    const doneCount = journey ? state.correctCount : state.attempted;
+    const progressPct = Math.min((doneCount / state.total) * 100, 100);
+    const onExit = journey ? () => game.openRegion(region!.id) : game.goArcadeSelect;
+
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: region.bgGradient }}>
+      <div className="min-h-screen flex flex-col" style={{ background: bg }}>
         {/* HUD */}
         <div className="flex items-center justify-between px-4 py-2 shrink-0"
-          style={{ background: 'rgba(0,0,0,0.6)', borderBottom: `1px solid ${region.accentColor}44` }}>
-          <button onClick={() => game.openRegion(region.id)} style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-          <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: region.accentColor }}>
-            {b.isBoss ? '★ ' : ''}{b.pokemon.toUpperCase()}
-          </div>
+          style={{ background: 'rgba(0,0,0,0.6)', borderBottom: `1px solid ${accent}44` }}>
+          <button onClick={onExit} style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: accent }}>{title}</div>
           <div className="flex gap-3">
-            {state.timeRemaining !== null && (
+            {journey && state.timeRemaining !== null && (
               <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: state.timeRemaining <= 10 ? '#ef4444' : '#22c55e' }}>
                 ⏱ {state.timeRemaining}
+              </span>
+            )}
+            {!journey && (
+              <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#22c55e' }}>
+                {state.correctCount}✓
               </span>
             )}
             <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#FFD700' }}>{state.score.toLocaleString()}</span>
@@ -546,22 +653,28 @@ export default function Home() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-between px-4 py-4 max-w-sm mx-auto w-full gap-3">
-          {/* Wild Pokémon + power bar */}
-          <div className="w-full flex items-center gap-3">
-            <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? region.accentColor : undefined} fallback={artwork(b.dex)} />
-            <div className="flex-1">
-              <PowerBar correct={state.correctCount} total={b.questionCount} accentColor={region.accentColor} />
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.38rem', color: '#888', marginTop: 4 }}>
-                {b.questionCount - state.correctCount} MORE TO CATCH!
-              </p>
+          {/* Journey: wild Pokémon + power bar. Arcade: progress bar only. */}
+          {journey && b ? (
+            <div className="w-full flex items-center gap-3">
+              <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} />
+              <div className="flex-1">
+                <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
+                <p style={{ fontFamily: PIXEL_FONT, fontSize: '0.38rem', color: '#888', marginTop: 4 }}>
+                  {state.total - state.correctCount} MORE TO CATCH!
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="w-full">
+              <PowerBar correct={state.attempted} total={state.total} accentColor={accent} />
+            </div>
+          )}
 
           {/* Question */}
           <div className="w-full rounded-xl px-4 py-3 text-center"
-            style={{ background: 'rgba(0,0,0,0.65)', border: `2px solid ${region.accentColor}`, boxShadow: `0 0 12px ${region.accentColor}22` }}>
+            style={{ background: 'rgba(0,0,0,0.65)', border: `2px solid ${accent}`, boxShadow: `0 0 12px ${accent}22` }}>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.4rem', color: '#888', marginBottom: 6 }}>
-              QUESTION {state.correctCount + 1} OF {b.questionCount}
+              QUESTION {(journey ? state.correctCount : state.attempted) + 1} OF {state.total}
             </div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: '1.3rem', color: '#fff', letterSpacing: '0.04em', lineHeight: 1.5 }}>
               {state.question?.text ?? '...'}
@@ -586,7 +699,7 @@ export default function Home() {
           <div className="w-full">
             <NumberKeypad
               currentInput={input}
-              accent={region.accentColor}
+              accent={accent}
               onKey={appendKey}
               onToggleSign={toggleSign}
               onDelete={() => setInput(prev => prev.slice(0, -1))}
