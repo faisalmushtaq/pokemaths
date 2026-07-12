@@ -26,6 +26,10 @@ import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount } from '@/lib/pokedex';
 import {
+  loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile,
+  MAX_PROFILES, AVATAR_CHOICES,
+} from '@/lib/profiles';
+import {
   isBattleUnlocked,
   isRegionUnlocked,
   regionComplete,
@@ -240,14 +244,67 @@ function PokeballLogo({ size }: { size: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// PIN PAD (profile lock)
+// ---------------------------------------------------------------------------
+function PinPad({ onDigit, onDelete, accent }: { onDigit: (d: string) => void; onDelete: () => void; accent: string }) {
+  const k: CSSProperties = {
+    fontFamily: PIXEL_FONT, fontSize: FS.key, padding: 'clamp(0.6rem,2vh,1rem) 0',
+    background: 'linear-gradient(135deg, #1e3a5f, #0d2137)', border: `2px solid ${accent}`, cursor: 'pointer', color: '#fff',
+  };
+  return (
+    <div className="grid grid-cols-3 gap-2 w-full" style={{ maxWidth: '15rem' }}>
+      {['1','2','3','4','5','6','7','8','9'].map((d) => (
+        <button key={d} className="rounded-lg select-none active:scale-95 transition-transform" style={k}
+          onPointerDown={(e) => { e.preventDefault(); onDigit(d); }}>{d}</button>
+      ))}
+      <div />
+      <button className="rounded-lg select-none active:scale-95 transition-transform" style={k}
+        onPointerDown={(e) => { e.preventDefault(); onDigit('0'); }}>0</button>
+      <button className="rounded-lg select-none active:scale-95 transition-transform"
+        style={{ ...k, fontSize: FS.btn, border: '2px solid #ef4444', background: 'linear-gradient(135deg, #4a1a1a, #2d0a0a)' }}
+        onPointerDown={(e) => { e.preventDefault(); onDelete(); }}>DEL</button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // MAIN
 // ---------------------------------------------------------------------------
 export default function Home() {
-  const game = useGame();
+  const [profilesData, setProfilesData] = useState(loadProfiles);
+  const activeId = profilesData.activeId;
+  const activeProfile = getProfile(profilesData, activeId);
+  const game = useGame(activeId);
   const { state, save } = game;
   const nameOf = useSpeciesNames();
   const entryDetail = useSpeciesDetail(state.screen === 'pokedexEntry' ? state.selectedDex : null);
   const [input, setInput] = useState('');
+
+  // profile flow state (shown when no player is active)
+  const [profScreen, setProfScreen] = useState<'select' | 'create'>('select');
+  const [manageProfiles, setManageProfiles] = useState(false);
+  const [pinTarget, setPinTarget] = useState<string | null>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAvatar, setNewAvatar] = useState(AVATAR_CHOICES[0]);
+  const [newPin, setNewPin] = useState('');
+
+  const chooseProfile = (id: string) => {
+    const p = getProfile(profilesData, id);
+    if (p?.pin) { setPinTarget(id); setPinInput(''); setPinError(false); }
+    else setProfilesData(setActiveProfile(id));
+  };
+  const submitPin = (pin: string) => {
+    const p = getProfile(profilesData, pinTarget);
+    if (p && p.pin === pin) { setProfilesData(setActiveProfile(pinTarget)); setPinTarget(null); setPinInput(''); }
+    else { setPinError(true); setPinInput(''); }
+  };
+  const doCreate = () => {
+    setProfilesData(createProfile(newName, newAvatar, newPin.length === 4 ? newPin : undefined));
+    setProfScreen('select'); setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]);
+  };
+  const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
 
   useEffect(() => { setInput(''); }, [state.question]);
 
@@ -290,6 +347,119 @@ export default function Home() {
   );
 
   // =========================================================================
+  // PROFILE FLOW (shown when no player is active)
+  // =========================================================================
+  const profBg = 'radial-gradient(circle at 50% 25%, #241456 0%, #14093a 45%, #0a0a1a 100%)';
+
+  if (!activeId && pinTarget) {
+    const p = getProfile(profilesData, pinTarget)!;
+    return (
+      <Screen bg={profBg}>
+        <NavBar onHome={() => { setPinTarget(null); setPinError(false); }} onBack={() => { setPinTarget(null); setPinError(false); }} title={p.name.toUpperCase()} />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
+            <img src={pixelSprite(p.avatarDex)} alt={p.name}
+              onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(p.avatarDex)) i.src = artwork(p.avatarDex); }}
+              style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#a78bfa' }}>ENTER PIN</div>
+            <div className="flex gap-3">
+              {[0,1,2,3].map((i) => (
+                <div key={i} style={{ width: 'clamp(14px,4vw,20px)', height: 'clamp(14px,4vw,20px)', borderRadius: '50%', border: `2px solid ${pinError ? '#ef4444' : '#FFD700'}`, background: i < pinInput.length ? (pinError ? '#ef4444' : '#FFD700') : 'transparent' }} />
+              ))}
+            </div>
+            {pinError && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#ef4444' }}>WRONG PIN — TRY AGAIN</div>}
+            <PinPad accent="#a78bfa"
+              onDigit={(d) => { const v = (pinInput + d).slice(0, 4); setPinInput(v); setPinError(false); if (v.length === 4) submitPin(v); }}
+              onDelete={() => { setPinInput(pinInput.slice(0, -1)); setPinError(false); }} />
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  if (!activeId && profScreen === 'create') {
+    const canCreate = newName.trim().length > 0;
+    return (
+      <Screen bg={profBg} scroll>
+        <NavBar onHome={() => setProfScreen('select')} onBack={() => setProfScreen('select')} title="NEW PLAYER" accent="#FFD700" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
+            <img src={pixelSprite(newAvatar)} alt="avatar"
+              onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(newAvatar)) i.src = artwork(newAvatar); }}
+              style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 0 10px #FFD700)` }} />
+            <input value={newName} onChange={(e) => setNewName(e.target.value.slice(0, 12))} placeholder="NAME" maxLength={12}
+              className="w-full text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.9rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #FFD700', color: '#FFD700', outline: 'none', maxWidth: '18rem' }} />
+            <div className="w-full">
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 8, textAlign: 'center' }}>PICK AN AVATAR</div>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(48px,14vw,72px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.6rem)' }}>
+                {AVATAR_CHOICES.map((dex) => (
+                  <button key={dex} onClick={() => setNewAvatar(dex)} className="rounded-lg flex items-center justify-center"
+                    style={{ padding: 4, background: 'rgba(0,0,0,0.4)', border: `2px solid ${newAvatar === dex ? '#FFD700' : '#333'}`, cursor: 'pointer' }}>
+                    <img src={pixelSprite(dex)} alt="" loading="lazy"
+                      onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(dex)) i.src = artwork(dex); }}
+                      style={{ width: 'clamp(40px,11vw,56px)', height: 'clamp(40px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="w-full flex flex-col items-center" style={{ gap: 8 }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888' }}>PIN (OPTIONAL)</div>
+              <input value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 DIGITS" inputMode="numeric"
+                className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.75rem 1rem', letterSpacing: '0.4em', background: 'rgba(0,0,0,0.5)', border: '2px solid #a78bfa', color: '#a78bfa', outline: 'none', width: '10rem' }} />
+            </div>
+            <button onClick={doCreate} disabled={!canCreate} className="w-full rounded-xl font-bold text-black"
+              style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', background: canCreate ? 'linear-gradient(135deg, #FFD700, #FFA500)' : '#333', color: canCreate ? '#000' : '#666', border: '2px solid #FFD700', cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.5 }}>
+              ✓ CREATE PLAYER
+            </button>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  if (!activeId) {
+    return (
+      <Screen bg={profBg} scroll>
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: 'clamp(1.25rem,5vh,3rem) 1rem' }}>
+          <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
+            <PokeballLogo size="clamp(72px, 20vw, 130px)" />
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textShadow: '0 0 16px rgba(255,215,0,0.6)', textAlign: 'center' }}>WHO'S PLAYING?</div>
+            <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(96px,28vw,150px), 1fr))', gap: 'clamp(0.6rem,2vw,1rem)' }}>
+              {profilesData.profiles.map((p) => (
+                <div key={p.id} className="relative rounded-xl flex flex-col items-center"
+                  style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #FFD700', boxShadow: '0 0 10px rgba(255,215,0,0.2)' }}>
+                  <button onClick={() => !manageProfiles && chooseProfile(p.id)} className="flex flex-col items-center w-full" style={{ background: 'none', border: 'none', cursor: manageProfiles ? 'default' : 'pointer' }}>
+                    <img src={pixelSprite(p.avatarDex)} alt={p.name} loading="lazy"
+                      onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(p.avatarDex)) i.src = artwork(p.avatarDex); }}
+                      style={{ width: 'clamp(56px,16vw,88px)', height: 'clamp(56px,16vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>{p.name.toUpperCase()}{p.pin ? ' 🔒' : ''}</span>
+                  </button>
+                  {manageProfiles && (
+                    <button onClick={() => setProfilesData(deleteProfile(p.id))} aria-label="Delete"
+                      style={{ position: 'absolute', top: -8, right: -8, width: 26, height: 26, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✕</button>
+                  )}
+                </div>
+              ))}
+              {profilesData.profiles.length < MAX_PROFILES && (
+                <button onClick={() => setProfScreen('create')} className="rounded-xl flex flex-col items-center justify-center"
+                  style={{ padding: 'clamp(0.6rem,2vw,1rem)', minHeight: 'clamp(110px,32vw,170px)', background: 'rgba(56,189,248,0.06)', border: '2px dashed #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 'clamp(1.6rem,6vw,2.4rem)' }}>＋</span>
+                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, marginTop: 8 }}>NEW PLAYER</span>
+                </button>
+              )}
+            </div>
+            {profilesData.profiles.length > 0 && (
+              <button onClick={() => setManageProfiles((m) => !m)} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: manageProfiles ? '#FFD700' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}>
+                {manageProfiles ? '✓ DONE' : '✎ MANAGE'}
+              </button>
+            )}
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
   // MENU
   // =========================================================================
   if (state.screen === 'menu') {
@@ -328,6 +498,15 @@ export default function Home() {
 
           {/* Footer: about / login + copyright */}
           <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1rem)' }}>
+            {activeProfile && (
+              <button onClick={switchPlayer} className="flex items-center gap-2 rounded-lg" style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid #333', cursor: 'pointer' }}>
+                <img src={pixelSprite(activeProfile.avatarDex)} alt=""
+                  onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(activeProfile.avatarDex)) i.src = artwork(activeProfile.avatarDex); }}
+                  style={{ width: 24, height: 24, imageRendering: 'pixelated', objectFit: 'contain' }} />
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700' }}>{activeProfile.name.toUpperCase()}</span>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>· SWITCH</span>
+              </button>
+            )}
             <div className="flex items-center justify-center gap-6">
               <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
               <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>

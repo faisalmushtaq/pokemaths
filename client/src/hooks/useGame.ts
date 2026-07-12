@@ -7,7 +7,7 @@ import {
 import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'arcade';
@@ -87,11 +87,19 @@ const INITIAL: GameState = {
   selectedDex: null,
 };
 
-export function useGame() {
-  const [save, setSave] = useState<SaveData>(() => loadSave());
+export function useGame(profileId: string | null) {
+  const [save, setSave] = useState<SaveData>(() => (profileId ? loadSave(profileId) : EMPTY_SAVE));
   const [state, setState] = useState<GameState>(INITIAL);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const questionStart = useRef<number>(Date.now());
+  const profileRef = useRef(profileId);
+  profileRef.current = profileId;
+
+  // Load the active profile's save; reset the game when switching players.
+  useEffect(() => {
+    setSave(profileId ? loadSave(profileId) : EMPTY_SAVE);
+    setState(INITIAL);
+  }, [profileId]);
 
   const clearFeedbackTimer = () => {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
@@ -226,9 +234,10 @@ export function useGame() {
 
       if (done) {
         const perfect = nextCorrect === s.total;
-        if (perfect) {
+        if (perfect && profileRef.current) {
+          const pid = profileRef.current;
           setSave((prev) =>
-            recordWin(prev, battle.id, {
+            recordWin(pid, prev, battle.id, {
               dex: battle.dex,
               name: getName(battle.dex),
               region: region.id,
