@@ -30,6 +30,7 @@ import {
   MAX_PROFILES, AVATAR_CHOICES,
 } from '@/lib/profiles';
 import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
+import { buildShareCard, shareCatch, downloadCard } from '@/lib/shareCard';
 import {
   isBattlePlayable,
   isRegionUnlocked,
@@ -307,6 +308,40 @@ export default function Home() {
     setProfScreen('select'); setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]);
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
+
+  // ----- shareable catch card (built eagerly so Share works in one tap) -----
+  const [cardBlob, setCardBlob] = useState<Blob | null>(null);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const caughtBattle = state.screen === 'caught' ? game.activeBattle : null;
+  const caughtRegion = state.screen === 'caught' ? game.activeRegion : null;
+  useEffect(() => {
+    setCardBlob(null);
+    setShareMsg(null);
+    if (!caughtBattle || !caughtRegion) return;
+    let alive = true;
+    buildShareCard({
+      dex: caughtBattle.dex,
+      name: nameOf(caughtBattle.dex),
+      region: caughtRegion.name,
+      accent: caughtRegion.accentColor,
+      topic: getTopic(caughtBattle.topic).name,
+      artworkUrl: artwork(caughtBattle.dex),
+      spriteUrl: pixelSprite(caughtBattle.dex),
+    }).then((b) => alive && setCardBlob(b)).catch(() => {});
+    return () => { alive = false; };
+  }, [caughtBattle?.dex, caughtRegion?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onShareCatch = async () => {
+    if (!caughtBattle) return;
+    const res = await shareCatch(cardBlob, caughtBattle.dex, nameOf(caughtBattle.dex));
+    if (res === 'copied') setShareMsg('COPIED TO CLIPBOARD!');
+    else if (res === 'failed') setShareMsg('SHARING NOT AVAILABLE');
+  };
+  const onSaveCatch = () => {
+    if (!caughtBattle) return;
+    if (cardBlob) { downloadCard(cardBlob, caughtBattle.dex, nameOf(caughtBattle.dex)); setShareMsg('IMAGE SAVED!'); }
+    else setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE");
+  };
 
   // ----- cloud sync (Google account) -----
   const { user: cloudUser } = useAuthUser();
@@ -728,6 +763,11 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
               </div>
+              <div className="flex gap-2 mb-2">
+                <button onClick={onShareCatch} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
+                <button onClick={onSaveCatch} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+              </div>
+              {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginBottom: 8 }}>{shareMsg}</div>}
               <div className="flex flex-col gap-2">
                 <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ CONTINUE</button>
                 <button onClick={game.goPokedex} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>📕 VIEW POKÉDEX</button>
