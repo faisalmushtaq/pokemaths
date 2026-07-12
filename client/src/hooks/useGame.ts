@@ -8,6 +8,7 @@ import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
 import { loadSave, recordWin, type SaveData } from '@/lib/pokedex';
+import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'arcade';
 
@@ -123,9 +124,9 @@ export function useGame() {
       mode: 'journey',
       regionId: region.id,
       battleId: battle.id,
-      question: topic.generate(1),
+      question: topic.generate(battle.level),
       total: battle.questionCount,
-      level: 1,
+      level: battle.level,
       maxLevel: topic.maxLevel,
       timeRemaining: battle.timeLimitSec ?? null,
     });
@@ -205,7 +206,7 @@ export function useGame() {
         setSave((prev) =>
           recordWin(prev, battle.id, {
             dex: battle.dex,
-            name: battle.pokemon,
+            name: getName(battle.dex),
             region: region.id,
             caughtAt: Date.now(),
           }),
@@ -222,13 +223,14 @@ export function useGame() {
       }
       questionStart.current = Date.now();
       const topic = getTopic(battle.topic);
-      const lv = levelForProgress(nextCorrect, s.total, topic.maxLevel);
+      // Journey battles are a fixed difficulty; difficulty grades across the
+      // region's sequence of battles, not within one battle.
       return {
         ...s,
         correctCount: nextCorrect,
         score: s.score + points,
-        question: topic.generate(lv),
-        level: lv,
+        question: topic.generate(battle.level),
+        level: battle.level,
         maxLevel: topic.maxLevel,
         questionIndex: s.questionIndex + 1,
         feedback: feedbackMsg,

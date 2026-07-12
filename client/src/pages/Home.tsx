@@ -13,16 +13,16 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
 import {
-  ALL_BATTLES,
+  REGIONS,
   MAINLINE_REGIONS,
   SECRET_REGIONS,
   getRegion,
-  type Battle,
   type Region,
 } from '@/lib/regions';
 import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
+import { useSpeciesNames } from '@/lib/species';
 import { caughtCount } from '@/lib/pokedex';
 import {
   isBattleUnlocked,
@@ -226,6 +226,7 @@ function PokemonSprite({ src, name, size = 140, glow, bounce = true, fallback, l
 export default function Home() {
   const game = useGame();
   const { state, save } = game;
+  const nameOf = useSpeciesNames();
   const [input, setInput] = useState('');
 
   useEffect(() => { setInput(''); }, [state.question]);
@@ -375,13 +376,13 @@ export default function Home() {
                 return (
                   <button key={b.id} disabled={!unlocked} onClick={() => unlocked && game.startBattle(b.id)}
                     className="w-full rounded-xl text-left flex items-center gap-3"
-                    style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
-                    <img src={pixelSprite(b.dex)} alt={b.pokemon}
+                    style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed', contentVisibility: 'auto', containIntrinsicSize: '0 84px' }}>
+                    <img src={pixelSprite(b.dex)} alt={won ? nameOf(b.dex) : 'Unknown'} loading="lazy"
                       onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
                       style={{ width: 'clamp(40px,12vw,60px)', height: 'clamp(40px,12vw,60px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || won ? 'none' : 'brightness(0)' }} />
                     <div className="flex-1" style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{unlocked || won ? b.pokemon.toUpperCase() : '???'}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa', marginTop: 3 }}>{topic.name}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{unlocked || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa', marginTop: 3 }}>#{b.dex} · {topic.name}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', marginTop: 3 }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? ` · ⏱${b.timeLimitSec}s` : ''}</div>
                     </div>
                     <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0 }}>{won ? '✅' : unlocked ? '' : '🔒'}</div>
@@ -483,9 +484,9 @@ export default function Home() {
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #FFD700', boxShadow: '0 0 40px rgba(255,215,0,0.3)' }}>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>GOTCHA!</div>
               <div className="flex justify-center mb-3">
-                <PokemonSprite src={artwork(b.dex)} name={b.pokemon} size={150} glow={game.activeRegion.accentColor} />
+                <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={150} glow={game.activeRegion.accentColor} />
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{b.pokemon.toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{nameOf(b.dex).toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</p>
               <div className="rounded-lg mb-4" style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
@@ -515,9 +516,9 @@ export default function Home() {
               <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>💨</div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', marginBottom: '0.75rem' }}>{state.feedback === "Time's up!" ? "TIME'S UP!" : 'IT GOT AWAY!'}</div>
               <div className="flex justify-center mb-3">
-                <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={110} bounce={false} fallback={artwork(b.dex)} />
+                <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={110} bounce={false} fallback={artwork(b.dex)} />
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU NEED 100% TO CATCH<br />{b.pokemon.toUpperCase()}. TRY AGAIN!</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU NEED 100% TO CATCH<br />{nameOf(b.dex).toUpperCase()}. TRY AGAIN!</p>
               <div className="flex flex-col gap-2">
                 <button onClick={game.retryBattle} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY</button>
                 <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
@@ -539,15 +540,29 @@ export default function Home() {
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '1rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
-            <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(72px, 22vw, 110px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
-              {ALL_BATTLES.map((b: Battle) => {
-                const owned = Boolean(save.caught[b.dex]);
+            <div className="flex flex-col gap-4 w-full">
+              {REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg)).map((rg) => {
+                const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
                 return (
-                  <div key={b.id} className="rounded-lg p-2 flex flex-col items-center" style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#FFD700' : '#333'}` }}>
-                    <img src={pixelSprite(b.dex)} alt={owned ? b.pokemon : 'Unknown'}
-                      onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
-                      style={{ width: 'clamp(48px,14vw,80px)', height: 'clamp(48px,14vw,80px)', objectFit: 'contain', imageRendering: 'pixelated', filter: owned ? 'none' : 'brightness(0)' }} />
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: owned ? '#FFD700' : '#555', marginTop: 4, textAlign: 'center' }}>{owned ? b.pokemon : '???'}</span>
+                  <div key={rg.id} className="w-full">
+                    <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: rg.accentColor }}>{rg.name.toUpperCase()}</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{owned}/{rg.battles.length}</span>
+                    </div>
+                    <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(56px, 16vw, 84px), 1fr))', gap: 'clamp(0.3rem,1.2vw,0.6rem)' }}>
+                      {rg.battles.map((b) => {
+                        const isOwned = Boolean(save.caught[b.dex]);
+                        return (
+                          <div key={b.id} className="rounded-lg p-1 flex flex-col items-center"
+                            style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid ${isOwned ? rg.accentColor : '#2a2a2a'}`, contentVisibility: 'auto', containIntrinsicSize: '0 84px' }}>
+                            <img src={pixelSprite(b.dex)} alt={isOwned ? nameOf(b.dex) : 'Unknown'} loading="lazy"
+                              onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
+                              style={{ width: 'clamp(40px,12vw,64px)', height: 'clamp(40px,12vw,64px)', objectFit: 'contain', imageRendering: 'pixelated', filter: isOwned ? 'none' : 'brightness(0)' }} />
+                            <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.3rem', color: isOwned ? '#FFD700' : '#555', marginTop: 2, textAlign: 'center', lineHeight: 1.3 }}>{isOwned ? nameOf(b.dex) : `#${b.dex}`}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -641,7 +656,7 @@ export default function Home() {
     const arcadeLevel = state.arcadeLevelId ? getArcadeLevel(state.arcadeLevelId) : null;
     const accent = journey ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
     const bg = journey ? region?.bgGradient ?? panelBg : panelBg;
-    const title = journey ? `${b?.isBoss ? '★ ' : ''}${b?.pokemon.toUpperCase() ?? ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
+    const title = journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = journey ? state.correctCount : state.attempted;
     const progressPct = Math.min((doneCount / state.total) * 100, 100);
     const onExit = journey ? () => game.openRegion(region!.id) : game.goArcadeSelect;
@@ -665,7 +680,7 @@ export default function Home() {
             {/* Wild Pokémon (journey) / progress (arcade) */}
             {journey && b ? (
               <div className="w-full flex items-center gap-3 shrink-0">
-                <PokemonSprite src={pixelSprite(b.dex)} name={b.pokemon} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
+                <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
                 <div className="flex-1">
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 4 }}>{state.total - state.correctCount} MORE TO CATCH!</p>
