@@ -40,6 +40,33 @@ export interface Region {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, hi));
 
+// National-dex numbers of legendary & mythical Pokémon — these become special
+// timed boss encounters within their region (in addition to each region's final
+// species). Catching them still needs 100% accuracy, but now against the clock.
+const LEGENDARY_DEX = new Set<number>([
+  // Gen I
+  144, 145, 146, 150, 151,
+  // Gen II
+  243, 244, 245, 249, 250, 251,
+  // Gen III
+  377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
+  // Gen IV
+  480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493,
+  // Gen V
+  494, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649,
+  // Gen VI
+  716, 717, 718, 719, 720, 721,
+  // Gen VII
+  785, 786, 787, 788, 789, 790, 791, 792, 800, 801, 802, 807, 808, 809,
+  // Gen VIII
+  888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 905,
+  // Gen IX (+ DLC)
+  1001, 1002, 1003, 1004, 1007, 1008, 1013, 1014, 1015, 1017, 1024, 1025,
+]);
+
+// Early regions run shorter battles; later regions run longer ones.
+const EARLY_REGIONS = new Set(['kanto', 'johto', 'hoenn', 'sinnoh', 'unova']);
+
 interface RegionDef {
   id: string;
   name: string;
@@ -91,21 +118,24 @@ const REGION_DEFS: RegionDef[] = [
 function buildBattles(def: RegionDef): Battle[] {
   const [start, end] = def.dexRange;
   const count = end - start + 1;
+  // 15 questions in early regions, 20 in later ones — this is a long journey.
+  const questionCount = EARLY_REGIONS.has(def.id) ? 15 : 20;
   const battles: Battle[] = [];
   for (let i = 0; i < count; i++) {
     const dex = start + i;
     const topic = def.topics[i % def.topics.length];
     const maxLevel = getTopic(topic).maxLevel;
     const level = clamp(1 + Math.floor((i / count) * maxLevel), 1, maxLevel);
-    const isBoss = i === count - 1;
+    const isBoss = LEGENDARY_DEX.has(dex) || i === count - 1;
     battles.push({
       id: `${def.id}-${dex}`,
       regionId: def.id,
       dex,
       topic,
       level,
-      questionCount: isBoss ? 8 : 5,
-      ...(isBoss ? { isBoss: true, timeLimitSec: 60 } : {}),
+      questionCount,
+      // Bosses are timed — roughly 12 seconds per question.
+      ...(isBoss ? { isBoss: true, timeLimitSec: questionCount * 12 } : {}),
     });
   }
   return battles;
