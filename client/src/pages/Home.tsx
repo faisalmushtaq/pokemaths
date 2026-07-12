@@ -351,7 +351,7 @@ export default function Home() {
       const caught = region.battles.filter(b => save.wonBattles.includes(b.id)).length;
       return (
         <button key={region.id} disabled={!unlocked} onClick={() => unlocked && game.openRegion(region.id)}
-          className="w-full rounded-xl text-left flex items-center gap-3"
+          className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
           style={{
             padding: 'clamp(0.7rem,2.5vw,1.1rem)',
             background: unlocked ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.4)',
@@ -405,7 +405,7 @@ export default function Home() {
                 const topic = getTopic(b.topic);
                 return (
                   <button key={b.id} disabled={!unlocked} onClick={() => unlocked && game.startBattle(b.id)}
-                    className="w-full rounded-xl text-left flex items-center gap-3"
+                    className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
                     style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
                     <img src={pixelSprite(b.dex)} alt={won ? nameOf(b.dex) : 'Unknown'} loading="lazy"
                       onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
@@ -438,7 +438,7 @@ export default function Home() {
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
             <div className="flex flex-col gap-2 w-full">
               {ARCADE_LEVELS.map((lvl, i) => (
-                <button key={lvl.id} onClick={() => game.startArcade(lvl.id)} className="w-full rounded-xl text-left flex items-center gap-3"
+                <button key={lvl.id} onClick={() => game.startArcade(lvl.id)} className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
                   style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${lvl.accentColor}`, boxShadow: `0 0 8px ${lvl.accentColor}22`, cursor: 'pointer' }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: lvl.accentColor, width: 'clamp(1.5rem,6vw,2.2rem)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
                   <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
