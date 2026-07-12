@@ -6,7 +6,7 @@
 // account (googleUid) for cross-device cloud sync.
 // =============================================================================
 
-import { deleteSave, persistSave, takeLegacySave } from './pokedex';
+import { deleteSave, persistSave, loadSave, EMPTY_SAVE, takeLegacySave, type SaveData } from './pokedex';
 
 export interface Profile {
   id: string;
@@ -105,4 +105,27 @@ export function updateProfile(id: string, patch: Partial<Profile>): ProfilesData
 
 export function getProfile(d: ProfilesData, id: string | null): Profile | undefined {
   return id ? d.profiles.find((p) => p.id === id) : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// snapshot helpers (used by the cloud-sync layer)
+// ---------------------------------------------------------------------------
+export interface LocalSnapshot {
+  profiles: Profile[];
+  activeId: string | null;
+  saves: Record<string, SaveData>;
+}
+
+/** Read every local profile + its save as one object. */
+export function snapshotLocal(): LocalSnapshot {
+  const d = read();
+  const saves: Record<string, SaveData> = {};
+  for (const p of d.profiles) saves[p.id] = loadSave(p.id);
+  return { profiles: d.profiles, activeId: d.activeId, saves };
+}
+
+/** Overwrite local profiles + saves (used when applying a merged cloud state). */
+export function replaceLocal(profiles: Profile[], saves: Record<string, SaveData>, activeId: string | null): void {
+  for (const p of profiles) persistSave(p.id, saves[p.id] ?? EMPTY_SAVE);
+  write({ version: 1, activeId, profiles });
 }

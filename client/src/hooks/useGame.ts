@@ -318,10 +318,15 @@ export function useGame(profileId: string | null) {
     if (state.arcadeLevelId) startArcade(state.arcadeLevelId);
   }, [state.arcadeLevelId, startArcade]);
 
+  const reloadSave = useCallback(() => {
+    setSave(profileRef.current ? loadSave(profileRef.current) : EMPTY_SAVE);
+  }, []);
+
   const active = state.battleId ? findBattle(state.battleId) : undefined;
 
   return {
     save,
+    reloadSave,
     state,
     activeBattle: active?.battle ?? null,
     activeRegion: active?.region ?? null,

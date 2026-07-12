@@ -29,6 +29,7 @@ import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile,
   MAX_PROFILES, AVATAR_CHOICES,
 } from '@/lib/profiles';
+import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
 import {
   isBattleUnlocked,
   isRegionUnlocked,
@@ -305,6 +306,24 @@ export default function Home() {
     setProfScreen('select'); setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]);
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
+
+  // ----- cloud sync (Google account) -----
+  const { user: cloudUser } = useAuthUser();
+  // On sign-in, merge local ⇄ cloud, then refresh profiles + active save.
+  useEffect(() => {
+    if (!cloudUser) return;
+    let alive = true;
+    pullAndMerge(cloudUser.uid).then(() => {
+      if (!alive) return;
+      setProfilesData(loadProfiles());
+      game.reloadSave();
+    });
+    return () => { alive = false; };
+  }, [cloudUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Push whenever profiles or the active save change while signed in.
+  useEffect(() => {
+    if (cloudUser) pushAllDebounced(cloudUser.uid);
+  }, [cloudUser, profilesData, save]);
 
   useEffect(() => { setInput(''); }, [state.question]);
 
@@ -832,28 +851,48 @@ export default function Home() {
   // LOGIN (Google sync — coming soon)
   // =========================================================================
   if (state.screen === 'login') {
+    const signedIn = Boolean(cloudUser);
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="LOG IN" accent="#38bdf8" />
+        <NavBar onHome={game.goMenu} title="ACCOUNT" accent="#38bdf8" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.7)', border: '2px solid #38bdf8' }}>
-              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>👤</div>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>SAVE ACROSS DEVICES</div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '1.25rem' }}>
-                Sign in with Google to sync your Pokédex and progress to every device.
-              </p>
-              <button disabled aria-disabled
-                className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
-                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: 'rgba(255,255,255,0.1)', color: '#888', border: '1px solid #444', cursor: 'not-allowed' }}>
-                <span>🔒</span> SIGN IN WITH GOOGLE
-              </button>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#eab308', lineHeight: 2, marginTop: '1rem' }}>
-                COMING SOON
-              </p>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginTop: '0.5rem' }}>
-                For now, your progress is saved safely on this device.
-              </p>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>{signedIn ? '☁️' : '👤'}</div>
+              {!firebaseReady() ? (
+                <>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>CLOUD SYNC</div>
+                  <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 2 }}>Not configured yet.<br />Your progress is saved on this device.</p>
+                </>
+              ) : signedIn ? (
+                <>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#22c55e', marginBottom: '0.75rem' }}>SYNCED ✓</div>
+                  <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '0.75rem' }}>
+                    Signed in as<br /><span style={{ color: '#FFD700' }}>{cloudUser!.email ?? cloudUser!.displayName ?? 'your account'}</span>
+                  </p>
+                  <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginBottom: '1.25rem' }}>
+                    Your {profilesData.profiles.length} profile{profilesData.profiles.length === 1 ? '' : 's'} sync to this account on every device.
+                  </p>
+                  <button onClick={() => signOutCloud()} className="w-full rounded-lg font-bold"
+                    style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: 'transparent', color: '#ef4444', border: '2px solid #ef4444', cursor: 'pointer' }}>
+                    SIGN OUT
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>SAVE ACROSS DEVICES</div>
+                  <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '1.25rem' }}>
+                    Sign in with Google to sync your profiles and Pokédex to every device.
+                  </p>
+                  <button onClick={() => signInGoogle()} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
+                    style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
+                    <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
+                  </button>
+                  <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginTop: '1rem' }}>
+                    Free while in testing. Without an account, progress is saved on this device.
+                  </p>
+                </>
+              )}
             </div>
           </Frame>
         </div>
