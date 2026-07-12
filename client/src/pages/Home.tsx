@@ -309,37 +309,48 @@ export default function Home() {
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
 
-  // ----- shareable catch card (built eagerly so Share works in one tap) -----
+  // ----- shareable catch card (caught screen + Pokédex entry) -----
   const [cardBlob, setCardBlob] = useState<Blob | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const caughtBattle = state.screen === 'caught' ? game.activeBattle : null;
-  const caughtRegion = state.screen === 'caught' ? game.activeRegion : null;
+  // What to make a card for on the current screen.
+  const cardTarget = (() => {
+    if (state.screen === 'caught' && game.activeBattle && game.activeRegion) {
+      return { battle: game.activeBattle, region: game.activeRegion };
+    }
+    if (state.screen === 'pokedexEntry' && state.selectedDex != null) {
+      const f = findBattleByDex(state.selectedDex);
+      return f ? { battle: f.battle, region: f.region } : null;
+    }
+    return null;
+  })();
+  const cardDex = cardTarget?.battle.dex ?? null;
   useEffect(() => {
     setCardBlob(null);
     setShareMsg(null);
-    if (!caughtBattle || !caughtRegion) return;
+    if (!cardTarget) return;
+    const { battle, region } = cardTarget;
     let alive = true;
     buildShareCard({
-      dex: caughtBattle.dex,
-      name: nameOf(caughtBattle.dex),
-      region: caughtRegion.name,
-      accent: caughtRegion.accentColor,
-      topic: getTopic(caughtBattle.topic).name,
-      artworkUrl: artwork(caughtBattle.dex),
-      spriteUrl: pixelSprite(caughtBattle.dex),
+      dex: battle.dex,
+      name: nameOf(battle.dex),
+      region: region.name,
+      accent: region.accentColor,
+      topic: getTopic(battle.topic).name,
+      artworkUrl: artwork(battle.dex),
+      spriteUrl: pixelSprite(battle.dex),
     }).then((b) => alive && setCardBlob(b)).catch(() => {});
     return () => { alive = false; };
-  }, [caughtBattle?.dex, caughtRegion?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cardDex, state.screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onShareCatch = async () => {
-    if (!caughtBattle) return;
-    const res = await shareCatch(cardBlob, caughtBattle.dex, nameOf(caughtBattle.dex));
+  const onShare = async () => {
+    if (!cardTarget) return;
+    const res = await shareCatch(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex));
     if (res === 'copied') setShareMsg('COPIED TO CLIPBOARD!');
     else if (res === 'failed') setShareMsg('SHARING NOT AVAILABLE');
   };
-  const onSaveCatch = () => {
-    if (!caughtBattle) return;
-    if (cardBlob) { downloadCard(cardBlob, caughtBattle.dex, nameOf(caughtBattle.dex)); setShareMsg('IMAGE SAVED!'); }
+  const onSave = () => {
+    if (!cardTarget) return;
+    if (cardBlob) { downloadCard(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex)); setShareMsg('IMAGE SAVED!'); }
     else setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE");
   };
 
@@ -764,8 +775,8 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
               </div>
               <div className="flex gap-2 mb-2">
-                <button onClick={onShareCatch} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
-                <button onClick={onSaveCatch} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
+                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
               </div>
               {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginBottom: 8 }}>{shareMsg}</div>}
               <div className="flex flex-col gap-2">
@@ -1063,6 +1074,13 @@ export default function Home() {
               {entryDetail?.flavor && (
                 <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2, marginTop: 12 }}>{entryDetail.flavor}</p>
               )}
+
+              {/* Share / save this Pokémon */}
+              <div className="flex gap-2" style={{ marginTop: 16 }}>
+                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
+                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+              </div>
+              {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 10 }}>{shareMsg}</div>}
             </div>
           </Frame>
         </div>
