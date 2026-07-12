@@ -61,7 +61,8 @@ const LEGENDARY_DEX = new Set<number>([
   // Gen VIII
   888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 905,
   // Gen IX (+ DLC)
-  1001, 1002, 1003, 1004, 1007, 1008, 1013, 1014, 1015, 1017, 1024, 1025,
+  1001, 1002, 1003, 1004, 1007, 1008, 1013, 1014, 1015, 1017,
+  1020, 1021, 1022, 1023, 1024, 1025,
 ]);
 
 // Early regions run shorter battles; later regions run longer ones.
@@ -103,16 +104,16 @@ const REGION_DEFS: RegionDef[] = [
     dexRange: [722, 809], topics: ['decimals', 'long_mult_start', 'long_div_start'] },
   { id: 'galar', name: 'Galar', gen: 'Gen VIII', inspiration: 'United Kingdom',
     bgGradient: 'linear-gradient(135deg, #12233a 0%, #2a3a5a 50%, #12233a 100%)', accentColor: '#60a5fa',
-    dexRange: [810, 905], topics: ['percentages_start', 'more_decimals', 'more_fractions'] },
+    dexRange: [810, 898], topics: ['percentages_start', 'more_decimals', 'more_fractions'] },
   { id: 'paldea', name: 'Paldea', gen: 'Gen IX', inspiration: 'Iberian Peninsula',
     bgGradient: 'linear-gradient(135deg, #3a1505 0%, #8a3a0a 50%, #3a1505 100%)', accentColor: '#fb923c',
     dexRange: [906, 1010], topics: ['percentages_money', 'squares_roots_cubes', 'long_mult_pro', 'long_div_pro'] },
-  { id: 'kitakami', name: 'Unidentified', gen: '???', inspiration: 'Unknown',
+  { id: 'kitakami', name: 'Unidentified', gen: 'Gen IX DLC', inspiration: 'Paradox & mystery',
     bgGradient: 'linear-gradient(135deg, #1a0a2a 0%, #4a1a5a 50%, #1a0a2a 100%)', accentColor: '#a78bfa', secret: true,
-    dexRange: [1011, 1017], topics: ['sequences_patterns', 'ratio_proportion', 'estimating'] },
+    dexRange: [1011, 1025], topics: ['sequences_patterns', 'ratio_proportion', 'estimating'] },
   { id: 'terarium', name: 'Hisui', gen: 'Legends: Arceus', inspiration: 'Ancient Sinnoh',
     bgGradient: 'linear-gradient(135deg, #04121f 0%, #0a3a4a 50%, #04121f 100%)', accentColor: '#38bdf8', secret: true,
-    dexRange: [1018, 1025], topics: ['number_skills', 'fdp', 'ratio_proportion_2', 'algebra_start', 'sequences'] },
+    dexRange: [899, 905], topics: ['number_skills', 'fdp', 'ratio_proportion_2', 'algebra_start', 'sequences'] },
 ];
 
 function buildBattles(def: RegionDef): Battle[] {

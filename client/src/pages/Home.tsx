@@ -353,7 +353,7 @@ export default function Home() {
         <button key={region.id} disabled={!unlocked} onClick={() => unlocked && game.openRegion(region.id)}
           className="w-full rounded-xl text-left flex items-center gap-3"
           style={{
-            padding: 'clamp(0.6rem,2vw,1rem)',
+            padding: 'clamp(0.7rem,2.5vw,1.1rem)',
             background: unlocked ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.4)',
             border: `2px solid ${unlocked ? region.accentColor : '#333'}`,
             boxShadow: unlocked ? `0 0 8px ${region.accentColor}22` : 'none',
@@ -362,10 +362,10 @@ export default function Home() {
           <div style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)', width: 'clamp(2rem,8vw,2.6rem)', textAlign: 'center', flexShrink: 0 }}>
             {unlocked ? (done ? '✅' : region.secret ? '✨' : '🌍') : '🔒'}
           </div>
-          <div className="flex-1" style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 3 }}>{region.gen} · {region.inspiration}</div>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 3 }}>
+          <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: unlocked ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#888' }}>{region.gen} · {region.inspiration}</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#666' }}>
               {unlocked ? `${caught}/${region.battles.length} CAUGHT` : region.secret ? 'SECRET — CLEAR ALL REGIONS' : 'LOCKED'}
             </div>
           </div>
@@ -406,14 +406,14 @@ export default function Home() {
                 return (
                   <button key={b.id} disabled={!unlocked} onClick={() => unlocked && game.startBattle(b.id)}
                     className="w-full rounded-xl text-left flex items-center gap-3"
-                    style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
+                    style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
                     <img src={pixelSprite(b.dex)} alt={won ? nameOf(b.dex) : 'Unknown'} loading="lazy"
                       onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
-                      style={{ width: 'clamp(40px,12vw,60px)', height: 'clamp(40px,12vw,60px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || won ? 'none' : 'brightness(0)' }} />
-                    <div className="flex-1" style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{unlocked || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa', marginTop: 3 }}>#{b.dex} · {topic.name}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', marginTop: 3 }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? ` · ⏱${b.timeLimitSec}s` : ''}</div>
+                      style={{ width: 'clamp(38px,11vw,56px)', height: 'clamp(38px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || won ? 'none' : 'brightness(0)' }} />
+                    <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{unlocked || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#aaa' }}>#{b.dex} · {topic.name}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? ` · ⏱${b.timeLimitSec}s` : ''}</div>
                     </div>
                     <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0 }}>{won ? '✅' : unlocked ? '' : '🔒'}</div>
                   </button>
@@ -439,12 +439,12 @@ export default function Home() {
             <div className="flex flex-col gap-2 w-full">
               {ARCADE_LEVELS.map((lvl, i) => (
                 <button key={lvl.id} onClick={() => game.startArcade(lvl.id)} className="w-full rounded-xl text-left flex items-center gap-3"
-                  style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${lvl.accentColor}`, boxShadow: `0 0 8px ${lvl.accentColor}22`, cursor: 'pointer' }}>
+                  style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${lvl.accentColor}`, boxShadow: `0 0 8px ${lvl.accentColor}22`, cursor: 'pointer' }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: lvl.accentColor, width: 'clamp(1.5rem,6vw,2.2rem)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
-                  <div className="flex-1" style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: lvl.accentColor }}>{lvl.name.toUpperCase()}</div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa', marginTop: 3 }}>{lvl.subtitle}</div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', marginTop: 3 }}>{lvl.questionCount} QUESTIONS</div>
+                  <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: lvl.accentColor }}>{lvl.name.toUpperCase()}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#aaa' }}>{lvl.subtitle}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{lvl.questionCount} QUESTIONS</div>
                   </div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: lvl.accentColor, flexShrink: 0 }}>▶</div>
                 </button>
