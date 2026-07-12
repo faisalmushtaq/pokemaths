@@ -22,6 +22,7 @@ export type GameScreen =
   | 'failed' // journey: wrong answer or ran out of time
   | 'arcadeResult' // arcade: run finished
   | 'pokedex'
+  | 'pokedexEntry'
   | 'about'
   | 'login';
 
@@ -44,6 +45,20 @@ export interface GameState {
   feedback: string | null;
   feedbackCorrect: boolean;
   timeRemaining: number | null; // journey boss countdown; null otherwise
+  selectedDex: number | null; // Pokédex entry being viewed
+}
+
+/** Generate a question, avoiding an immediate repeat of the previous one. */
+function generateDistinct(
+  topic: { generate: (level: number) => Question },
+  level: number,
+  avoid: string | undefined,
+): Question {
+  let q = topic.generate(level);
+  for (let tries = 0; tries < 12 && q.text === avoid; tries++) {
+    q = topic.generate(level);
+  }
+  return q;
 }
 
 function randomFrom<T>(arr: T[]): T {
@@ -69,6 +84,7 @@ const INITIAL: GameState = {
   feedback: null,
   feedbackCorrect: false,
   timeRemaining: null,
+  selectedDex: null,
 };
 
 export function useGame() {
@@ -96,7 +112,11 @@ export function useGame() {
   }, []);
 
   const goPokedex = useCallback(() => {
-    setState((s) => ({ ...s, screen: 'pokedex' }));
+    setState((s) => ({ ...s, screen: 'pokedex', selectedDex: null }));
+  }, []);
+
+  const viewEntry = useCallback((dex: number) => {
+    setState((s) => ({ ...s, screen: 'pokedexEntry', selectedDex: dex }));
   }, []);
 
   const goAbout = useCallback(() => {
@@ -117,6 +137,7 @@ export function useGame() {
     if (!found) return;
     const { region, battle } = found;
     const topic = getTopic(battle.topic);
+    const first = topic.generate(battle.level);
     questionStart.current = Date.now();
     setState({
       ...INITIAL,
@@ -124,7 +145,7 @@ export function useGame() {
       mode: 'journey',
       regionId: region.id,
       battleId: battle.id,
-      question: topic.generate(battle.level),
+      question: first,
       total: battle.questionCount,
       level: battle.level,
       maxLevel: topic.maxLevel,
@@ -137,13 +158,14 @@ export function useGame() {
     const level = getArcadeLevel(levelId);
     if (!level) return;
     const topic = getTopic(randomFrom(level.topics));
+    const first = topic.generate(1);
     questionStart.current = Date.now();
     setState({
       ...INITIAL,
       screen: 'playing',
       mode: 'arcade',
       arcadeLevelId: level.id,
-      question: topic.generate(1),
+      question: first,
       total: level.questionCount,
       level: 1,
       maxLevel: topic.maxLevel,
@@ -152,11 +174,11 @@ export function useGame() {
 
   // --- answering ------------------------------------------------------------
   // Arcade: pick a random topic and grade it by how far through the run we are.
-  const nextArcadeQuestion = (levelId: string, attempted: number, total: number) => {
+  const nextArcadeQuestion = (levelId: string, attempted: number, total: number, avoid: string | undefined) => {
     const level = getArcadeLevel(levelId)!;
     const topic = getTopic(randomFrom(level.topics));
     const lv = levelForProgress(attempted, total, topic.maxLevel);
-    return { question: topic.generate(lv), level: lv, maxLevel: topic.maxLevel };
+    return { question: generateDistinct(topic, lv, avoid), level: lv, maxLevel: topic.maxLevel };
   };
 
   const submitAnswer = useCallback((typed: number) => {
@@ -176,7 +198,7 @@ export function useGame() {
         const attempted = s.attempted + 1;
         const done = attempted >= s.total;
         questionStart.current = Date.now();
-        const next = done ? null : nextArcadeQuestion(s.arcadeLevelId!, attempted, s.total);
+        const next = done ? null : nextArcadeQuestion(s.arcadeLevelId!, attempted, s.total, s.question?.text);
         return {
           ...s,
           screen: done ? 'arcadeResult' : 'playing',
@@ -193,48 +215,56 @@ export function useGame() {
         };
       }
 
-      // -------- JOURNEY: catching needs 100% accuracy ----------------------
-      if (!correct) {
-        return { ...s, screen: 'failed', feedback: feedbackMsg, feedbackCorrect: false, timeRemaining: null };
-      }
+      // -------- JOURNEY: play the whole battle, catch only at 100% ---------
       const found = s.battleId ? findBattle(s.battleId) : undefined;
       if (!found) return s;
       const { region, battle } = found;
-      const nextCorrect = s.correctCount + 1;
-      const won = nextCorrect >= s.total;
-      if (won) {
-        setSave((prev) =>
-          recordWin(prev, battle.id, {
-            dex: battle.dex,
-            name: getName(battle.dex),
-            region: region.id,
-            caughtAt: Date.now(),
-          }),
-        );
+      const attempted = s.attempted + 1;
+      const nextCorrect = s.correctCount + (correct ? 1 : 0);
+      const nextWrong = s.wrong + (correct ? 0 : 1);
+      const done = attempted >= s.total;
+
+      if (done) {
+        const perfect = nextCorrect === s.total;
+        if (perfect) {
+          setSave((prev) =>
+            recordWin(prev, battle.id, {
+              dex: battle.dex,
+              name: getName(battle.dex),
+              region: region.id,
+              caughtAt: Date.now(),
+            }),
+          );
+        }
         return {
           ...s,
-          screen: 'caught',
+          screen: perfect ? 'caught' : 'failed',
+          attempted,
           correctCount: nextCorrect,
-          score: s.score + points + SCORE_CONFIG.evolutionBonus,
+          wrong: nextWrong,
+          score: s.score + points + (perfect ? SCORE_CONFIG.evolutionBonus : 0),
           feedback: null,
-          feedbackCorrect: true,
+          feedbackCorrect: correct,
           timeRemaining: null,
         };
       }
+
+      // Next question — fixed difficulty for this battle, no repeats.
       questionStart.current = Date.now();
       const topic = getTopic(battle.topic);
-      // Journey battles are a fixed difficulty; difficulty grades across the
-      // region's sequence of battles, not within one battle.
+      const nextQ = generateDistinct(topic, battle.level, s.question?.text);
       return {
         ...s,
+        attempted,
         correctCount: nextCorrect,
+        wrong: nextWrong,
         score: s.score + points,
-        question: topic.generate(battle.level),
+        question: nextQ,
         level: battle.level,
         maxLevel: topic.maxLevel,
         questionIndex: s.questionIndex + 1,
         feedback: feedbackMsg,
-        feedbackCorrect: true,
+        feedbackCorrect: correct,
       };
     });
 
@@ -290,6 +320,7 @@ export function useGame() {
     goRegionSelect,
     goArcadeSelect,
     goPokedex,
+    viewEntry,
     goAbout,
     goLogin,
     openRegion,

@@ -62,6 +62,57 @@ export function loadSpecies(): Promise<Record<number, string>> {
   return inflight;
 }
 
+// ---------------------------------------------------------------------------
+// Per-Pokémon detail (types + flavour text), fetched on demand for the Pokédex.
+// ---------------------------------------------------------------------------
+export interface SpeciesDetail {
+  types: string[];
+  genus: string;
+  flavor: string;
+}
+
+const detailCache = new Map<number, SpeciesDetail | null>();
+
+export async function loadDetail(dex: number): Promise<SpeciesDetail | null> {
+  if (detailCache.has(dex)) return detailCache.get(dex) ?? null;
+  try {
+    const [p, s] = await Promise.all([
+      fetch(`https://pokeapi.co/api/v2/pokemon/${dex}`).then((r) => r.json()),
+      fetch(`https://pokeapi.co/api/v2/pokemon-species/${dex}`).then((r) => r.json()),
+    ]);
+    const types: string[] = (p.types ?? []).map((t: { type: { name: string } }) => t.type.name);
+    const genus = (s.genera ?? []).find((g: { language: { name: string } }) => g.language.name === 'en')?.genus ?? '';
+    const flavor = ((s.flavor_text_entries ?? []).find((f: { language: { name: string } }) => f.language.name === 'en')?.flavor_text ?? '')
+      .replace(/[\f\n\r­]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const detail: SpeciesDetail = { types, genus, flavor };
+    detailCache.set(dex, detail);
+    return detail;
+  } catch {
+    detailCache.set(dex, null);
+    return null;
+  }
+}
+
+/** undefined = loading, null = unavailable/offline, object = loaded */
+export function useSpeciesDetail(dex: number | null): SpeciesDetail | null | undefined {
+  const [detail, setDetail] = useState<SpeciesDetail | null | undefined>(undefined);
+  useEffect(() => {
+    if (dex == null) {
+      setDetail(undefined);
+      return;
+    }
+    let alive = true;
+    setDetail(undefined);
+    loadDetail(dex).then((d) => alive && setDetail(d));
+    return () => {
+      alive = false;
+    };
+  }, [dex]);
+  return detail;
+}
+
 /**
  * React hook: kicks off the load and re-renders when names arrive.
  * Returns a stable `nameOf(dex)` lookup.

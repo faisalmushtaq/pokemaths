@@ -107,10 +107,10 @@ const REGION_DEFS: RegionDef[] = [
   { id: 'paldea', name: 'Paldea', gen: 'Gen IX', inspiration: 'Iberian Peninsula',
     bgGradient: 'linear-gradient(135deg, #3a1505 0%, #8a3a0a 50%, #3a1505 100%)', accentColor: '#fb923c',
     dexRange: [906, 1010], topics: ['percentages_money', 'squares_roots_cubes', 'long_mult_pro', 'long_div_pro'] },
-  { id: 'kitakami', name: 'Kitakami', gen: 'Gen IX DLC', inspiration: 'Tōhoku, Japan',
+  { id: 'kitakami', name: 'Unidentified', gen: '???', inspiration: 'Unknown',
     bgGradient: 'linear-gradient(135deg, #1a0a2a 0%, #4a1a5a 50%, #1a0a2a 100%)', accentColor: '#a78bfa', secret: true,
     dexRange: [1011, 1017], topics: ['sequences_patterns', 'ratio_proportion', 'estimating'] },
-  { id: 'terarium', name: 'Terarium', gen: 'Gen IX DLC', inspiration: 'Blueberry Academy',
+  { id: 'terarium', name: 'Hisui', gen: 'Legends: Arceus', inspiration: 'Ancient Sinnoh',
     bgGradient: 'linear-gradient(135deg, #04121f 0%, #0a3a4a 50%, #04121f 100%)', accentColor: '#38bdf8', secret: true,
     dexRange: [1018, 1025], topics: ['number_skills', 'fdp', 'ratio_proportion_2', 'algebra_start', 'sequences'] },
 ];
@@ -168,4 +168,13 @@ export function getRegion(id: string): Region | undefined {
 
 export function findBattle(battleId: string): { region: Region; battle: Battle } | undefined {
   return BATTLE_INDEX.get(battleId);
+}
+
+const DEX_INDEX = new Map<number, { region: Region; battle: Battle }>();
+for (const region of REGIONS) {
+  for (const battle of region.battles) DEX_INDEX.set(battle.dex, { region, battle });
+}
+
+export function findBattleByDex(dex: number): { region: Region; battle: Battle } | undefined {
+  return DEX_INDEX.get(dex);
 }
