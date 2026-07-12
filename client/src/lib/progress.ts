@@ -11,7 +11,7 @@
 // =============================================================================
 
 import { MAINLINE_REGIONS, REGIONS, type Region } from './regions';
-import { hasWon, type SaveData } from './pokedex';
+import { hasWon, isTestUnlocked, type SaveData } from './pokedex';
 
 export function caughtInRegion(save: SaveData, region: Region): number {
   return region.battles.reduce((n, b) => n + (hasWon(save, b.id) ? 1 : 0), 0);
@@ -40,6 +40,17 @@ export function isBattleUnlocked(save: SaveData, region: Region, battleIndex: nu
   if (!isRegionUnlocked(save, region)) return false;
   if (battleIndex <= 0) return true;
   return hasWon(save, region.battles[battleIndex - 1].id);
+}
+
+/** Whether a region can be entered/browsed. Secret regions stay earned; all
+ *  other regions are openable so you can test-out into any level. */
+export function isRegionOpenable(save: SaveData, region: Region): boolean {
+  return region.secret ? mainlineThresholdsMet(save) : true;
+}
+
+/** Playable = naturally unlocked, or unlocked early by passing a test. */
+export function isBattlePlayable(save: SaveData, region: Region, battleIndex: number): boolean {
+  return isBattleUnlocked(save, region, battleIndex) || isTestUnlocked(save, region.battles[battleIndex].id);
 }
 
 /** total catchable Pokémon across all regions (the full dex) */

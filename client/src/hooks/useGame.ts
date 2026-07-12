@@ -7,10 +7,10 @@ import {
 import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordTestUnlock, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
-export type GameMode = 'journey' | 'arcade';
+export type GameMode = 'journey' | 'arcade' | 'test';
 
 export type GameScreen =
   | 'menu'
@@ -20,6 +20,8 @@ export type GameScreen =
   | 'playing'
   | 'caught' // journey: battle won at 100% — Pokémon caught
   | 'failed' // journey: wrong answer or ran out of time
+  | 'testPassed' // test-out: unlocked a level
+  | 'testFailed' // test-out: didn't get 3/3
   | 'arcadeResult' // arcade: run finished
   | 'pokedex'
   | 'pokedexEntry'
@@ -161,6 +163,27 @@ export function useGame(profileId: string | null) {
     });
   }, []);
 
+  // --- test-out (3 questions to unlock a level) -----------------------------
+  const startTest = useCallback((battleId: string) => {
+    const found = findBattle(battleId);
+    if (!found) return;
+    const { region, battle } = found;
+    const topic = getTopic(battle.topic);
+    const first = topic.generate(battle.level);
+    questionStart.current = Date.now();
+    setState({
+      ...INITIAL,
+      screen: 'playing',
+      mode: 'test',
+      regionId: region.id,
+      battleId: battle.id,
+      question: first,
+      total: 3,
+      level: battle.level,
+      maxLevel: topic.maxLevel,
+    });
+  }, []);
+
   // --- arcade runs ----------------------------------------------------------
   const startArcade = useCallback((levelId: string) => {
     const level = getArcadeLevel(levelId);
@@ -217,6 +240,38 @@ export function useGame(profileId: string | null) {
           question: next ? next.question : s.question,
           level: next ? next.level : s.level,
           maxLevel: next ? next.maxLevel : s.maxLevel,
+          questionIndex: s.questionIndex + 1,
+          feedback: feedbackMsg,
+          feedbackCorrect: correct,
+        };
+      }
+
+      // -------- TEST-OUT: answer 3, unlock the level at 3/3 ----------------
+      if (s.mode === 'test') {
+        const found = s.battleId ? findBattle(s.battleId) : undefined;
+        if (!found) return s;
+        const { battle } = found;
+        const attempted = s.attempted + 1;
+        const nextCorrect = s.correctCount + (correct ? 1 : 0);
+        const done = attempted >= s.total;
+        if (done) {
+          const passed = nextCorrect === s.total;
+          if (passed && profileRef.current) {
+            const pid = profileRef.current;
+            setSave((prev) => recordTestUnlock(pid, prev, battle.id));
+          }
+          return { ...s, screen: passed ? 'testPassed' : 'testFailed', attempted, correctCount: nextCorrect, wrong: s.wrong + (correct ? 0 : 1), feedback: null, feedbackCorrect: correct };
+        }
+        questionStart.current = Date.now();
+        const topic = getTopic(battle.topic);
+        return {
+          ...s,
+          attempted,
+          correctCount: nextCorrect,
+          wrong: s.wrong + (correct ? 0 : 1),
+          question: generateDistinct(topic, battle.level, s.question?.text),
+          level: battle.level,
+          maxLevel: topic.maxLevel,
           questionIndex: s.questionIndex + 1,
           feedback: feedbackMsg,
           feedbackCorrect: correct,
@@ -314,6 +369,10 @@ export function useGame(profileId: string | null) {
     if (state.battleId) startBattle(state.battleId);
   }, [state.battleId, startBattle]);
 
+  const retryTest = useCallback(() => {
+    if (state.battleId) startTest(state.battleId);
+  }, [state.battleId, startTest]);
+
   const replayArcade = useCallback(() => {
     if (state.arcadeLevelId) startArcade(state.arcadeLevelId);
   }, [state.arcadeLevelId, startArcade]);
@@ -339,9 +398,11 @@ export function useGame(profileId: string | null) {
     goLogin,
     openRegion,
     startBattle,
+    startTest,
     startArcade,
     submitAnswer,
     retryBattle,
+    retryTest,
     replayArcade,
   };
 }

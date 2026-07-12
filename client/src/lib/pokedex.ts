@@ -19,12 +19,14 @@ export interface SaveData {
   caught: Record<number, CaughtEntry>;
   /** battle ids that have been won (100% accuracy) */
   wonBattles: string[];
+  /** battle ids unlocked early by passing a 3-question test */
+  testUnlocked: string[];
 }
 
 const KEY_PREFIX = 'pokemaths.save.';
 const LEGACY_KEY = 'pokemaths.save.v1'; // pre-profiles single save
 
-export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, wonBattles: [] };
+export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, wonBattles: [], testUnlocked: [] };
 
 function keyFor(profileId: string): string {
   return `${KEY_PREFIX}${profileId}`;
@@ -34,7 +36,7 @@ function parse(raw: string | null): SaveData {
   if (!raw) return { ...EMPTY_SAVE };
   try {
     const p = JSON.parse(raw) as Partial<SaveData>;
-    return { version: 1, caught: p.caught ?? {}, wonBattles: p.wonBattles ?? [] };
+    return { version: 1, caught: p.caught ?? {}, wonBattles: p.wonBattles ?? [], testUnlocked: p.testUnlocked ?? [] };
   } catch {
     return { ...EMPTY_SAVE };
   }
@@ -71,9 +73,22 @@ export function recordWin(
     version: 1,
     caught: { ...data.caught, [entry.dex]: data.caught[entry.dex] ?? entry },
     wonBattles: data.wonBattles.includes(battleId) ? data.wonBattles : [...data.wonBattles, battleId],
+    testUnlocked: data.testUnlocked,
   };
   persistSave(profileId, next);
   return next;
+}
+
+/** Unlock a battle early via a passed test. Returns the new save. */
+export function recordTestUnlock(profileId: string, data: SaveData, battleId: string): SaveData {
+  if (data.testUnlocked.includes(battleId)) return data;
+  const next: SaveData = { ...data, testUnlocked: [...data.testUnlocked, battleId] };
+  persistSave(profileId, next);
+  return next;
+}
+
+export function isTestUnlocked(data: SaveData, battleId: string): boolean {
+  return data.testUnlocked.includes(battleId);
 }
 
 /**
@@ -92,6 +107,7 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     version: 1,
     caught,
     wonBattles: Array.from(new Set([...a.wonBattles, ...b.wonBattles])),
+    testUnlocked: Array.from(new Set([...a.testUnlocked, ...b.testUnlocked])),
   };
 }
 

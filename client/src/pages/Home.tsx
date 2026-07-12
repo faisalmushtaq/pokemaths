@@ -31,8 +31,9 @@ import {
 } from '@/lib/profiles';
 import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
 import {
-  isBattleUnlocked,
+  isBattlePlayable,
   isRegionUnlocked,
+  isRegionOpenable,
   regionComplete,
   totalCatchable,
 } from '@/lib/progress';
@@ -545,26 +546,27 @@ export default function Home() {
   if (state.screen === 'regionSelect') {
     const renderRegion = (region: Region) => {
       const unlocked = isRegionUnlocked(save, region);
+      const openable = isRegionOpenable(save, region);
       const done = regionComplete(save, region);
       const caught = region.battles.filter(b => save.wonBattles.includes(b.id)).length;
       return (
-        <button key={region.id} disabled={!unlocked} onClick={() => unlocked && game.openRegion(region.id)}
+        <button key={region.id} disabled={!openable} onClick={() => openable && game.openRegion(region.id)}
           className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
           style={{
             padding: 'clamp(0.7rem,2.5vw,1.1rem)',
-            background: unlocked ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.4)',
-            border: `2px solid ${unlocked ? region.accentColor : '#333'}`,
-            boxShadow: unlocked ? `0 0 8px ${region.accentColor}22` : 'none',
-            opacity: unlocked ? 1 : 0.55, cursor: unlocked ? 'pointer' : 'not-allowed',
+            background: openable ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.4)',
+            border: `2px solid ${openable ? region.accentColor : '#333'}`,
+            boxShadow: openable ? `0 0 8px ${region.accentColor}22` : 'none',
+            opacity: openable ? 1 : 0.55, cursor: openable ? 'pointer' : 'not-allowed',
           }}>
           <div style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)', width: 'clamp(2rem,8vw,2.6rem)', textAlign: 'center', flexShrink: 0 }}>
-            {unlocked ? (done ? '✅' : region.secret ? '✨' : '🌍') : '🔒'}
+            {!openable ? '🔒' : done ? '✅' : unlocked ? (region.secret ? '✨' : '🌍') : '🔑'}
           </div>
           <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: unlocked ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: openable ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#888' }}>{region.gen} · {region.inspiration}</div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#666' }}>
-              {unlocked ? `${caught}/${region.battles.length} CAUGHT` : region.secret ? 'SECRET — CLEAR ALL REGIONS' : 'LOCKED'}
+              {!openable ? 'SECRET — CLEAR ALL REGIONS' : `${caught}/${region.battles.length} CAUGHT${unlocked ? '' : ' · TEST OUT'}`}
             </div>
           </div>
         </button>
@@ -598,22 +600,29 @@ export default function Home() {
           <Frame>
             <div className="flex flex-col gap-2 w-full">
               {region.battles.map((b, i) => {
-                const unlocked = isBattleUnlocked(save, region, i);
+                const playable = isBattlePlayable(save, region, i);
                 const won = save.wonBattles.includes(b.id);
                 const topic = getTopic(b.topic);
                 return (
-                  <button key={b.id} disabled={!unlocked} onClick={() => unlocked && game.startBattle(b.id)}
+                  <button key={b.id} onClick={() => (playable ? game.startBattle(b.id) : game.startTest(b.id))}
                     className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
-                    style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
+                    style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(0,0,0,0.4)', border: `2px solid ${b.isBoss ? '#FFD700' : region.accentColor}`, opacity: playable ? 1 : 0.85, cursor: 'pointer' }}>
                     <img src={pixelSprite(b.dex)} alt={won ? nameOf(b.dex) : 'Unknown'} loading="lazy"
                       onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
-                      style={{ width: 'clamp(38px,11vw,56px)', height: 'clamp(38px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || won ? 'none' : 'brightness(0)' }} />
+                      style={{ width: 'clamp(38px,11vw,56px)', height: 'clamp(38px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: playable || won ? 'none' : 'brightness(0)' }} />
                     <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{unlocked || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{playable || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#aaa' }}>#{b.dex} · {topic.name}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? ` · ⏱${b.timeLimitSec}s` : ''}</div>
                     </div>
-                    <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0 }}>{won ? '✅' : unlocked ? '' : '🔒'}</div>
+                    {won ? (
+                      <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0 }}>✅</div>
+                    ) : !playable ? (
+                      <div className="flex flex-col items-center" style={{ flexShrink: 0, gap: 3 }}>
+                        <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.2rem)' }}>🔑</span>
+                        <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.34rem', color: '#FFD700', lineHeight: 1.3, textAlign: 'center' }}>TEST<br />OUT</span>
+                      </div>
+                    ) : null}
                   </button>
                 );
               })}
@@ -753,6 +762,59 @@ export default function Home() {
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU NEED 100% TO CATCH<br />{nameOf(b.dex).toUpperCase()}. TRY AGAIN!</p>
               <div className="flex flex-col gap-2">
                 <button onClick={game.retryBattle} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY</button>
+                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
+              </div>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // TEST-OUT PASSED / FAILED
+  // =========================================================================
+  if (state.screen === 'testPassed' && game.activeBattle && game.activeRegion) {
+    const b = game.activeBattle;
+    return (
+      <Screen bg="linear-gradient(135deg, #05230f, #0a0a1a)">
+        <NavBar onHome={game.goMenu} onBack={() => game.openRegion(game.activeRegion!.id)} title="UNLOCKED" accent="#22c55e" />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #22c55e', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.5rem', textShadow: '0 0 12px #FFD700' }}>🔑 UNLOCKED!</div>
+              <div className="flex justify-center mb-3">
+                <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={140} glow={game.activeRegion.accentColor} />
+              </div>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>TEST PASSED! YOU CAN NOW<br />BATTLE {nameOf(b.dex).toUpperCase()} TO CATCH IT.</p>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => game.startBattle(b.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ PLAY NOW</button>
+                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'transparent', border: '1px solid #22c55e', cursor: 'pointer' }}>← BACK TO LEVELS</button>
+              </div>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  if (state.screen === 'testFailed' && game.activeBattle && game.activeRegion) {
+    const b = game.activeBattle;
+    return (
+      <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
+        <NavBar onHome={game.goMenu} onBack={() => game.openRegion(game.activeRegion!.id)} title="TEST FAILED" accent="#ef4444" />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>📝</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', marginBottom: '0.75rem' }}>NOT QUITE!</div>
+              <div className="rounded-lg mb-3" style={{ padding: 'clamp(0.5rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{state.correctCount}/{state.total} CORRECT</div>
+              </div>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>GET ALL 3 RIGHT TO UNLOCK<br />THIS LEVEL. TRY AGAIN!</p>
+              <div className="flex flex-col gap-2">
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ TRY TEST AGAIN</button>
                 <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
               </div>
             </div>
@@ -973,15 +1035,19 @@ export default function Home() {
   // =========================================================================
   if (state.screen === 'playing' && state.question) {
     const journey = state.mode === 'journey';
+    const test = state.mode === 'test';
+    const regionMode = journey || test; // region-based screens (vs arcade)
     const b = game.activeBattle;
     const region = game.activeRegion;
     const arcadeLevel = state.arcadeLevelId ? getArcadeLevel(state.arcadeLevelId) : null;
-    const accent = journey ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
-    const bg = journey ? region?.bgGradient ?? panelBg : panelBg;
-    const title = journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
+    const accent = regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
+    const bg = regionMode ? region?.bgGradient ?? panelBg : panelBg;
+    const title = test
+      ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
+      : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = state.attempted;
     const progressPct = Math.min((state.correctCount / state.total) * 100, 100);
-    const onExit = journey ? () => game.openRegion(region!.id) : game.goArcadeSelect;
+    const onExit = regionMode ? () => game.openRegion(region!.id) : game.goArcadeSelect;
 
     return (
       <Screen bg={bg}>
@@ -1000,14 +1066,16 @@ export default function Home() {
         />
         <div className="flex-1 min-h-0 w-full flex items-stretch justify-center" style={{ padding: 'clamp(0.5rem,2vh,1.25rem) clamp(0.5rem,3vw,1rem)' }}>
           <div className="flex flex-col" style={{ width: FRAME, height: '100%', maxHeight: '46rem', gap: 'clamp(0.5rem, 2vh, 1rem)' }}>
-            {/* Wild Pokémon (journey) / progress (arcade) */}
-            {journey && b ? (
+            {/* Wild Pokémon (journey/test) / progress (arcade) */}
+            {regionMode && b ? (
               <div className="w-full flex items-center gap-3 shrink-0">
                 <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
                 <div className="flex-1">
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: state.wrong > 0 ? '#ef4444' : '#888', marginTop: 4 }}>
-                    {state.wrong > 0 ? `MISSED ${state.wrong} — NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`}
+                    {test
+                      ? (state.wrong > 0 ? `MISSED ${state.wrong} — NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
+                      : (state.wrong > 0 ? `MISSED ${state.wrong} — NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
                   </p>
                 </div>
               </div>
