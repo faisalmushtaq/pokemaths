@@ -25,6 +25,7 @@ export interface StreakData {
   best: number; // longest streak ever
   lastDay: string; // 'YYYY-MM-DD' (local) of the last counted day
   freezes: number; // streak-freeze grace days held (auto-used to bridge a missed day)
+  lastFreezeUsed?: string; // 'YYYY-MM-DD' a freeze was last auto-spent
 }
 
 /** Most freezes a player can hold at once. */
@@ -136,6 +137,7 @@ export function recordPlay(profileId: string, data: SaveData): SaveData {
 
   let current: number;
   let freezes = s.freezes;
+  let lastFreezeUsed = s.lastFreezeUsed;
   if (!s.lastDay) {
     current = 1;
   } else {
@@ -146,6 +148,7 @@ export function recordPlay(profileId: string, data: SaveData): SaveData {
       const missed = gap - 1; // full days skipped
       if (freezes >= missed) {
         freezes -= missed; // spend grace days to keep the streak
+        lastFreezeUsed = today;
         current = s.current + 1;
       } else {
         current = 1; // streak broke
@@ -155,10 +158,15 @@ export function recordPlay(profileId: string, data: SaveData): SaveData {
   // Earn a freeze on every 5th streak day.
   if (current > 0 && current % FREEZE_EVERY === 0) freezes = Math.min(MAX_FREEZES, freezes + 1);
 
-  const streak: StreakData = { current, best: Math.max(s.best, current), lastDay: today, freezes };
+  const streak: StreakData = { current, best: Math.max(s.best, current), lastDay: today, freezes, lastFreezeUsed };
   const next: SaveData = { ...data, streak };
   persistSave(profileId, next);
   return next;
+}
+
+/** True if a streak freeze was auto-spent today (to celebrate/confirm it). */
+export function freezeUsedToday(data: SaveData): boolean {
+  return (data.streak?.lastFreezeUsed ?? '') === dayStr(new Date());
 }
 
 /**

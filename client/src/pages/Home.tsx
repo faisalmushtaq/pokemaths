@@ -24,7 +24,7 @@ import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
-import { caughtCount, liveStreak } from '@/lib/pokedex';
+import { caughtCount, liveStreak, freezeUsedToday } from '@/lib/pokedex';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
@@ -681,6 +681,9 @@ export default function Home() {
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', lineHeight: 1.5 }}>{freezes}</span>
                     </div>
                   )}
+                  {freezeUsedToday(save) && (
+                    <div className="w-full" style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', textAlign: 'center', lineHeight: 1.6 }}>🧊 FREEZE USED — STREAK SAFE!</div>
+                  )}
                 </div>
               );
             })()}
@@ -829,21 +832,21 @@ export default function Home() {
     return (
       <Screen bg={panelBg}>
         <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
-        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
-          <Frame>
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem clamp(1.5rem,5vh,2.5rem)' }}>
+          <Frame style={{ flexShrink: 0 }}>
             {/* --- your Pokémon (mega-capable) --- */}
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.6rem', textAlign: 'center' }}>PICK YOUR POKÉMON</p>
             <div className="w-full overflow-x-auto mb-4" style={{ padding: '0.5rem 0.25rem 0.6rem' }}>
               <div className="flex" style={{ gap: '0.6rem', minWidth: 'min-content' }}>
                 {MEGAS.map((m) => {
                   const sel = arcMon === m.dex;
-                  const tile = 'clamp(62px,17vw,80px)';
+                  const tile = 'clamp(64px,17vw,82px)';
                   return (
                     <button key={m.dex} onClick={() => setArcMon(m.dex)}
                       ref={sel ? (el) => el?.scrollIntoView({ block: 'nearest', inline: 'center' }) : undefined}
                       className="rounded-xl shrink-0 flex items-center justify-center"
-                      style={{ width: tile, height: tile, padding: '0.3rem', background: sel ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? '#38bdf8' : '#333'}`, boxShadow: sel ? '0 0 12px rgba(56,189,248,0.45)' : 'none', cursor: 'pointer' }}>
-                      <img src={pixelSprite(m.dex)} alt={nameOf(m.dex)} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(m.dex); }} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                      style={{ width: tile, height: tile, minWidth: 0, minHeight: 0, padding: '0.3rem', overflow: 'hidden', background: sel ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? '#38bdf8' : '#333'}`, boxShadow: sel ? '0 0 12px rgba(56,189,248,0.45)' : 'none', cursor: 'pointer' }}>
+                      <img src={pixelSprite(m.dex)} alt={nameOf(m.dex)} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(m.dex); }} style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0, objectFit: 'contain', imageRendering: 'pixelated' }} />
                     </button>
                   );
                 })}
@@ -950,6 +953,12 @@ export default function Home() {
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
                     </div>
                   )}
+                  {freezeUsedToday(save) && (
+                    <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
+                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🧊</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
+                    </div>
+                  )}
                 </div>
               ) : null; })()}
               <div className="flex flex-col gap-2">
@@ -994,6 +1003,12 @@ export default function Home() {
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.7rem', background: `${ms.color}1a`, border: `2px solid ${ms.color}`, boxShadow: `0 0 14px ${ms.color}55` }}>
                       <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}>{ms.icon}</span>
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
+                    </div>
+                  )}
+                  {freezeUsedToday(save) && (
+                    <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
+                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🧊</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
                     </div>
                   )}
                 </div>
