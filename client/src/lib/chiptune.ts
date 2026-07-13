@@ -8,6 +8,7 @@
 
 let ctx: AudioContext | null = null;
 let stopAt = 0; // audio-clock time the current tune ends
+let unlocked = false;
 const live: { osc: OscillatorNode; gain: GainNode }[] = [];
 
 function getCtx(): AudioContext | null {
@@ -16,6 +17,57 @@ function getCtx(): AudioContext | null {
   if (!AC) return null;
   if (!ctx) ctx = new AC();
   return ctx;
+}
+
+// A looping silent <audio> element flips iOS Safari from the "ambient" audio
+// session (muted by the ringer switch) to "playback", so Web Audio is heard
+// even when the phone is on silent. Built at runtime so there's no big blob.
+let silentEl: HTMLAudioElement | null = null;
+function silentWavUrl(): string {
+  const rate = 8000, n = rate / 2; // 0.5s
+  const buf = new ArrayBuffer(44 + n);
+  const v = new DataView(buf);
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  w(36, 'data'); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128); // 8-bit silence
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+function primeSilentChannel(): void {
+  try {
+    if (!silentEl) {
+      silentEl = new Audio(silentWavUrl());
+      silentEl.loop = true;
+      silentEl.setAttribute('playsinline', '');
+    }
+    void silentEl.play().catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+
+// iOS/Chrome start the context suspended; it must be resumed AND kicked with a
+// silent buffer inside a user gesture before scheduled nodes will sound.
+async function unlock(c: AudioContext): Promise<void> {
+  primeSilentChannel(); // defeat the iOS ringer switch
+  try {
+    if (c.state !== 'running') await c.resume();
+  } catch {
+    /* ignore */
+  }
+  if (!unlocked) {
+    try {
+      const src = c.createBufferSource();
+      src.buffer = c.createBuffer(1, 1, 22050);
+      src.connect(c.destination);
+      src.start(0);
+      unlocked = true;
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 // Note → frequency (Hz).
@@ -70,16 +122,16 @@ function schedule(c: AudioContext, seq: [string, number][], type: OscillatorType
 
 /** True while the jingle is still playing. */
 export function isThemePlaying(): boolean {
-  return !!ctx && ctx.currentTime < stopAt;
+  return !!ctx && ctx.state === 'running' && ctx.currentTime < stopAt;
 }
 
 /** Play the theme once. No-op if already playing. */
-export function playTheme(): void {
+export async function playTheme(): Promise<void> {
   const c = getCtx();
   if (!c) return;
-  if (c.state === 'suspended') void c.resume();
+  await unlock(c); // resume + kick inside the gesture, or nothing sounds on iOS
   if (isThemePlaying()) return;
-  const start = c.currentTime + 0.06;
+  const start = c.currentTime + 0.08;
   const master = c.createGain();
   master.gain.value = 0.18;
   master.connect(c.destination);
@@ -90,6 +142,7 @@ export function playTheme(): void {
 
 /** Stop immediately (used by a mute toggle). */
 export function stopTheme(): void {
+  try { silentEl?.pause(); } catch { /* ignore */ }
   const c = ctx;
   if (!c) return;
   const now = c.currentTime;
