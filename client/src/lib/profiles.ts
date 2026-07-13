@@ -8,6 +8,13 @@
 
 import { deleteSave, persistSave, loadSave, EMPTY_SAVE, takeLegacySave, type SaveData } from './pokedex';
 
+export interface ProfileSettings {
+  speedMode: boolean; // auto-submit when the answer's length is reached (no OK)
+  blackWhite: boolean; // monochrome display
+}
+
+export const DEFAULT_SETTINGS: ProfileSettings = { speedMode: false, blackWhite: false };
+
 export interface Profile {
   id: string;
   name: string;
@@ -15,6 +22,11 @@ export interface Profile {
   createdAt: number;
   pin?: string; // optional 4-digit lock
   googleUid?: string | null; // linked Google account for cloud sync
+  settings?: ProfileSettings; // per-player settings (synced with the profile)
+}
+
+export function getSettings(p: Profile | undefined): ProfileSettings {
+  return { ...DEFAULT_SETTINGS, ...(p?.settings ?? {}) };
 }
 
 export interface ProfilesData {
@@ -79,6 +91,7 @@ export function createProfile(name: string, avatarDex: number, pin?: string): Pr
     name: name.trim().slice(0, 12) || 'Player',
     avatarDex,
     createdAt: Date.now(),
+    settings: { ...DEFAULT_SETTINGS },
     ...(pin ? { pin } : {}),
   };
   return write({ ...d, profiles: [...d.profiles, profile], activeId: profile.id });

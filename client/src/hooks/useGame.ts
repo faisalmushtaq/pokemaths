@@ -26,7 +26,8 @@ export type GameScreen =
   | 'pokedex'
   | 'pokedexEntry'
   | 'about'
-  | 'login';
+  | 'login'
+  | 'settings';
 
 export interface GameState {
   screen: GameScreen;
@@ -48,6 +49,8 @@ export interface GameState {
   feedbackCorrect: boolean;
   timeRemaining: number | null; // journey boss countdown; null otherwise
   selectedDex: number | null; // Pokédex entry being viewed
+  arcadeCount: number; // chosen arcade question count
+  arcadePokemonDex: number | null; // chosen arcade buddy (mega-capable)
 }
 
 /** Generate a question, avoiding an immediate repeat of the previous one. */
@@ -87,6 +90,8 @@ const INITIAL: GameState = {
   feedbackCorrect: false,
   timeRemaining: null,
   selectedDex: null,
+  arcadeCount: 12,
+  arcadePokemonDex: null,
 };
 
 export function useGame(profileId: string | null) {
@@ -131,6 +136,10 @@ export function useGame(profileId: string | null) {
 
   const goAbout = useCallback(() => {
     setState((s) => ({ ...s, screen: 'about' }));
+  }, []);
+
+  const goSettings = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'settings' }));
   }, []);
 
   const goLogin = useCallback(() => {
@@ -185,11 +194,12 @@ export function useGame(profileId: string | null) {
   }, []);
 
   // --- arcade runs ----------------------------------------------------------
-  const startArcade = useCallback((levelId: string) => {
+  const startArcade = useCallback((levelId: string, count?: number, pokemonDex?: number | null) => {
     const level = getArcadeLevel(levelId);
     if (!level) return;
     const topic = getTopic(randomFrom(level.topics));
     const first = topic.generate(1);
+    const total = count ?? level.questionCount;
     questionStart.current = Date.now();
     setState({
       ...INITIAL,
@@ -197,9 +207,11 @@ export function useGame(profileId: string | null) {
       mode: 'arcade',
       arcadeLevelId: level.id,
       question: first,
-      total: level.questionCount,
+      total,
       level: 1,
       maxLevel: topic.maxLevel,
+      arcadeCount: total,
+      arcadePokemonDex: pokemonDex ?? null,
     });
   }, []);
 
@@ -374,8 +386,8 @@ export function useGame(profileId: string | null) {
   }, [state.battleId, startTest]);
 
   const replayArcade = useCallback(() => {
-    if (state.arcadeLevelId) startArcade(state.arcadeLevelId);
-  }, [state.arcadeLevelId, startArcade]);
+    if (state.arcadeLevelId) startArcade(state.arcadeLevelId, state.arcadeCount, state.arcadePokemonDex);
+  }, [state.arcadeLevelId, state.arcadeCount, state.arcadePokemonDex, startArcade]);
 
   const reloadSave = useCallback(() => {
     setSave(profileRef.current ? loadSave(profileRef.current) : EMPTY_SAVE);
@@ -395,6 +407,7 @@ export function useGame(profileId: string | null) {
     goPokedex,
     viewEntry,
     goAbout,
+    goSettings,
     goLogin,
     openRegion,
     startBattle,

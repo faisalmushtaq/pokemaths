@@ -9,7 +9,7 @@
  * Sizes use clamp() so text/keys grow on larger screens without overflowing.
  */
 
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
 import {
@@ -26,9 +26,10 @@ import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount } from '@/lib/pokedex';
 import {
-  loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile,
+  loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
   MAX_PROFILES, AVATAR_CHOICES,
 } from '@/lib/profiles';
+import { MEGAS, getMega, ARCADE_COUNTS, MEGA_COUNT } from '@/lib/mega';
 import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
 import { buildShareCard, shareCatch, downloadCard } from '@/lib/shareCard';
 import {
@@ -277,6 +278,7 @@ export default function Home() {
   const [profilesData, setProfilesData] = useState(loadProfiles);
   const activeId = profilesData.activeId;
   const activeProfile = getProfile(profilesData, activeId);
+  const settings = getSettings(activeProfile);
   const game = useGame(activeId);
   const { state, save } = game;
   const nameOf = useSpeciesNames();
@@ -308,6 +310,22 @@ export default function Home() {
     setProfScreen('select'); setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]);
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
+
+  // ----- settings -----
+  const setSetting = (patch: Partial<typeof settings>) => {
+    if (!activeId) return;
+    setProfilesData(updateProfile(activeId, { settings: { ...settings, ...patch } }));
+  };
+  // Black & White: grayscale the whole app.
+  useEffect(() => {
+    const el = document.getElementById('root') ?? document.documentElement;
+    el.style.filter = settings.blackWhite ? 'grayscale(1)' : '';
+    return () => { el.style.filter = ''; };
+  }, [settings.blackWhite]);
+
+  // arcade setup choices
+  const [arcCount, setArcCount] = useState(12);
+  const [arcMon, setArcMon] = useState(MEGAS[0].dex);
 
   // ----- shareable catch card (caught screen + Pokédex entry) -----
   const [cardBlob, setCardBlob] = useState<Blob | null>(null);
@@ -405,6 +423,15 @@ export default function Home() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [state.screen, appendKey, toggleSign, handleSubmit]);
+
+  // Speed mode: auto-submit once the typed answer reaches the answer's length.
+  useEffect(() => {
+    if (!settings.speedMode || state.screen !== 'playing' || !state.question) return;
+    const expectedLen = String(state.question.answer).length;
+    if (input.length >= expectedLen && input !== '-' && input !== '.' && !Number.isNaN(parseFloat(input))) {
+      handleSubmit();
+    }
+  }, [input, state.question, state.screen, settings.speedMode, handleSubmit]);
 
   const backBtn = (label: string, onClick: () => void, color = '#888'): ReactNode => (
     <button onClick={onClick} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color, border: `1px solid ${color}55`, background: 'transparent', padding: '0.7rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}>
@@ -573,9 +600,10 @@ export default function Home() {
                 <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>· SWITCH</span>
               </button>
             )}
-            <div className="flex items-center justify-center gap-6">
-              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
-              <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>
+            <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
+              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
+              <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>
+              <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}>⚙ SETTINGS</button>
             </div>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#555', textAlign: 'center' }}>
               © 2019-2026 MUSHTAQ ARCADE CORP
@@ -688,10 +716,44 @@ export default function Home() {
         <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
+            {/* --- your Pokémon (mega-capable) --- */}
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.5rem', textAlign: 'center' }}>PICK YOUR POKÉMON</p>
+            <div className="w-full overflow-x-auto mb-4" style={{ paddingBottom: '0.35rem' }}>
+              <div className="flex gap-2" style={{ minWidth: 'min-content' }}>
+                {MEGAS.map((m) => {
+                  const sel = arcMon === m.dex;
+                  return (
+                    <button key={m.dex} onClick={() => setArcMon(m.dex)} className="rounded-xl shrink-0 flex flex-col items-center justify-center"
+                      style={{ width: 'clamp(56px,15vw,74px)', padding: '0.35rem 0.2rem', background: sel ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? '#38bdf8' : '#333'}`, boxShadow: sel ? '0 0 10px rgba(56,189,248,0.4)' : 'none', cursor: 'pointer' }}>
+                      <img src={pixelSprite(m.dex)} alt={nameOf(m.dex)} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(m.dex); }} style={{ width: 'clamp(40px,11vw,54px)', height: 'clamp(40px,11vw,54px)', imageRendering: 'pixelated' }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', marginBottom: '1rem', textAlign: 'center', lineHeight: 1.6 }}>{nameOf(arcMon).toUpperCase()}{getMega(arcMon) ? ` · ${getMega(arcMon)!.name.toUpperCase()}` : ''}</p>
+
+            {/* --- question count --- */}
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.5rem', textAlign: 'center' }}>HOW MANY QUESTIONS?</p>
+            <div className="flex justify-center gap-2 w-full mb-1" style={{ flexWrap: 'wrap' }}>
+              {ARCADE_COUNTS.map((c) => {
+                const sel = arcCount === c;
+                const isMega = c === MEGA_COUNT;
+                return (
+                  <button key={c} onClick={() => setArcCount(c)} className="rounded-lg shrink-0 flex flex-col items-center"
+                    style={{ minWidth: 'clamp(56px,16vw,80px)', padding: '0.55rem 0.6rem', background: sel ? (isMega ? 'rgba(234,179,8,0.18)' : 'rgba(56,189,248,0.15)') : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? (isMega ? '#eab308' : '#38bdf8') : '#333'}`, boxShadow: sel && isMega ? '0 0 12px rgba(234,179,8,0.5)' : 'none', cursor: 'pointer' }}>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: sel ? (isMega ? '#eab308' : '#38bdf8') : '#ccc' }}>{c}</span>
+                    {isMega && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: sel ? '#eab308' : '#777', marginTop: 4 }}>⚡MEGA</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginBottom: '1.25rem', textAlign: 'center', lineHeight: 1.6 }}>{arcCount === MEGA_COUNT ? 'FINISH ALL 24 TO MEGA-EVOLVE!' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
+
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
             <div className="flex flex-col gap-2 w-full">
               {ARCADE_LEVELS.map((lvl, i) => (
-                <button key={lvl.id} onClick={() => game.startArcade(lvl.id)} className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
+                <button key={lvl.id} onClick={() => game.startArcade(lvl.id, arcCount, arcMon)} className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
                   style={{ padding: 'clamp(0.7rem,2.5vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${lvl.accentColor}`, boxShadow: `0 0 8px ${lvl.accentColor}22`, cursor: 'pointer' }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: lvl.accentColor, width: 'clamp(1.5rem,6vw,2.2rem)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</div>
                   <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
@@ -717,13 +779,23 @@ export default function Home() {
     const accuracy = state.total > 0 ? Math.round((state.correctCount / state.total) * 100) : 0;
     const perfect = accuracy === 100;
     const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    const mega = state.arcadeCount === MEGA_COUNT && state.arcadePokemonDex != null ? getMega(state.arcadePokemonDex) : undefined;
     return (
       <Screen bg="linear-gradient(135deg, #0a0a1a, #1a0a3e)">
         <NavBar onHome={game.goMenu} title="ARCADE RESULT" accent={lvl.accentColor} />
         {perfect && <Confetti />}
-        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+        <div className="flex-1 w-full flex flex-col items-center justify-center overflow-y-auto" style={{ padding: '1rem' }}>
           <Frame>
-            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: `3px solid ${lvl.accentColor}`, boxShadow: `0 0 40px ${lvl.accentColor}44` }}>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: `3px solid ${mega ? '#eab308' : lvl.accentColor}`, boxShadow: `0 0 40px ${mega ? 'rgba(234,179,8,0.4)' : lvl.accentColor + '44'}` }}>
+              {mega && (
+                <div className="mb-4">
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: '0.5rem', textShadow: '0 0 12px #eab308' }}>⚡ MEGA EVOLUTION! ⚡</div>
+                  <div className="flex justify-center">
+                    <img src={artwork(mega.formId)} alt={mega.name} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(mega.dex); }} style={{ width: 'clamp(150px,45vw,220px)', height: 'clamp(150px,45vw,220px)', objectFit: 'contain', filter: 'drop-shadow(0 0 22px rgba(234,179,8,0.6))' }} />
+                  </div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: '0.5rem' }}>{mega.name.toUpperCase()}</div>
+                </div>
+              )}
               <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.25rem' }}>{perfect ? '🌟' : '🎮'}</div>
               <h1 style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: lvl.accentColor, marginBottom: '0.25rem' }}>{lvl.name.toUpperCase()}</h1>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: perfect ? '#FFD700' : '#e2e8f0', marginBottom: '1rem' }}>{perfect ? 'PERFECT RUN!' : 'RUN COMPLETE!'}</p>
@@ -953,6 +1025,43 @@ export default function Home() {
                 Made by Mushtaq Arcade Corp. © 2019–2026.<br />
                 Pokémon sprites via PokeAPI. This is an unofficial fan-made educational game and is not affiliated with, endorsed by, or sponsored by Nintendo, Game Freak, or The Pokémon Company.
               </Section>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // SETTINGS (per-player, synced)
+  // =========================================================================
+  if (state.screen === 'settings') {
+    const Toggle = ({ on, onClick, accent }: { on: boolean; onClick: (e: MouseEvent) => void; accent: string }) => (
+      <button onClick={onClick} aria-pressed={on}
+        style={{ width: 'clamp(52px,14vw,68px)', height: 'clamp(28px,7.5vw,36px)', borderRadius: 999, border: `2px solid ${on ? accent : '#555'}`, background: on ? accent : 'rgba(255,255,255,0.06)', position: 'relative', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}>
+        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - clamp(24px,6.5vw,30px))' : '3px', transform: 'translateY(-50%)', width: 'clamp(20px,5.5vw,26px)', height: 'clamp(20px,5.5vw,26px)', borderRadius: '50%', background: '#fff', transition: 'left 0.15s' }} />
+      </button>
+    );
+    const Row = ({ title, desc, on, onToggle, accent }: { title: string; desc: string; on: boolean; onToggle: () => void; accent: string }) => (
+      <div onClick={onToggle} role="button" className="w-full rounded-xl flex items-center gap-3" style={{ padding: 'clamp(0.75rem,3vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${on ? accent : '#333'}`, cursor: 'pointer' }}>
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: on ? accent : '#ccc' }}>{title}</div>
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.7, color: '#888', marginTop: 6 }}>{desc}</div>
+        </div>
+        <Toggle on={on} onClick={(e) => { e.stopPropagation(); onToggle(); }} accent={accent} />
+      </div>
+    );
+    return (
+      <Screen bg={panelBg} scroll>
+        <NavBar onHome={game.goMenu} title="SETTINGS" accent="#a78bfa" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: '1rem', textAlign: 'center', lineHeight: 1.8 }}>
+              {activeProfile ? `${activeProfile.name.toUpperCase()}'S SETTINGS` : ''}{cloudUser ? ' · SYNCED' : ' · THIS DEVICE'}
+            </p>
+            <div className="flex flex-col gap-3 w-full">
+              <Row title="⚡ SPEED MODE" desc="No OK button — your answer is sent automatically as soon as you've typed enough digits." on={settings.speedMode} accent="#eab308" onToggle={() => setSetting({ speedMode: !settings.speedMode })} />
+              <Row title="◑ BLACK & WHITE" desc="Show the whole game in monochrome." on={settings.blackWhite} accent="#94a3b8" onToggle={() => setSetting({ blackWhite: !settings.blackWhite })} />
             </div>
           </Frame>
         </div>
