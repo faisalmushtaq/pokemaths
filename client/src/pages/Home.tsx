@@ -992,6 +992,41 @@ export default function Home() {
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '1rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
+
+            {/* --- caught showcase: everything you own, up top --- */}
+            {(() => {
+              const caughtList = REGIONS.flatMap((rg) => rg.battles).filter((b) => save.caught[b.dex]).sort((a, b) => a.dex - b.dex);
+              if (caughtList.length === 0) {
+                return (
+                  <div className="w-full rounded-xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: 'clamp(1.5rem,6vw,2rem)', marginBottom: 8 }}>🔍</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO POKÉMON YET —<br />WIN BATTLES TO CATCH THEM!</div>
+                  </div>
+                );
+              }
+              return (
+                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700' }}>★ CAUGHT</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{caughtList.length}</span>
+                  </div>
+                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                    {caughtList.map((b) => (
+                      <button key={`caught-${b.id}`} onClick={() => game.viewEntry(b.dex)} className="rounded-lg flex flex-col items-center"
+                        style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: 'rgba(255,215,0,0.06)', border: '1px solid #FFD700', boxShadow: '0 0 8px rgba(255,215,0,0.15)', cursor: 'pointer' }}>
+                        <img src={pixelSprite(b.dex)} alt={nameOf(b.dex)} loading="lazy"
+                          onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
+                          style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                        <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 4 }}>#{b.dex}</span>
+                        <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 2, textAlign: 'center', lineHeight: 1.4 }}>{nameOf(b.dex)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', marginBottom: '1rem', textAlign: 'center' }}>ALL POKÉMON</div>
             <div className="flex flex-col gap-4 w-full">
               {REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg)).map((rg) => {
                 const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
