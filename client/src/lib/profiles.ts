@@ -15,6 +15,8 @@ export interface ProfileSettings {
 
 export const DEFAULT_SETTINGS: ProfileSettings = { speedMode: false, blackWhite: false };
 
+export type Gender = 'boy' | 'girl' | 'other';
+
 export interface Profile {
   id: string;
   name: string;
@@ -23,6 +25,8 @@ export interface Profile {
   pin?: string; // optional 4-digit lock
   googleUid?: string | null; // linked Google account for cloud sync
   settings?: ProfileSettings; // per-player settings (synced with the profile)
+  age?: number; // optional — captured at trainer setup
+  gender?: Gender; // optional — captured at trainer setup
 }
 
 export function getSettings(p: Profile | undefined): ProfileSettings {
@@ -83,9 +87,16 @@ export function loadProfiles(): ProfilesData {
   return migrated(read());
 }
 
-export function createProfile(name: string, avatarDex: number, pin?: string): ProfilesData {
+export interface NewProfileExtras {
+  pin?: string;
+  age?: number;
+  gender?: Gender;
+}
+
+export function createProfile(name: string, avatarDex: number, extras: NewProfileExtras = {}): ProfilesData {
   const d = read();
   if (d.profiles.length >= MAX_PROFILES) return d;
+  const { pin, age, gender } = extras;
   const profile: Profile = {
     id: genId(),
     name: name.trim().slice(0, 12) || 'Player',
@@ -93,6 +104,8 @@ export function createProfile(name: string, avatarDex: number, pin?: string): Pr
     createdAt: Date.now(),
     settings: { ...DEFAULT_SETTINGS },
     ...(pin ? { pin } : {}),
+    ...(age != null && Number.isFinite(age) ? { age } : {}),
+    ...(gender ? { gender } : {}),
   };
   return write({ ...d, profiles: [...d.profiles, profile], activeId: profile.id });
 }

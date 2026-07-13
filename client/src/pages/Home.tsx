@@ -27,7 +27,7 @@ import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount } from '@/lib/pokedex';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
-  MAX_PROFILES, AVATAR_CHOICES,
+  MAX_PROFILES, AVATAR_CHOICES, type Gender,
 } from '@/lib/profiles';
 import { MEGAS, getMega, ARCADE_COUNTS, MEGA_COUNT } from '@/lib/mega';
 import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
@@ -294,6 +294,8 @@ export default function Home() {
   const [newName, setNewName] = useState('');
   const [newAvatar, setNewAvatar] = useState(AVATAR_CHOICES[0]);
   const [newPin, setNewPin] = useState('');
+  const [newAge, setNewAge] = useState('');
+  const [newGender, setNewGender] = useState<Gender | null>(null);
 
   const chooseProfile = (id: string) => {
     const p = getProfile(profilesData, id);
@@ -306,8 +308,14 @@ export default function Home() {
     else { setPinError(true); setPinInput(''); }
   };
   const doCreate = () => {
-    setProfilesData(createProfile(newName, newAvatar, newPin.length === 4 ? newPin : undefined));
-    setProfScreen('select'); setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]);
+    const ageNum = parseInt(newAge, 10);
+    setProfilesData(createProfile(newName, newAvatar, {
+      pin: newPin.length === 4 ? newPin : undefined,
+      age: Number.isFinite(ageNum) && ageNum > 0 ? ageNum : undefined,
+      gender: newGender ?? undefined,
+    }));
+    setProfScreen('select');
+    setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]); setNewAge(''); setNewGender(null);
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
 
@@ -474,16 +482,17 @@ export default function Home() {
     const canCreate = newName.trim().length > 0;
     return (
       <Screen bg={profBg} scroll>
-        <NavBar onHome={() => setProfScreen('select')} onBack={() => setProfScreen('select')} title="NEW PLAYER" accent="#FFD700" />
+        <NavBar onHome={() => setProfScreen('select')} onBack={() => setProfScreen('select')} title="NEW TRAINER" accent="#FFD700" />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', textShadow: '0 0 12px rgba(255,215,0,0.5)', textAlign: 'center', lineHeight: 1.6 }}>BEGIN YOUR<br />JOURNEY!</div>
             <img src={pixelSprite(newAvatar)} alt="avatar"
               onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(newAvatar)) i.src = artwork(newAvatar); }}
               style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 0 10px #FFD700)` }} />
             <input value={newName} onChange={(e) => setNewName(e.target.value.slice(0, 12))} placeholder="NAME" maxLength={12}
               className="w-full text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.9rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #FFD700', color: '#FFD700', outline: 'none', maxWidth: '18rem' }} />
             <div className="w-full">
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 8, textAlign: 'center' }}>PICK AN AVATAR</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 8, textAlign: 'center' }}>PICK YOUR PARTNER</div>
               <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(48px,14vw,72px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.6rem)' }}>
                 {AVATAR_CHOICES.map((dex) => (
                   <button key={dex} onClick={() => setNewAvatar(dex)} className="rounded-lg flex items-center justify-center"
@@ -495,6 +504,28 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
+            {/* --- trainer card: optional age + gender --- */}
+            <div className="w-full flex flex-col items-center" style={{ gap: 12, maxWidth: '20rem' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', textAlign: 'center' }}>TRAINER CARD <span style={{ color: '#555' }}>(OPTIONAL)</span></div>
+              <div className="w-full flex items-center justify-center" style={{ gap: 10 }}>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa' }}>AGE</span>
+                <input value={newAge} onChange={(e) => setNewAge(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="--" inputMode="numeric"
+                  className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.6rem 0.5rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #38bdf8', color: '#38bdf8', outline: 'none', width: '4.5rem' }} />
+              </div>
+              <div className="w-full flex justify-center" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {([['boy', '♂ BOY', '#60a5fa'], ['girl', '♀ GIRL', '#f472b6'], ['other', '✦ OTHER', '#a78bfa']] as [Gender, string, string][]).map(([g, label, col]) => {
+                  const sel = newGender === g;
+                  return (
+                    <button key={g} onClick={() => setNewGender(sel ? null : g)} className="rounded-lg shrink-0"
+                      style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, padding: '0.6rem 0.7rem', color: sel ? col : '#999', background: sel ? `${col}22` : 'rgba(0,0,0,0.4)', border: `2px solid ${sel ? col : '#333'}`, cursor: 'pointer' }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="w-full flex flex-col items-center" style={{ gap: 8 }}>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888' }}>PIN (OPTIONAL)</div>
               <input value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 DIGITS" inputMode="numeric"
@@ -502,7 +533,7 @@ export default function Home() {
             </div>
             <button onClick={doCreate} disabled={!canCreate} className="w-full rounded-xl font-bold text-black"
               style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', background: canCreate ? 'linear-gradient(135deg, #FFD700, #FFA500)' : '#333', color: canCreate ? '#000' : '#666', border: '2px solid #FFD700', cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.5 }}>
-              ✓ CREATE PLAYER
+              ✓ START JOURNEY
             </button>
           </Frame>
         </div>
@@ -517,6 +548,7 @@ export default function Home() {
           <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
             <PokeballLogo size="clamp(72px, 20vw, 130px)" />
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textShadow: '0 0 16px rgba(255,215,0,0.6)', textAlign: 'center' }}>WHO'S PLAYING?</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', textAlign: 'center', lineHeight: 1.8, marginTop: -4 }}>PICK YOUR TRAINER TO CONTINUE THE JOURNEY</div>
             <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(96px,28vw,150px), 1fr))', gap: 'clamp(0.6rem,2vw,1rem)' }}>
               {profilesData.profiles.map((p) => (
                 <div key={p.id} className="relative rounded-xl flex flex-col items-center"
