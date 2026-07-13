@@ -578,6 +578,29 @@ export default function Home() {
                 {manageProfiles ? '✓ DONE' : '✎ MANAGE'}
               </button>
             )}
+
+            {/* --- account / cloud sync (same page as the profiles they own) --- */}
+            {firebaseReady() && (
+              <div className="w-full rounded-xl flex flex-col items-center" style={{ maxWidth: '26rem', marginTop: 'clamp(0.5rem,2vh,1rem)', padding: 'clamp(0.85rem,3.5vw,1.25rem)', background: cloudUser ? 'rgba(34,197,94,0.06)' : 'rgba(56,189,248,0.06)', border: `2px solid ${cloudUser ? 'rgba(34,197,94,0.4)' : '#38bdf8'}`, gap: 10 }}>
+                {cloudUser ? (
+                  <>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e' }}>☁️ SYNCED ✓</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', textAlign: 'center', lineHeight: 1.7, wordBreak: 'break-all' }}>{cloudUser.email ?? cloudUser.displayName ?? 'your account'}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>YOUR PROFILES SYNC TO EVERY DEVICE</div>
+                    <button onClick={() => signOutCloud()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2 }}>SIGN OUT</button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', textAlign: 'center', lineHeight: 1.7 }}>☁️ SAVE ACROSS DEVICES</div>
+                    <button onClick={() => signInGoogle()} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
+                      style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', maxWidth: '16rem', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
+                      <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
+                    </button>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>WITHOUT AN ACCOUNT, PROGRESS STAYS ON THIS DEVICE</div>
+                  </>
+                )}
+              </div>
+            )}
           </Frame>
         </div>
       </Screen>
