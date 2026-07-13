@@ -24,7 +24,7 @@ import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
-import { caughtCount } from '@/lib/pokedex';
+import { caughtCount, liveStreak } from '@/lib/pokedex';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
   MAX_PROFILES, AVATAR_CHOICES, type Gender,
@@ -661,6 +661,19 @@ export default function Home() {
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', textAlign: 'center', lineHeight: 2 }}>
               WIN MATHS BATTLES<br />TO CATCH POKÉMON!
             </p>
+            {(() => {
+              const streak = liveStreak(save);
+              const best = save.streak?.best ?? 0;
+              return (
+                <div className="flex items-center rounded-full" style={{ gap: 8, padding: '0.5rem 1rem', background: streak > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.05)', border: `2px solid ${streak > 0 ? '#f97316' : '#444'}`, boxShadow: streak > 0 ? '0 0 14px rgba(249,115,22,0.35)' : 'none' }}>
+                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', filter: streak > 0 ? 'none' : 'grayscale(1) opacity(0.6)' }}>🔥</span>
+                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: streak > 0 ? '#f97316' : '#888', lineHeight: 1.5 }}>
+                    {streak > 0 ? `${streak} DAY STREAK` : 'PLAY TODAY!'}
+                  </span>
+                  {best > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 1.5 }}>· BEST {best}</span>}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Actions */}
@@ -915,6 +928,12 @@ export default function Home() {
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{fmt(state.elapsed)}</div>
                 </div>
               </div>
+              {liveStreak(save) > 0 && (
+                <div className="rounded-lg mb-4 flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
+                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{liveStreak(save)} DAY STREAK!</span>
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <button onClick={game.replayArcade} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ PLAY AGAIN</button>
                 <button onClick={game.goArcadeSelect} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>☰ CHANGE LEVEL</button>
@@ -947,6 +966,12 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
               </div>
+              {liveStreak(save) > 0 && (
+                <div className="rounded-lg mb-4 flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
+                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{liveStreak(save)} DAY STREAK!</span>
+                </div>
+              )}
               <div className="flex gap-2 mb-2">
                 <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
                 <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>

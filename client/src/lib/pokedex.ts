@@ -20,6 +20,12 @@ export interface MegaEntry {
   caughtAt: number; // epoch ms
 }
 
+export interface StreakData {
+  current: number; // consecutive days played
+  best: number; // longest streak ever
+  lastDay: string; // 'YYYY-MM-DD' (local) of the last counted day
+}
+
 export interface SaveData {
   version: 1;
   /** keyed by dex number so a Pokémon is only recorded once */
@@ -30,12 +36,16 @@ export interface SaveData {
   wonBattles: string[];
   /** battle ids unlocked early by passing a 3-question test */
   testUnlocked: string[];
+  /** daily play streak */
+  streak: StreakData;
 }
+
+export const EMPTY_STREAK: StreakData = { current: 0, best: 0, lastDay: '' };
 
 const KEY_PREFIX = 'pokemaths.save.';
 const LEGACY_KEY = 'pokemaths.save.v1'; // pre-profiles single save
 
-export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, megas: {}, wonBattles: [], testUnlocked: [] };
+export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, megas: {}, wonBattles: [], testUnlocked: [], streak: { ...EMPTY_STREAK } };
 
 function keyFor(profileId: string): string {
   return `${KEY_PREFIX}${profileId}`;
@@ -45,7 +55,7 @@ function parse(raw: string | null): SaveData {
   if (!raw) return { ...EMPTY_SAVE };
   try {
     const p = JSON.parse(raw) as Partial<SaveData>;
-    return { version: 1, caught: p.caught ?? {}, megas: p.megas ?? {}, wonBattles: p.wonBattles ?? [], testUnlocked: p.testUnlocked ?? [] };
+    return { version: 1, caught: p.caught ?? {}, megas: p.megas ?? {}, wonBattles: p.wonBattles ?? [], testUnlocked: p.testUnlocked ?? [], streak: { ...EMPTY_STREAK, ...(p.streak ?? {}) } };
   } catch {
     return { ...EMPTY_SAVE };
   }
@@ -88,6 +98,47 @@ export function recordWin(
   return next;
 }
 
+/** Local 'YYYY-MM-DD' for a date. */
+function dayStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Mark that the player completed something today and update the daily streak.
+ * Same day → no change; consecutive day → +1; a gap → reset to 1.
+ * Returns the new save (unchanged if already counted today).
+ */
+export function recordPlay(profileId: string, data: SaveData): SaveData {
+  const today = dayStr(new Date());
+  const s = data.streak ?? EMPTY_STREAK;
+  if (s.lastDay === today) return data; // already counted today
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yesterday = dayStr(y);
+  const current = s.lastDay === yesterday ? s.current + 1 : 1;
+  const streak: StreakData = { current, best: Math.max(s.best, current), lastDay: today };
+  const next: SaveData = { ...data, streak };
+  persistSave(profileId, next);
+  return next;
+}
+
+/**
+ * A streak is "live" only if the last counted day was today or yesterday;
+ * otherwise it has lapsed and should read as 0 (the next play restarts it).
+ */
+export function liveStreak(data: SaveData): number {
+  const s = data.streak ?? EMPTY_STREAK;
+  if (!s.lastDay) return 0;
+  const today = dayStr(new Date());
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yesterday = dayStr(y);
+  return s.lastDay === today || s.lastDay === yesterday ? s.current : 0;
+}
+
 /** Record a mega evolution earned in Arcade. Earliest keep wins. Returns the new save. */
 export function recordMega(profileId: string, data: SaveData, entry: MegaEntry): SaveData {
   const next: SaveData = {
@@ -128,12 +179,22 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     const existing = megas[d];
     megas[d] = !existing || entry.caughtAt < existing.caughtAt ? entry : existing;
   }
+  // Streak: keep the most recent day's current, and the best of both.
+  const sa = a.streak ?? EMPTY_STREAK;
+  const sb = b.streak ?? EMPTY_STREAK;
+  const recent = sb.lastDay > sa.lastDay ? sb : sa;
+  const streak: StreakData = {
+    current: recent.current,
+    best: Math.max(sa.best, sb.best),
+    lastDay: recent.lastDay,
+  };
   return {
     version: 1,
     caught,
     megas,
     wonBattles: Array.from(new Set([...a.wonBattles, ...b.wonBattles])),
     testUnlocked: Array.from(new Set([...a.testUnlocked, ...b.testUnlocked])),
+    streak,
   };
 }
 

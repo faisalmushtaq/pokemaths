@@ -8,7 +8,7 @@ import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordMega, recordTestUnlock, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordMega, recordTestUnlock, recordPlay, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'arcade' | 'test';
@@ -243,12 +243,13 @@ export function useGame(profileId: string | null) {
         const done = attempted >= s.total;
         // Finishing a full 24-question run mega-evolves your chosen Pokémon
         // and saves it to the Mega Pokédex.
-        if (done && s.arcadeCount === MEGA_COUNT && s.arcadePokemonDex != null && profileRef.current) {
-          const mega = getMega(s.arcadePokemonDex);
-          if (mega) {
-            const pid = profileRef.current;
-            setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now() }));
+        if (done && profileRef.current) {
+          const pid = profileRef.current;
+          if (s.arcadeCount === MEGA_COUNT && s.arcadePokemonDex != null) {
+            const mega = getMega(s.arcadePokemonDex);
+            if (mega) setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now() }));
           }
+          setSave((prev) => recordPlay(pid, prev));
         }
         questionStart.current = Date.now();
         const next = done ? null : nextArcadeQuestion(s.arcadeLevelId!, attempted, s.total, s.question?.text);
@@ -278,9 +279,10 @@ export function useGame(profileId: string | null) {
         const done = attempted >= s.total;
         if (done) {
           const passed = nextCorrect === s.total;
-          if (passed && profileRef.current) {
+          if (profileRef.current) {
             const pid = profileRef.current;
-            setSave((prev) => recordTestUnlock(pid, prev, battle.id));
+            if (passed) setSave((prev) => recordTestUnlock(pid, prev, battle.id));
+            setSave((prev) => recordPlay(pid, prev));
           }
           return { ...s, screen: passed ? 'testPassed' : 'testFailed', attempted, correctCount: nextCorrect, wrong: s.wrong + (correct ? 0 : 1), feedback: null, feedbackCorrect: correct };
         }
@@ -311,16 +313,19 @@ export function useGame(profileId: string | null) {
 
       if (done) {
         const perfect = nextCorrect === s.total;
-        if (perfect && profileRef.current) {
+        if (profileRef.current) {
           const pid = profileRef.current;
-          setSave((prev) =>
-            recordWin(pid, prev, battle.id, {
-              dex: battle.dex,
-              name: getName(battle.dex),
-              region: region.id,
-              caughtAt: Date.now(),
-            }),
-          );
+          if (perfect) {
+            setSave((prev) =>
+              recordWin(pid, prev, battle.id, {
+                dex: battle.dex,
+                name: getName(battle.dex),
+                region: region.id,
+                caughtAt: Date.now(),
+              }),
+            );
+          }
+          setSave((prev) => recordPlay(pid, prev));
         }
         return {
           ...s,
