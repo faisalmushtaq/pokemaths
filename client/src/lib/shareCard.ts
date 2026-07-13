@@ -17,6 +17,8 @@ export interface CardOpts {
   topic: string;
   artworkUrl: string;
   spriteUrl: string;
+  headline?: string; // top banner (default "★ GOTCHA! ★")
+  caption?: string; // small line under the dex/region (default "MASTERED <topic>")
 }
 
 export function catchText(dex: number, name: string): string {
@@ -99,8 +101,10 @@ export async function buildShareCard(o: CardOpts): Promise<Blob> {
 
   // header
   ctx.fillStyle = '#FFD700';
-  ctx.font = `54px ${PIXEL}`;
-  ctx.fillText('★ GOTCHA! ★', W / 2, 150);
+  const headline = o.headline ?? '★ GOTCHA! ★';
+  const hPx = fitFont(ctx, headline, W - 160, 54);
+  ctx.font = `${hPx}px ${PIXEL}`;
+  ctx.fillText(headline, W / 2, 150);
 
   // artwork (fall back to pixel sprite)
   let img: HTMLImageElement;
@@ -127,8 +131,8 @@ export async function buildShareCard(o: CardOpts): Promise<Blob> {
   ctx.fillStyle = o.accent;
   ctx.fillText(`#${o.dex} · ${o.region.toUpperCase()}`, W / 2, 985);
 
-  // mastered topic
-  const mastered = `MASTERED ${o.topic.toUpperCase()}`;
+  // caption (mastered topic, or a custom line)
+  const mastered = (o.caption ?? `MASTERED ${o.topic}`).toUpperCase();
   const mPx = fitFont(ctx, mastered, W - 200, 28);
   ctx.font = `${mPx}px ${PIXEL}`;
   ctx.fillStyle = '#aaaaaa';

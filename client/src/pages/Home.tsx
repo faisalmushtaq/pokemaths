@@ -380,6 +380,43 @@ export default function Home() {
     else setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE");
   };
 
+  // ----- shareable MEGA card (arcade result) -----
+  const arcadeMega =
+    state.screen === 'arcadeResult' && state.arcadeCount === MEGA_COUNT && state.arcadePokemonDex != null
+      ? getMega(state.arcadePokemonDex)
+      : undefined;
+  const [megaBlob, setMegaBlob] = useState<Blob | null>(null);
+  const [megaMsg, setMegaMsg] = useState<string | null>(null);
+  useEffect(() => {
+    setMegaBlob(null);
+    setMegaMsg(null);
+    if (!arcadeMega) return;
+    let alive = true;
+    buildShareCard({
+      dex: arcadeMega.dex,
+      name: arcadeMega.name,
+      region: 'Arcade',
+      accent: '#eab308',
+      topic: '',
+      artworkUrl: artwork(arcadeMega.formId),
+      spriteUrl: artwork(arcadeMega.dex),
+      headline: '⚡ MEGA EVOLVED! ⚡',
+      caption: 'EARNED IN ARCADE MODE',
+    }).then((b) => alive && setMegaBlob(b)).catch(() => {});
+    return () => { alive = false; };
+  }, [arcadeMega?.dex, state.screen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onShareMega = async () => {
+    if (!arcadeMega) return;
+    const res = await shareCatch(megaBlob, arcadeMega.formId, arcadeMega.name);
+    if (res === 'copied') setMegaMsg('COPIED TO CLIPBOARD!');
+    else if (res === 'failed') setMegaMsg('SHARING NOT AVAILABLE');
+  };
+  const onSaveMega = () => {
+    if (!arcadeMega) return;
+    if (megaBlob) { downloadCard(megaBlob, arcadeMega.formId, arcadeMega.name); setMegaMsg('IMAGE SAVED!'); }
+    else setMegaMsg("COULDN'T MAKE IMAGE — TRY SHARE");
+  };
+
   // ----- cloud sync (Google account) -----
   const { user: cloudUser } = useAuthUser();
   // On sign-in, merge local ⇄ cloud, then refresh profiles + active save.
@@ -792,21 +829,21 @@ export default function Home() {
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', marginBottom: '1rem', textAlign: 'center', lineHeight: 1.6 }}>{nameOf(arcMon).toUpperCase()}{getMega(arcMon) ? ` · ${getMega(arcMon)!.name.toUpperCase()}` : ''}</p>
 
             {/* --- question count --- */}
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.5rem', textAlign: 'center' }}>HOW MANY QUESTIONS?</p>
-            <div className="flex justify-center gap-2 w-full mb-1" style={{ flexWrap: 'wrap' }}>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>HOW MANY QUESTIONS?</p>
+            <div className="flex justify-center w-full" style={{ gap: 'clamp(0.5rem,2vw,0.75rem)', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
               {ARCADE_COUNTS.map((c) => {
                 const sel = arcCount === c;
                 const isMega = c === MEGA_COUNT;
                 return (
-                  <button key={c} onClick={() => setArcCount(c)} className="rounded-lg shrink-0 flex flex-col items-center"
-                    style={{ minWidth: 'clamp(56px,16vw,80px)', padding: '0.55rem 0.6rem', background: sel ? (isMega ? 'rgba(234,179,8,0.18)' : 'rgba(56,189,248,0.15)') : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? (isMega ? '#eab308' : '#38bdf8') : '#333'}`, boxShadow: sel && isMega ? '0 0 12px rgba(234,179,8,0.5)' : 'none', cursor: 'pointer' }}>
+                  <button key={c} onClick={() => setArcCount(c)} className="rounded-lg shrink-0 flex flex-col items-center justify-center"
+                    style={{ minWidth: 'clamp(58px,16vw,80px)', height: 'clamp(56px,15vw,68px)', gap: 3, padding: '0.4rem 0.6rem', background: sel ? (isMega ? 'rgba(234,179,8,0.18)' : 'rgba(56,189,248,0.15)') : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? (isMega ? '#eab308' : '#38bdf8') : '#333'}`, boxShadow: sel && isMega ? '0 0 12px rgba(234,179,8,0.5)' : 'none', cursor: 'pointer' }}>
                     <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: sel ? (isMega ? '#eab308' : '#38bdf8') : '#ccc' }}>{c}</span>
-                    {isMega && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: sel ? '#eab308' : '#777', marginTop: 4 }}>⚡MEGA</span>}
+                    {isMega && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: sel ? '#eab308' : '#777' }}>⚡MEGA</span>}
                   </button>
                 );
               })}
             </div>
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginBottom: '1.25rem', textAlign: 'center', lineHeight: 1.6 }}>{arcCount === MEGA_COUNT ? 'FINISH ALL 24 TO MEGA-EVOLVE!' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: arcCount === MEGA_COUNT ? '#eab308' : '#666', marginBottom: '1.5rem', textAlign: 'center', lineHeight: 1.7 }}>{arcCount === MEGA_COUNT ? 'FINISH ALL 24 TO MEGA-EVOLVE!' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
 
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
             <div className="flex flex-col gap-2 w-full">
@@ -852,6 +889,12 @@ export default function Home() {
                     <img src={artwork(mega.formId)} alt={mega.name} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(mega.dex); }} style={{ width: 'clamp(150px,45vw,220px)', height: 'clamp(150px,45vw,220px)', objectFit: 'contain', filter: 'drop-shadow(0 0 22px rgba(234,179,8,0.6))' }} />
                   </div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: '0.5rem' }}>{mega.name.toUpperCase()}</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#22c55e', marginTop: '0.5rem' }}>✓ ADDED TO MEGA POKÉDEX</div>
+                  <div className="flex gap-2" style={{ marginTop: '0.75rem' }}>
+                    <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
+                    <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                  </div>
+                  {megaMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 8 }}>{megaMsg}</div>}
                 </div>
               )}
               <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.25rem' }}>{perfect ? '🌟' : '🎮'}</div>
@@ -1049,6 +1092,38 @@ export default function Home() {
               );
             })()}
 
+            {/* --- mega evolutions earned in arcade --- */}
+            {(() => {
+              const megaCount = Object.keys(save.megas).length;
+              return (
+                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308' }}>⚡ MEGA EVOLUTIONS</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{megaCount}/{MEGAS.length}</span>
+                  </div>
+                  {megaCount === 0 && (
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', lineHeight: 1.8, marginBottom: 10, textAlign: 'center' }}>
+                      FINISH A 24-QUESTION ARCADE RUN<br />WITH A MEGA-CAPABLE POKÉMON TO EARN ONE!
+                    </div>
+                  )}
+                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                    {MEGAS.map((m) => {
+                      const owned = Boolean(save.megas[m.dex]);
+                      return (
+                        <div key={`mega-${m.dex}`} className="rounded-lg flex flex-col items-center"
+                          style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: owned ? 'rgba(234,179,8,0.06)' : 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#eab308' : '#2a2a2a'}`, boxShadow: owned ? '0 0 8px rgba(234,179,8,0.15)' : 'none' }}>
+                          <img src={artwork(m.formId)} alt={owned ? m.name : 'Unknown'} loading="lazy"
+                            onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(m.dex)) img.src = artwork(m.dex); }}
+                            style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', filter: owned ? 'none' : 'brightness(0)' }} />
+                          <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: owned ? '#eab308' : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{owned ? m.name.toUpperCase() : '???'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', marginBottom: '1rem', textAlign: 'center' }}>ALL POKÉMON</div>
             <div className="flex flex-col gap-4 w-full">
               {REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg)).map((rg) => {
@@ -1155,6 +1230,30 @@ export default function Home() {
             <div className="flex flex-col gap-3 w-full">
               <Row title="⚡ SPEED MODE" desc="No OK button — your answer is sent automatically as soon as you've typed enough digits." on={settings.speedMode} accent="#eab308" onToggle={() => setSetting({ speedMode: !settings.speedMode })} />
               <Row title="◑ BLACK & WHITE" desc="Show the whole game in monochrome." on={settings.blackWhite} accent="#94a3b8" onToggle={() => setSetting({ blackWhite: !settings.blackWhite })} />
+            </div>
+
+            {/* --- install to home screen (PWA) --- */}
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', margin: '1.75rem 0 0.75rem', textAlign: 'center' }}>📲 INSTALL AS AN APP</div>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="w-full rounded-xl" style={{ padding: 'clamp(0.85rem,3.5vw,1.2rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #333' }}>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', marginBottom: 10 }}>🍎 IPHONE &amp; IPAD</div>
+                <ol style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2.1, listStyle: 'none', margin: 0, padding: 0 }}>
+                  <li>1. OPEN THIS PAGE IN SAFARI</li>
+                  <li>2. TAP THE SHARE BUTTON <span style={{ color: '#38bdf8' }}>⬆️</span></li>
+                  <li>3. CHOOSE "ADD TO HOME SCREEN"</li>
+                  <li>4. TAP "ADD" — DONE!</li>
+                </ol>
+              </div>
+              <div className="w-full rounded-xl" style={{ padding: 'clamp(0.85rem,3.5vw,1.2rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #333' }}>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e', marginBottom: 10 }}>🤖 ANDROID</div>
+                <ol style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2.1, listStyle: 'none', margin: 0, padding: 0 }}>
+                  <li>1. OPEN THIS PAGE IN CHROME</li>
+                  <li>2. TAP THE MENU <span style={{ color: '#22c55e' }}>⋮</span> (TOP-RIGHT)</li>
+                  <li>3. TAP "ADD TO HOME SCREEN" / "INSTALL APP"</li>
+                  <li>4. TAP "ADD" / "INSTALL" — DONE!</li>
+                </ol>
+              </div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#777', textAlign: 'center', lineHeight: 1.9 }}>IT ADDS A POKÉMATHS ICON THAT OPENS FULLSCREEN, JUST LIKE A REAL APP.</div>
             </div>
           </Frame>
         </div>

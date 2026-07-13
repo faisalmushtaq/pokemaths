@@ -6,8 +6,9 @@ import {
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
+import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordTestUnlock, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordMega, recordTestUnlock, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'arcade' | 'test';
@@ -240,6 +241,15 @@ export function useGame(profileId: string | null) {
       if (s.mode === 'arcade') {
         const attempted = s.attempted + 1;
         const done = attempted >= s.total;
+        // Finishing a full 24-question run mega-evolves your chosen Pokémon
+        // and saves it to the Mega Pokédex.
+        if (done && s.arcadeCount === MEGA_COUNT && s.arcadePokemonDex != null && profileRef.current) {
+          const mega = getMega(s.arcadePokemonDex);
+          if (mega) {
+            const pid = profileRef.current;
+            setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now() }));
+          }
+        }
         questionStart.current = Date.now();
         const next = done ? null : nextArcadeQuestion(s.arcadeLevelId!, attempted, s.total, s.question?.text);
         return {
