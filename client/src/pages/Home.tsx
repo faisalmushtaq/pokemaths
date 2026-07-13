@@ -483,20 +483,20 @@ export default function Home() {
     return (
       <Screen bg={profBg} scroll>
         <NavBar onHome={() => setProfScreen('select')} onBack={() => setProfScreen('select')} title="NEW TRAINER" accent="#FFD700" />
-        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
-          <Frame className="items-center" style={{ gap: 'clamp(0.75rem,3vh,1.5rem)' }}>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', textShadow: '0 0 12px rgba(255,215,0,0.5)', textAlign: 'center', lineHeight: 1.6 }}>BEGIN YOUR<br />JOURNEY!</div>
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(1rem,4vw,2rem) 1rem clamp(2rem,6vh,3rem)' }}>
+          <Frame className="items-center" style={{ flexShrink: 0, gap: 'clamp(1rem,3.5vh,1.75rem)' }}>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', textShadow: '0 0 12px rgba(255,215,0,0.5)', textAlign: 'center', lineHeight: 1.7, flexShrink: 0 }}>BEGIN YOUR<br />JOURNEY!</div>
             <img src={pixelSprite(newAvatar)} alt="avatar"
               onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(newAvatar)) i.src = artwork(newAvatar); }}
-              style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 0 10px #FFD700)` }} />
+              style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 0 10px #FFD700)`, flexShrink: 0 }} />
             <input value={newName} onChange={(e) => setNewName(e.target.value.slice(0, 12))} placeholder="NAME" maxLength={12}
-              className="w-full text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.9rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #FFD700', color: '#FFD700', outline: 'none', maxWidth: '18rem' }} />
-            <div className="w-full">
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 8, textAlign: 'center' }}>PICK YOUR PARTNER</div>
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(48px,14vw,72px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.6rem)' }}>
+              className="w-full text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.9rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #FFD700', color: '#FFD700', outline: 'none', maxWidth: '18rem', flexShrink: 0 }} />
+            <div className="w-full" style={{ flexShrink: 0 }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 12, textAlign: 'center' }}>PICK YOUR PARTNER</div>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(48px,14vw,72px), 1fr))', gap: 'clamp(0.5rem,1.8vw,0.75rem)' }}>
                 {AVATAR_CHOICES.map((dex) => (
                   <button key={dex} onClick={() => setNewAvatar(dex)} className="rounded-lg flex items-center justify-center"
-                    style={{ padding: 4, background: 'rgba(0,0,0,0.4)', border: `2px solid ${newAvatar === dex ? '#FFD700' : '#333'}`, cursor: 'pointer' }}>
+                    style={{ padding: 6, background: 'rgba(0,0,0,0.4)', border: `2px solid ${newAvatar === dex ? '#FFD700' : '#333'}`, cursor: 'pointer' }}>
                     <img src={pixelSprite(dex)} alt="" loading="lazy"
                       onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(dex)) i.src = artwork(dex); }}
                       style={{ width: 'clamp(40px,11vw,56px)', height: 'clamp(40px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
@@ -506,19 +506,19 @@ export default function Home() {
             </div>
 
             {/* --- trainer card: optional age + gender --- */}
-            <div className="w-full flex flex-col items-center" style={{ gap: 12, maxWidth: '20rem' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', textAlign: 'center' }}>TRAINER CARD <span style={{ color: '#555' }}>(OPTIONAL)</span></div>
-              <div className="w-full flex items-center justify-center" style={{ gap: 10 }}>
+            <div className="w-full rounded-2xl flex flex-col items-center" style={{ flexShrink: 0, gap: 16, maxWidth: '20rem', padding: 'clamp(1rem,4vw,1.4rem)', background: 'rgba(56,189,248,0.05)', border: '2px solid rgba(56,189,248,0.3)' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#94a3b8', textAlign: 'center' }}>TRAINER CARD <span style={{ color: '#555' }}>(OPTIONAL)</span></div>
+              <div className="w-full flex items-center justify-center" style={{ gap: 12 }}>
                 <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aaa' }}>AGE</span>
                 <input value={newAge} onChange={(e) => setNewAge(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="--" inputMode="numeric"
-                  className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.6rem 0.5rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #38bdf8', color: '#38bdf8', outline: 'none', width: '4.5rem' }} />
+                  className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.65rem 0.5rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #38bdf8', color: '#38bdf8', outline: 'none', width: '4.5rem' }} />
               </div>
-              <div className="w-full flex justify-center" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <div className="w-full flex justify-center" style={{ gap: 10, flexWrap: 'wrap' }}>
                 {([['boy', '♂ BOY', '#60a5fa'], ['girl', '♀ GIRL', '#f472b6'], ['other', '✦ OTHER', '#a78bfa']] as [Gender, string, string][]).map(([g, label, col]) => {
                   const sel = newGender === g;
                   return (
                     <button key={g} onClick={() => setNewGender(sel ? null : g)} className="rounded-lg shrink-0"
-                      style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, padding: '0.6rem 0.7rem', color: sel ? col : '#999', background: sel ? `${col}22` : 'rgba(0,0,0,0.4)', border: `2px solid ${sel ? col : '#333'}`, cursor: 'pointer' }}>
+                      style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, padding: '0.65rem 0.8rem', color: sel ? col : '#999', background: sel ? `${col}22` : 'rgba(0,0,0,0.4)', border: `2px solid ${sel ? col : '#333'}`, cursor: 'pointer' }}>
                       {label}
                     </button>
                   );
@@ -526,13 +526,13 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="w-full flex flex-col items-center" style={{ gap: 8 }}>
+            <div className="w-full flex flex-col items-center" style={{ gap: 12, flexShrink: 0 }}>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888' }}>PIN (OPTIONAL)</div>
               <input value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 DIGITS" inputMode="numeric"
                 className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.75rem 1rem', letterSpacing: '0.4em', background: 'rgba(0,0,0,0.5)', border: '2px solid #a78bfa', color: '#a78bfa', outline: 'none', width: '10rem' }} />
             </div>
             <button onClick={doCreate} disabled={!canCreate} className="w-full rounded-xl font-bold text-black"
-              style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', background: canCreate ? 'linear-gradient(135deg, #FFD700, #FFA500)' : '#333', color: canCreate ? '#000' : '#666', border: '2px solid #FFD700', cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.5 }}>
+              style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', flexShrink: 0, background: canCreate ? 'linear-gradient(135deg, #FFD700, #FFA500)' : '#333', color: canCreate ? '#000' : '#666', border: '2px solid #FFD700', cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.5 }}>
               ✓ START JOURNEY
             </button>
           </Frame>
@@ -749,15 +749,18 @@ export default function Home() {
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             {/* --- your Pokémon (mega-capable) --- */}
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.5rem', textAlign: 'center' }}>PICK YOUR POKÉMON</p>
-            <div className="w-full overflow-x-auto mb-4" style={{ paddingBottom: '0.35rem' }}>
-              <div className="flex gap-2" style={{ minWidth: 'min-content' }}>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.6rem', textAlign: 'center' }}>PICK YOUR POKÉMON</p>
+            <div className="w-full overflow-x-auto mb-4" style={{ padding: '0.5rem 0.25rem 0.6rem' }}>
+              <div className="flex" style={{ gap: '0.6rem', minWidth: 'min-content' }}>
                 {MEGAS.map((m) => {
                   const sel = arcMon === m.dex;
+                  const tile = 'clamp(62px,17vw,80px)';
                   return (
-                    <button key={m.dex} onClick={() => setArcMon(m.dex)} className="rounded-xl shrink-0 flex flex-col items-center justify-center"
-                      style={{ width: 'clamp(56px,15vw,74px)', padding: '0.35rem 0.2rem', background: sel ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? '#38bdf8' : '#333'}`, boxShadow: sel ? '0 0 10px rgba(56,189,248,0.4)' : 'none', cursor: 'pointer' }}>
-                      <img src={pixelSprite(m.dex)} alt={nameOf(m.dex)} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(m.dex); }} style={{ width: 'clamp(40px,11vw,54px)', height: 'clamp(40px,11vw,54px)', imageRendering: 'pixelated' }} />
+                    <button key={m.dex} onClick={() => setArcMon(m.dex)}
+                      ref={sel ? (el) => el?.scrollIntoView({ block: 'nearest', inline: 'center' }) : undefined}
+                      className="rounded-xl shrink-0 flex items-center justify-center"
+                      style={{ width: tile, height: tile, padding: '0.3rem', background: sel ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? '#38bdf8' : '#333'}`, boxShadow: sel ? '0 0 12px rgba(56,189,248,0.45)' : 'none', cursor: 'pointer' }}>
+                      <img src={pixelSprite(m.dex)} alt={nameOf(m.dex)} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(m.dex); }} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
                     </button>
                   );
                 })}
