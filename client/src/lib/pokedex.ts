@@ -17,7 +17,8 @@ export interface MegaEntry {
   dex: number; // base national dex
   formId: number; // PokeAPI mega form id (for the sprite)
   name: string; // mega display name
-  caughtAt: number; // epoch ms
+  caughtAt: number; // epoch ms (first earned)
+  bestTime?: number; // fastest 24-question run, in seconds
 }
 
 export interface StreakData {
@@ -181,11 +182,22 @@ export function liveStreak(data: SaveData): number {
   return s.freezes >= gap - 1 ? s.current : 0;
 }
 
-/** Record a mega evolution earned in Arcade. Earliest keep wins. Returns the new save. */
+/** Combine two mega records: earliest catch date, fastest run time. */
+function mergeMega(a: MegaEntry | undefined, b: MegaEntry): MegaEntry {
+  if (!a) return b;
+  const times = [a.bestTime, b.bestTime].filter((t): t is number => t != null);
+  return {
+    ...a,
+    caughtAt: Math.min(a.caughtAt, b.caughtAt),
+    bestTime: times.length ? Math.min(...times) : undefined,
+  };
+}
+
+/** Record a mega evolution earned in Arcade (keeps earliest date + fastest time). */
 export function recordMega(profileId: string, data: SaveData, entry: MegaEntry): SaveData {
   const next: SaveData = {
     ...data,
-    megas: { ...data.megas, [entry.dex]: data.megas[entry.dex] ?? entry },
+    megas: { ...data.megas, [entry.dex]: mergeMega(data.megas[entry.dex], entry) },
   };
   persistSave(profileId, next);
   return next;
@@ -216,10 +228,8 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     caught[d] = !existing || entry.caughtAt < existing.caughtAt ? entry : existing;
   }
   const megas: Record<number, MegaEntry> = { ...a.megas };
-  for (const [dex, entry] of Object.entries(b.megas ?? {})) {
-    const d = Number(dex);
-    const existing = megas[d];
-    megas[d] = !existing || entry.caughtAt < existing.caughtAt ? entry : existing;
+  for (const entry of Object.values(b.megas ?? {})) {
+    megas[entry.dex] = mergeMega(megas[entry.dex], entry);
   }
   // Streak: keep the most recent day's current, and the best of both.
   const sa = a.streak ?? EMPTY_STREAK;

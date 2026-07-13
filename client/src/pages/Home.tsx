@@ -24,7 +24,8 @@ import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
-import { caughtCount, liveStreak, freezeUsedToday } from '@/lib/pokedex';
+import { caughtCount, liveStreak, freezeUsedToday, type MegaEntry } from '@/lib/pokedex';
+import { playTheme, stopTheme } from '@/lib/chiptune';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
@@ -332,6 +333,34 @@ export default function Home() {
     return () => { el.style.filter = ''; };
   }, [settings.blackWhite]);
 
+  // ----- theme tune (tap the pokéball on the menu) -----
+  const playTune = () => { if (!settings.muteTune) playTheme(); };
+  const toggleMute = () => {
+    const next = !settings.muteTune;
+    if (next) stopTheme();
+    setSetting({ muteTune: next });
+  };
+
+  // ----- profile management (edit / delete) -----
+  const [editProfileId, setEditProfileId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState(AVATAR_CHOICES[0]);
+  const [editPin, setEditPin] = useState('');
+  const openEdit = (p: { id: string; name: string; avatarDex: number; pin?: string }) => {
+    setEditName(p.name); setEditAvatar(p.avatarDex); setEditPin(p.pin ?? '');
+    setConfirmDeleteId(null); setEditProfileId(p.id);
+  };
+  const saveEdit = () => {
+    if (!editProfileId) return;
+    setProfilesData(updateProfile(editProfileId, {
+      name: editName.trim().slice(0, 12) || 'Player',
+      avatarDex: editAvatar,
+      pin: editPin.length === 4 ? editPin : undefined,
+    }));
+    setEditProfileId(null);
+  };
+
   // arcade setup choices
   const [arcCount, setArcCount] = useState(12);
   const [arcMon, setArcMon] = useState(MEGAS[0].dex);
@@ -381,11 +410,13 @@ export default function Home() {
     else setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE");
   };
 
-  // ----- shareable MEGA card (arcade result) -----
+  // ----- shareable MEGA card (arcade result + mega Pokédex entry) -----
   const arcadeMega =
     state.screen === 'arcadeResult' && state.arcadeCount === MEGA_COUNT && state.arcadePokemonDex != null
       ? getMega(state.arcadePokemonDex)
-      : undefined;
+      : state.screen === 'megaEntry' && state.selectedDex != null
+        ? getMega(state.selectedDex)
+        : undefined;
   const [megaBlob, setMegaBlob] = useState<Blob | null>(null);
   const [megaMsg, setMegaMsg] = useState<string | null>(null);
   useEffect(() => {
@@ -516,6 +547,48 @@ export default function Home() {
     );
   }
 
+  // ----- edit an existing profile (name / avatar / PIN) -----
+  if (editProfileId) {
+    const canSave = editName.trim().length > 0;
+    return (
+      <Screen bg={profBg} scroll>
+        <NavBar onHome={() => setEditProfileId(null)} onBack={() => setEditProfileId(null)} title="EDIT PLAYER" accent="#38bdf8" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(1rem,4vw,2rem) 1rem clamp(2rem,6vh,3rem)' }}>
+          <Frame className="items-center" style={{ flexShrink: 0, gap: 'clamp(1rem,3.5vh,1.75rem)' }}>
+            <img src={pixelSprite(editAvatar)} alt="avatar"
+              onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(editAvatar)) i.src = artwork(editAvatar); }}
+              style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px #38bdf8)', flexShrink: 0 }} />
+            <input value={editName} onChange={(e) => setEditName(e.target.value.slice(0, 12))} placeholder="NAME" maxLength={12}
+              className="w-full text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.9rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #38bdf8', color: '#38bdf8', outline: 'none', maxWidth: '18rem', flexShrink: 0 }} />
+            <div className="w-full" style={{ flexShrink: 0 }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 12, textAlign: 'center' }}>CHOOSE AN ICON</div>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(48px,14vw,72px), 1fr))', gap: 'clamp(0.5rem,1.8vw,0.75rem)' }}>
+                {AVATAR_CHOICES.map((dex) => (
+                  <button key={dex} onClick={() => setEditAvatar(dex)} className="rounded-lg flex items-center justify-center"
+                    style={{ padding: 6, background: 'rgba(0,0,0,0.4)', border: `2px solid ${editAvatar === dex ? '#38bdf8' : '#333'}`, cursor: 'pointer' }}>
+                    <img src={pixelSprite(dex)} alt="" loading="lazy"
+                      onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(dex)) i.src = artwork(dex); }}
+                      style={{ width: 'clamp(40px,11vw,56px)', height: 'clamp(40px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="w-full flex flex-col items-center" style={{ gap: 10, flexShrink: 0 }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888' }}>PIN (OPTIONAL)</div>
+              <input value={editPin} onChange={(e) => setEditPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 DIGITS" inputMode="numeric"
+                className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.75rem 1rem', letterSpacing: '0.4em', background: 'rgba(0,0,0,0.5)', border: '2px solid #a78bfa', color: '#a78bfa', outline: 'none', width: '10rem' }} />
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#666', textAlign: 'center', lineHeight: 1.7 }}>LEAVE BLANK TO REMOVE THE PIN</div>
+            </div>
+            <button onClick={saveEdit} disabled={!canSave} className="w-full rounded-xl font-bold text-black"
+              style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', flexShrink: 0, background: canSave ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : '#333', color: canSave ? '#001' : '#666', border: '2px solid #38bdf8', cursor: canSave ? 'pointer' : 'not-allowed', opacity: canSave ? 1 : 0.5 }}>
+              ✓ SAVE CHANGES
+            </button>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
   if (!activeId && profScreen === 'create') {
     const canCreate = newName.trim().length > 0;
     return (
@@ -597,9 +670,25 @@ export default function Home() {
                       style={{ width: 'clamp(56px,16vw,88px)', height: 'clamp(56px,16vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
                     <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>{p.name.toUpperCase()}{p.pin ? ' 🔒' : ''}</span>
                   </button>
-                  {manageProfiles && (
-                    <button onClick={() => setProfilesData(deleteProfile(p.id))} aria-label="Delete"
-                      style={{ position: 'absolute', top: -8, right: -8, width: 26, height: 26, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✕</button>
+                  {manageProfiles && confirmDeleteId !== p.id && (
+                    <>
+                      <button onClick={() => openEdit(p)} aria-label="Edit player"
+                        style={{ position: 'absolute', top: -8, left: -8, width: 26, height: 26, borderRadius: '50%', background: '#38bdf8', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✎</button>
+                      <button onClick={() => setConfirmDeleteId(p.id)} aria-label="Delete player"
+                        style={{ position: 'absolute', top: -8, right: -8, width: 26, height: 26, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✕</button>
+                    </>
+                  )}
+                  {confirmDeleteId === p.id && (
+                    <div className="absolute inset-0 rounded-xl flex flex-col items-center justify-center" style={{ background: 'rgba(10,10,26,0.95)', border: '2px solid #ef4444', gap: 8, padding: 8 }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', textAlign: 'center', lineHeight: 1.6 }}>DELETE<br />{p.name.toUpperCase()}?</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.45rem', color: '#888', textAlign: 'center', lineHeight: 1.6 }}>THIS ERASES THEIR POKÉDEX</div>
+                      <div className="flex" style={{ gap: 6 }}>
+                        <button onClick={() => { setProfilesData(deleteProfile(p.id)); setConfirmDeleteId(null); }}
+                          style={{ fontFamily: PIXEL_FONT, fontSize: '0.55rem', color: '#fff', background: '#ef4444', border: 'none', borderRadius: 6, padding: '0.4rem 0.5rem', cursor: 'pointer' }}>DELETE</button>
+                        <button onClick={() => setConfirmDeleteId(null)}
+                          style={{ fontFamily: PIXEL_FONT, fontSize: '0.55rem', color: '#ccc', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 6, padding: '0.4rem 0.5rem', cursor: 'pointer' }}>CANCEL</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
@@ -652,13 +741,23 @@ export default function Home() {
     const menuBg = 'radial-gradient(circle at 50% 22%, #241456 0%, #14093a 45%, #0a0a1a 100%)';
     return (
       <Screen bg={menuBg}>
-        <div className="flex-1 w-full flex flex-col items-center justify-between" style={{ padding: 'clamp(1.25rem, 5vh, 3rem) 1rem clamp(1rem, 3vh, 2rem)' }}>
-          {/* Hero: pokéball + title */}
+        <div className="flex-1 w-full flex flex-col items-center justify-between" style={{ position: 'relative', padding: 'clamp(1.25rem, 5vh, 3rem) 1rem clamp(1rem, 3vh, 2rem)' }}>
+          {/* Mute toggle for the theme tune (top-right) */}
+          <button onClick={toggleMute} aria-label={settings.muteTune ? 'Unmute theme' : 'Mute theme'} title={settings.muteTune ? 'Theme muted' : 'Theme on'}
+            style={{ position: 'absolute', top: 'clamp(0.75rem,3vw,1.25rem)', right: 'clamp(0.75rem,3vw,1.25rem)', fontSize: 'clamp(1.1rem,4.5vw,1.5rem)', background: 'rgba(0,0,0,0.3)', border: '2px solid #444', borderRadius: 999, width: 'clamp(2.2rem,9vw,3rem)', height: 'clamp(2.2rem,9vw,3rem)', cursor: 'pointer', lineHeight: 1 }}>
+            {settings.muteTune ? '🔇' : '🔊'}
+          </button>
+
+          {/* Hero: pokéball (tap to play the theme) + title */}
           <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1.25rem)' }}>
-            <PokeballLogo size="clamp(96px, 26vw, 180px)" />
+            <button onClick={playTune} aria-label="Play theme tune" title="Tap for the theme tune!"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}>
+              <PokeballLogo size="clamp(96px, 26vw, 180px)" />
+            </button>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textShadow: '0 0 18px rgba(255,215,0,0.6), 0 3px 0 #7c1d6f', letterSpacing: '0.08em', textAlign: 'center', lineHeight: 1.4 }}>
               POKÉMATHS
             </div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#6b7280', textAlign: 'center', marginTop: -4 }}>♪ TAP THE POKÉBALL ♪</div>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', textAlign: 'center', lineHeight: 2 }}>
               WIN MATHS BATTLES<br />TO CATCH POKÉMON!
             </p>
@@ -766,7 +865,7 @@ export default function Home() {
     };
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="CHOOSE REGION" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="CHOOSE REGION" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <div className="flex flex-col gap-2 w-full">
@@ -831,7 +930,7 @@ export default function Home() {
   if (state.screen === 'arcadeSelect') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem clamp(1.5rem,5vh,2.5rem)' }}>
           <Frame style={{ flexShrink: 0 }}>
             {/* --- your Pokémon (mega-capable) --- */}
@@ -1120,7 +1219,7 @@ export default function Home() {
   if (state.screen === 'pokedex') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={game.goLogin} aria-label="Log in" title="Log in" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '1rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
@@ -1176,13 +1275,13 @@ export default function Home() {
                     {MEGAS.map((m) => {
                       const owned = Boolean(save.megas[m.dex]);
                       return (
-                        <div key={`mega-${m.dex}`} className="rounded-lg flex flex-col items-center"
-                          style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: owned ? 'rgba(234,179,8,0.06)' : 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#eab308' : '#2a2a2a'}`, boxShadow: owned ? '0 0 8px rgba(234,179,8,0.15)' : 'none' }}>
+                        <button key={`mega-${m.dex}`} disabled={!owned} onClick={() => owned && game.viewMega(m.dex)} className="rounded-lg flex flex-col items-center"
+                          style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: owned ? 'rgba(234,179,8,0.06)' : 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#eab308' : '#2a2a2a'}`, boxShadow: owned ? '0 0 8px rgba(234,179,8,0.15)' : 'none', cursor: owned ? 'pointer' : 'default' }}>
                           <img src={artwork(m.formId)} alt={owned ? m.name : 'Unknown'} loading="lazy"
                             onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(m.dex)) img.src = artwork(m.dex); }}
                             style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', filter: owned ? 'none' : 'brightness(0)' }} />
                           <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: owned ? '#eab308' : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{owned ? m.name.toUpperCase() : '???'}</span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1478,6 +1577,63 @@ export default function Home() {
                 <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
               </div>
               {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 10 }}>{shareMsg}</div>}
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // MEGA POKÉDEX ENTRY (detail)
+  // =========================================================================
+  if (state.screen === 'megaEntry' && state.selectedDex != null) {
+    const m = getMega(state.selectedDex);
+    const entry: MegaEntry | undefined = save.megas[state.selectedDex];
+    if (!m || !entry) {
+      // shouldn't happen, but fail safe back to the Pokédex
+      return (
+        <Screen bg={panelBg}>
+          <NavBar onHome={game.goMenu} onBack={game.goPokedex} title="MEGA" accent="#eab308" />
+        </Screen>
+      );
+    }
+    const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+    const earned = new Date(entry.caughtAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return (
+      <Screen bg="linear-gradient(135deg, #0a0a1a, #2a2308)" scroll>
+        <NavBar onHome={game.goMenu} onBack={game.goPokedex} title={m.name.toUpperCase()} accent="#eab308" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame style={{ flexShrink: 0 }}>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1rem,4vw,1.75rem)', background: 'rgba(0,0,0,0.8)', border: '3px solid #eab308', boxShadow: '0 0 30px rgba(234,179,8,0.3)' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: 8, textShadow: '0 0 10px #eab308' }}>⚡ MEGA EVOLUTION ⚡</div>
+              <div className="flex justify-center">
+                <img src={artwork(m.formId)} alt={m.name} onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(m.dex)) i.src = artwork(m.dex); }}
+                  style={{ width: 'clamp(150px,45vw,220px)', height: 'clamp(150px,45vw,220px)', objectFit: 'contain', filter: 'drop-shadow(0 0 20px rgba(234,179,8,0.55))' }} />
+              </div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#fff', marginTop: 6 }}>{m.name.toUpperCase()}</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 4 }}>#{m.dex} · {nameOf(m.dex).toUpperCase()}</div>
+
+              <div className="flex gap-2" style={{ marginTop: 16 }}>
+                <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)' }}>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>⚡ FASTEST</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#eab308', marginTop: 5 }}>{entry.bestTime != null ? fmtTime(entry.bestTime) : '—'}</div>
+                </div>
+                <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>📅 EARNED</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#fff', marginTop: 5, lineHeight: 1.5 }}>{earned}</div>
+                </div>
+              </div>
+
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 2, marginTop: 14 }}>
+                Earned by finishing a 24-question Arcade run with {nameOf(m.dex).toUpperCase()}. Beat your best time to improve it!
+              </p>
+
+              <div className="flex gap-2" style={{ marginTop: 16 }}>
+                <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
+                <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+              </div>
+              {megaMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 10 }}>{megaMsg}</div>}
             </div>
           </Frame>
         </div>

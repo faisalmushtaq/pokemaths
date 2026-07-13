@@ -11,9 +11,10 @@ import { deleteSave, persistSave, loadSave, EMPTY_SAVE, takeLegacySave, type Sav
 export interface ProfileSettings {
   speedMode: boolean; // auto-submit when the answer's length is reached (no OK)
   blackWhite: boolean; // monochrome display
+  muteTune: boolean; // silence the tap-to-play theme jingle
 }
 
-export const DEFAULT_SETTINGS: ProfileSettings = { speedMode: false, blackWhite: false };
+export const DEFAULT_SETTINGS: ProfileSettings = { speedMode: false, blackWhite: false, muteTune: false };
 
 export type Gender = 'boy' | 'girl' | 'other';
 

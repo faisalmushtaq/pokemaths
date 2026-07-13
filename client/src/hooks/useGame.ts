@@ -26,6 +26,7 @@ export type GameScreen =
   | 'arcadeResult' // arcade: run finished
   | 'pokedex'
   | 'pokedexEntry'
+  | 'megaEntry'
   | 'about'
   | 'login'
   | 'settings';
@@ -133,6 +134,10 @@ export function useGame(profileId: string | null) {
 
   const viewEntry = useCallback((dex: number) => {
     setState((s) => ({ ...s, screen: 'pokedexEntry', selectedDex: dex }));
+  }, []);
+
+  const viewMega = useCallback((dex: number) => {
+    setState((s) => ({ ...s, screen: 'megaEntry', selectedDex: dex }));
   }, []);
 
   const goAbout = useCallback(() => {
@@ -247,7 +252,7 @@ export function useGame(profileId: string | null) {
           const pid = profileRef.current;
           if (s.arcadeCount === MEGA_COUNT && s.arcadePokemonDex != null) {
             const mega = getMega(s.arcadePokemonDex);
-            if (mega) setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now() }));
+            if (mega) setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now(), bestTime: Math.round(s.elapsed) }));
           }
           setSave((prev) => recordPlay(pid, prev));
         }
@@ -421,6 +426,7 @@ export function useGame(profileId: string | null) {
     goArcadeSelect,
     goPokedex,
     viewEntry,
+    viewMega,
     goAbout,
     goSettings,
     goLogin,
