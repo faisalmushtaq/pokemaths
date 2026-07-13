@@ -25,6 +25,7 @@ import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount, liveStreak } from '@/lib/pokedex';
+import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
   MAX_PROFILES, AVATAR_CHOICES, type Gender,
@@ -664,13 +665,22 @@ export default function Home() {
             {(() => {
               const streak = liveStreak(save);
               const best = save.streak?.best ?? 0;
+              const freezes = save.streak?.freezes ?? 0;
               return (
-                <div className="flex items-center rounded-full" style={{ gap: 8, padding: '0.5rem 1rem', background: streak > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.05)', border: `2px solid ${streak > 0 ? '#f97316' : '#444'}`, boxShadow: streak > 0 ? '0 0 14px rgba(249,115,22,0.35)' : 'none' }}>
-                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', filter: streak > 0 ? 'none' : 'grayscale(1) opacity(0.6)' }}>🔥</span>
-                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: streak > 0 ? '#f97316' : '#888', lineHeight: 1.5 }}>
-                    {streak > 0 ? `${streak} DAY STREAK` : 'PLAY TODAY!'}
-                  </span>
-                  {best > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 1.5 }}>· BEST {best}</span>}
+                <div className="flex items-center" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <div className="flex items-center rounded-full" style={{ gap: 8, padding: '0.5rem 1rem', background: streak > 0 ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.05)', border: `2px solid ${streak > 0 ? '#f97316' : '#444'}`, boxShadow: streak > 0 ? '0 0 14px rgba(249,115,22,0.35)' : 'none' }}>
+                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', filter: streak > 0 ? 'none' : 'grayscale(1) opacity(0.6)' }}>🔥</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: streak > 0 ? '#f97316' : '#888', lineHeight: 1.5 }}>
+                      {streak > 0 ? `${streak} DAY STREAK` : 'PLAY TODAY!'}
+                    </span>
+                    {best > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 1.5 }}>· BEST {best}</span>}
+                  </div>
+                  {freezes > 0 && (
+                    <div className="flex items-center rounded-full" title="Streak freezes protect a missed day" style={{ gap: 6, padding: '0.5rem 0.8rem', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8' }}>
+                      <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)' }}>🧊</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', lineHeight: 1.5 }}>{freezes}</span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -928,12 +938,20 @@ export default function Home() {
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{fmt(state.elapsed)}</div>
                 </div>
               </div>
-              {liveStreak(save) > 0 && (
-                <div className="rounded-lg mb-4 flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
-                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
-                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{liveStreak(save)} DAY STREAK!</span>
+              {(() => { const st = liveStreak(save); const ms = milestoneAt(st); return st > 0 ? (
+                <div className="mb-4 flex flex-col" style={{ gap: 8 }}>
+                  <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
+                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{st} DAY STREAK!</span>
+                  </div>
+                  {ms && (
+                    <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.7rem', background: `${ms.color}1a`, border: `2px solid ${ms.color}`, boxShadow: `0 0 14px ${ms.color}55` }}>
+                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}>{ms.icon}</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null; })()}
               <div className="flex flex-col gap-2">
                 <button onClick={game.replayArcade} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ PLAY AGAIN</button>
                 <button onClick={game.goArcadeSelect} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>☰ CHANGE LEVEL</button>
@@ -966,12 +984,20 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
               </div>
-              {liveStreak(save) > 0 && (
-                <div className="rounded-lg mb-4 flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
-                  <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
-                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{liveStreak(save)} DAY STREAK!</span>
+              {(() => { const st = liveStreak(save); const ms = milestoneAt(st); return st > 0 ? (
+                <div className="mb-4 flex flex-col" style={{ gap: 8 }}>
+                  <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
+                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{st} DAY STREAK!</span>
+                  </div>
+                  {ms && (
+                    <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.7rem', background: `${ms.color}1a`, border: `2px solid ${ms.color}`, boxShadow: `0 0 14px ${ms.color}55` }}>
+                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}>{ms.icon}</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null; })()}
               <div className="flex gap-2 mb-2">
                 <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
                 <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
@@ -1149,6 +1175,33 @@ export default function Home() {
               );
             })()}
 
+            {/* --- streak milestones --- */}
+            {(() => {
+              const best = save.streak?.best ?? 0;
+              const earned = achievedMilestones(best).length;
+              return (
+                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>🏅 STREAK MILESTONES</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{earned}/{STREAK_MILESTONES.length}</span>
+                  </div>
+                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                    {STREAK_MILESTONES.map((m) => {
+                      const got = best >= m.days;
+                      return (
+                        <div key={`ms-${m.days}`} className="rounded-lg flex flex-col items-center justify-center"
+                          style={{ padding: 'clamp(0.5rem,2vw,0.8rem)', minHeight: 'clamp(84px,24vw,110px)', background: got ? `${m.color}14` : 'rgba(0,0,0,0.4)', border: `1px solid ${got ? m.color : '#2a2a2a'}`, boxShadow: got ? `0 0 8px ${m.color}33` : 'none' }}>
+                          <span style={{ fontSize: 'clamp(1.4rem,6vw,2rem)', filter: got ? 'none' : 'grayscale(1) opacity(0.35)' }}>{got ? m.icon : '🔒'}</span>
+                          <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: got ? m.color : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{m.days} DAY{m.days === 1 ? '' : 'S'}</span>
+                          {got && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', marginTop: 3, textAlign: 'center', lineHeight: 1.4 }}>{m.name.toUpperCase()}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', marginBottom: '1rem', textAlign: 'center' }}>ALL POKÉMON</div>
             <div className="flex flex-col gap-4 w-full">
               {REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg)).map((rg) => {
@@ -1210,6 +1263,9 @@ export default function Home() {
               </Section>
               <Section title="ARCADE">
                 Quick pick-up-and-play. Choose a level and race a fixed run of questions for score and accuracy — wrong answers are allowed, so it's great for practice.
+              </Section>
+              <Section title="🔥 DAILY STREAK">
+                Play at least one battle or arcade run each day to build your streak. Reach 3, 7, 14, 30, 60, 100 and 365 days to earn milestone badges — see them in the Pokédex. Every 5 days you also earn a 🧊 streak freeze: if you miss a day, a freeze is spent automatically to keep your streak alive.
               </Section>
               <Section title="LEARNING">
                 37 topics span the primary maths curriculum, from counting and number bonds up to fractions, decimals, percentages, and early algebra.
