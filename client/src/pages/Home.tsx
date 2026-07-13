@@ -33,7 +33,7 @@ import {
 } from '@/lib/profiles';
 import { MEGAS, getMega, ARCADE_COUNTS, MEGA_COUNT } from '@/lib/mega';
 import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
-import { buildShareCard, shareCatch, downloadCard } from '@/lib/shareCard';
+import { buildShareCard, shareCatch, saveCard } from '@/lib/shareCard';
 import {
   isBattlePlayable,
   isRegionUnlocked,
@@ -404,10 +404,11 @@ export default function Home() {
     if (res === 'copied') setShareMsg('COPIED TO CLIPBOARD!');
     else if (res === 'failed') setShareMsg('SHARING NOT AVAILABLE');
   };
-  const onSave = () => {
+  const onSave = async () => {
     if (!cardTarget) return;
-    if (cardBlob) { downloadCard(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex)); setShareMsg('IMAGE SAVED!'); }
-    else setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE");
+    if (!cardBlob) { setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE"); return; }
+    const res = await saveCard(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex));
+    setShareMsg(res === 'failed' ? "COULDN'T SAVE" : 'IMAGE SAVED!');
   };
 
   // ----- shareable MEGA card (arcade result + mega Pokédex entry) -----
@@ -443,10 +444,11 @@ export default function Home() {
     if (res === 'copied') setMegaMsg('COPIED TO CLIPBOARD!');
     else if (res === 'failed') setMegaMsg('SHARING NOT AVAILABLE');
   };
-  const onSaveMega = () => {
+  const onSaveMega = async () => {
     if (!arcadeMega) return;
-    if (megaBlob) { downloadCard(megaBlob, arcadeMega.formId, arcadeMega.name); setMegaMsg('IMAGE SAVED!'); }
-    else setMegaMsg("COULDN'T MAKE IMAGE — TRY SHARE");
+    if (!megaBlob) { setMegaMsg("COULDN'T MAKE IMAGE — TRY SHARE"); return; }
+    const res = await saveCard(megaBlob, arcadeMega.formId, arcadeMega.name);
+    setMegaMsg(res === 'failed' ? "COULDN'T SAVE" : 'IMAGE SAVED!');
   };
 
   // ----- cloud sync (Google account) -----

@@ -151,7 +151,37 @@ export async function buildShareCard(o: CardOpts): Promise<Blob> {
   );
 }
 
-export type ShareResult = 'shared' | 'copied' | 'failed';
+export type ShareResult = 'shared' | 'saved' | 'copied' | 'failed';
+
+function cardFile(blob: Blob, dex: number, name: string): File {
+  return new File([blob], `pokemaths-${dex}-${name.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' });
+}
+
+/**
+ * Save the card image to the device. On phones a plain <a download> just
+ * opens a "file" interstitial (and won't add to Photos), so we route through
+ * the share sheet — which offers "Save Image" — when it can share files, and
+ * fall back to an anchor download on desktop.
+ */
+export async function saveCard(blob: Blob | null, dex: number, name: string): Promise<ShareResult> {
+  if (!blob) return 'failed';
+  const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean };
+  const file = cardFile(blob, dex, name);
+  const canShareFile = !!nav.canShare && nav.canShare({ files: [file] });
+  // Only prefer the share sheet on touch devices; desktop should download.
+  const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+  if (canShareFile && isTouch) {
+    try {
+      await nav.share({ files: [file] });
+      return 'shared';
+    } catch (e) {
+      if ((e as DOMException)?.name === 'AbortError') return 'shared';
+      // fall through to download
+    }
+  }
+  downloadCard(blob, dex, name);
+  return 'saved';
+}
 
 /** Share the (pre-built) card + text via the Web Share API, with fallbacks. */
 export async function shareCatch(blob: Blob | null, dex: number, name: string): Promise<ShareResult> {
