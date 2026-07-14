@@ -25,7 +25,7 @@ import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount, liveStreak, freezeUsedToday, type MegaEntry } from '@/lib/pokedex';
-import { playTheme, stopTheme } from '@/lib/chiptune';
+import { playTheme, stopTheme, isThemePlaying } from '@/lib/chiptune';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
   loadProfiles, createProfile, setActiveProfile, deleteProfile, getProfile, updateProfile, getSettings,
@@ -334,7 +334,11 @@ export default function Home() {
   }, [settings.blackWhite]);
 
   // ----- theme tune (tap the pokéball on the menu) -----
-  const playTune = () => { if (!settings.muteTune) playTheme(); };
+  const playTune = () => {
+    if (settings.muteTune) return;
+    if (isThemePlaying()) stopTheme();
+    else void playTheme();
+  };
   const toggleMute = () => {
     const next = !settings.muteTune;
     if (next) stopTheme();
