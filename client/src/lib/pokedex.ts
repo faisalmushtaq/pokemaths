@@ -44,14 +44,28 @@ export interface SaveData {
   testUnlocked: string[];
   /** daily play streak */
   streak: StreakData;
+  /** lifetime usage stats */
+  stats: Stats;
 }
 
 export const EMPTY_STREAK: StreakData = { current: 0, best: 0, lastDay: '', freezes: 0 };
 
+export interface Stats {
+  correct: number; // questions answered correctly (all modes)
+  wrong: number; // questions answered wrong
+  seconds: number; // total time spent answering
+  battlesWon: number; // journey battles won at 100%
+  arcadeRuns: number; // arcade runs finished
+  testsPassed: number; // test-outs passed
+  daysPlayed: number; // distinct days played
+}
+
+export const EMPTY_STATS: Stats = { correct: 0, wrong: 0, seconds: 0, battlesWon: 0, arcadeRuns: 0, testsPassed: 0, daysPlayed: 0 };
+
 const KEY_PREFIX = 'pokemaths.save.';
 const LEGACY_KEY = 'pokemaths.save.v1'; // pre-profiles single save
 
-export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, megas: {}, wonBattles: [], testUnlocked: [], streak: { ...EMPTY_STREAK } };
+export const EMPTY_SAVE: SaveData = { version: 1, caught: {}, megas: {}, wonBattles: [], testUnlocked: [], streak: { ...EMPTY_STREAK }, stats: { ...EMPTY_STATS } };
 
 function keyFor(profileId: string): string {
   return `${KEY_PREFIX}${profileId}`;
@@ -61,7 +75,7 @@ function parse(raw: string | null): SaveData {
   if (!raw) return { ...EMPTY_SAVE };
   try {
     const p = JSON.parse(raw) as Partial<SaveData>;
-    return { version: 1, caught: p.caught ?? {}, megas: p.megas ?? {}, wonBattles: p.wonBattles ?? [], testUnlocked: p.testUnlocked ?? [], streak: { ...EMPTY_STREAK, ...(p.streak ?? {}) } };
+    return { version: 1, caught: p.caught ?? {}, megas: p.megas ?? {}, wonBattles: p.wonBattles ?? [], testUnlocked: p.testUnlocked ?? [], streak: { ...EMPTY_STREAK, ...(p.streak ?? {}) }, stats: { ...EMPTY_STATS, ...(p.stats ?? {}) } };
   } catch {
     return { ...EMPTY_SAVE };
   }
@@ -160,7 +174,30 @@ export function recordPlay(profileId: string, data: SaveData): SaveData {
   if (current > 0 && current % FREEZE_EVERY === 0) freezes = Math.min(MAX_FREEZES, freezes + 1);
 
   const streak: StreakData = { current, best: Math.max(s.best, current), lastDay: today, freezes, lastFreezeUsed };
-  const next: SaveData = { ...data, streak };
+  const next: SaveData = { ...data, streak, stats: { ...data.stats, daysPlayed: data.stats.daysPlayed + 1 } };
+  persistSave(profileId, next);
+  return next;
+}
+
+/** Record one answered question (correct/wrong + time), for lifetime stats. */
+export function recordAnswer(profileId: string, data: SaveData, correct: boolean, seconds: number): SaveData {
+  const capped = Math.min(Math.max(seconds, 0), 120); // ignore idle/away time
+  const next: SaveData = {
+    ...data,
+    stats: {
+      ...data.stats,
+      correct: data.stats.correct + (correct ? 1 : 0),
+      wrong: data.stats.wrong + (correct ? 0 : 1),
+      seconds: data.stats.seconds + capped,
+    },
+  };
+  persistSave(profileId, next);
+  return next;
+}
+
+/** Bump a run-completion counter (a battle won, an arcade run, a test passed). */
+export function recordRun(profileId: string, data: SaveData, kind: 'battlesWon' | 'arcadeRuns' | 'testsPassed'): SaveData {
+  const next: SaveData = { ...data, stats: { ...data.stats, [kind]: data.stats[kind] + 1 } };
   persistSave(profileId, next);
   return next;
 }
@@ -241,6 +278,18 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     lastDay: recent.lastDay,
     freezes: recent.freezes ?? 0,
   };
+  // Stats are monotonic counters; take the higher of each (device that's ahead).
+  const sta = a.stats ?? EMPTY_STATS;
+  const stb = b.stats ?? EMPTY_STATS;
+  const stats: Stats = {
+    correct: Math.max(sta.correct, stb.correct),
+    wrong: Math.max(sta.wrong, stb.wrong),
+    seconds: Math.max(sta.seconds, stb.seconds),
+    battlesWon: Math.max(sta.battlesWon, stb.battlesWon),
+    arcadeRuns: Math.max(sta.arcadeRuns, stb.arcadeRuns),
+    testsPassed: Math.max(sta.testsPassed, stb.testsPassed),
+    daysPlayed: Math.max(sta.daysPlayed, stb.daysPlayed),
+  };
   return {
     version: 1,
     caught,
@@ -248,6 +297,7 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     wonBattles: Array.from(new Set([...a.wonBattles, ...b.wonBattles])),
     testUnlocked: Array.from(new Set([...a.testUnlocked, ...b.testUnlocked])),
     streak,
+    stats,
   };
 }
 

@@ -299,14 +299,15 @@ export default function Home() {
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState<Gender | null>(null);
 
+  const [pendingWelcome, setPendingWelcome] = useState(false);
   const chooseProfile = (id: string) => {
     const p = getProfile(profilesData, id);
     if (p?.pin) { setPinTarget(id); setPinInput(''); setPinError(false); }
-    else setProfilesData(setActiveProfile(id));
+    else { setProfilesData(setActiveProfile(id)); setPendingWelcome(true); }
   };
   const submitPin = (pin: string) => {
     const p = getProfile(profilesData, pinTarget);
-    if (p && p.pin === pin) { setProfilesData(setActiveProfile(pinTarget)); setPinTarget(null); setPinInput(''); }
+    if (p && p.pin === pin) { setProfilesData(setActiveProfile(pinTarget)); setPinTarget(null); setPinInput(''); setPendingWelcome(true); }
     else { setPinError(true); setPinInput(''); }
   };
   const doCreate = () => {
@@ -318,6 +319,7 @@ export default function Home() {
     }));
     setProfScreen('select');
     setNewName(''); setNewPin(''); setNewAvatar(AVATAR_CHOICES[0]); setNewAge(''); setNewGender(null);
+    setPendingWelcome(true);
   };
   const switchPlayer = () => { setProfilesData(setActiveProfile(null)); setProfScreen('select'); setManageProfiles(false); };
 
@@ -741,6 +743,49 @@ export default function Home() {
   }
 
   // =========================================================================
+  // WELCOME (greeting after picking a player — softens the jump into the menu)
+  // =========================================================================
+  if (pendingWelcome && activeProfile) {
+    const menuBg = 'radial-gradient(circle at 50% 22%, #241456 0%, #14093a 45%, #0a0a1a 100%)';
+    const isNew = save.stats.correct + save.stats.wrong === 0 && caughtCount(save) === 0;
+    const streak = liveStreak(save);
+    return (
+      <Screen bg={menuBg}>
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: 'clamp(1.5rem,6vh,3rem) 1.25rem', gap: 'clamp(1rem,3vh,1.75rem)' }}>
+          <PokeballLogo size="clamp(80px, 22vw, 150px)" />
+          <img src={pixelSprite(activeProfile.avatarDex)} alt={activeProfile.name}
+            onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(activeProfile.avatarDex)) i.src = artwork(activeProfile.avatarDex); }}
+            style={{ width: 'clamp(72px,20vw,120px)', height: 'clamp(72px,20vw,120px)', objectFit: 'contain', imageRendering: 'pixelated', filter: 'drop-shadow(0 0 12px #FFD700)' }} />
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', textAlign: 'center' }}>{isNew ? 'WELCOME,' : 'WELCOME BACK,'}</div>
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textAlign: 'center', textShadow: '0 0 16px rgba(255,215,0,0.6)', lineHeight: 1.4 }}>{activeProfile.name.toUpperCase()}!</div>
+
+          {isNew ? (
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', textAlign: 'center', lineHeight: 2.1, maxWidth: '22rem' }}>
+              WIN MATHS BATTLES TO CATCH POKÉMON,<br />BUILD A DAILY STREAK, AND FILL<br />YOUR POKÉDEX. LET'S BEGIN!
+            </p>
+          ) : (
+            <div className="flex items-center justify-center" style={{ gap: 10, flexWrap: 'wrap' }}>
+              <div className="rounded-full flex items-center" style={{ gap: 6, padding: '0.5rem 0.9rem', background: 'rgba(249,115,22,0.12)', border: '2px solid #f97316' }}>
+                <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)' }}>🔥</span>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#f97316' }}>{streak > 0 ? `${streak}-DAY STREAK` : 'PLAY TODAY!'}</span>
+              </div>
+              <div className="rounded-full flex items-center" style={{ gap: 6, padding: '0.5rem 0.9rem', background: 'rgba(255,215,0,0.1)', border: '2px solid rgba(255,215,0,0.4)' }}>
+                <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)' }}>📕</span>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700' }}>{caughtCount(save)} CAUGHT</span>
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => setPendingWelcome(false)} className="w-full rounded-xl font-bold text-black"
+            style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '20rem', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer', marginTop: '0.5rem' }}>
+            {isNew ? "▶ LET'S GO!" : '▶ CONTINUE'}
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
   // MENU
   // =========================================================================
   if (state.screen === 'menu') {
@@ -824,6 +869,7 @@ export default function Home() {
               </button>
             )}
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
+              <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}>📊 MY STATS</button>
               <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
               <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>
               <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}>⚙ SETTINGS</button>
@@ -1359,6 +1405,74 @@ export default function Home() {
   }
 
   // =========================================================================
+  // MY STATS
+  // =========================================================================
+  if (state.screen === 'stats') {
+    const st = save.stats;
+    const total = st.correct + st.wrong;
+    const accuracy = total > 0 ? Math.round((st.correct / total) * 100) : 0;
+    const avgSec = total > 0 ? st.seconds / total : 0;
+    const caught = caughtCount(save);
+    const megas = Object.keys(save.megas).length;
+    const fmtDur = (s: number) => {
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+      return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+    };
+    const Card = ({ icon, label, value, sub, color }: { icon: string; label: string; value: string; sub?: string; color: string }) => (
+      <div className="rounded-xl flex flex-col" style={{ padding: 'clamp(0.7rem,3vw,1.1rem)', background: `${color}12`, border: `2px solid ${color}55`, gap: 4 }}>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)' }}>{icon}</span>{label}</div>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color, lineHeight: 1.3 }}>{value}</div>
+        {sub && <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#777', lineHeight: 1.6 }}>{sub}</div>}
+      </div>
+    );
+    // A little playful commentary based on how much they've done.
+    const quips: string[] = [];
+    if (st.seconds >= 60) quips.push('WHO SAID SCREEN TIME WAS BAD? 😎');
+    if (st.correct >= 1) quips.push(`THAT'S ${st.correct.toLocaleString()} SUMS SOLVED — YOUR BRAIN IS BUFF! 💪`);
+    if (accuracy >= 90 && total >= 20) quips.push('SHARPSHOOTER ACCURACY! 🎯');
+    else if (accuracy >= 75 && total >= 20) quips.push('SOLID ACCURACY — KEEP GOING! ✨');
+    if (caught >= 1) quips.push(`${caught} POKÉMON CAUGHT WITH PURE MATHS POWER! ⚡`);
+    if (st.daysPlayed >= 3) quips.push(`${st.daysPlayed} DAYS OF PRACTICE — THAT'S DEDICATION! 📆`);
+    if (quips.length === 0) quips.push('PLAY A BATTLE TO START YOUR STATS! ▶');
+    return (
+      <Screen bg={panelBg} scroll>
+        <NavBar onHome={game.goMenu} title="MY STATS" accent="#FFD700" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem clamp(2rem,6vh,3rem)' }}>
+          <Frame style={{ flexShrink: 0 }}>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: '0.5rem', textAlign: 'center' }}>{activeProfile ? `${activeProfile.name.toUpperCase()}'S PROGRESS` : ''}</div>
+
+            {/* Hero: total time */}
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.08)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.18)', marginBottom: '1rem' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 6 }}>⏱ TIME LEARNING</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{fmtDur(st.seconds)}</div>
+            </div>
+
+            {/* Playful commentary */}
+            <div className="w-full rounded-xl" style={{ padding: 'clamp(0.7rem,3vw,1rem)', background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.3)', marginBottom: '1rem' }}>
+              {quips.map((q, i) => (
+                <div key={i} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2, textAlign: 'center' }}>{q}</div>
+              ))}
+            </div>
+
+            <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(130px,42vw,180px), 1fr))', gap: 'clamp(0.5rem,2vw,0.75rem)' }}>
+              <Card icon="✅" label="CORRECT" value={st.correct.toLocaleString()} color="#22c55e" />
+              <Card icon="❌" label="INCORRECT" value={st.wrong.toLocaleString()} color="#ef4444" />
+              <Card icon="🎯" label="ACCURACY" value={`${accuracy}%`} sub={`${total.toLocaleString()} QUESTIONS ANSWERED`} color="#38bdf8" />
+              <Card icon="⚡" label="AVG / QUESTION" value={`${avgSec.toFixed(1)}s`} color="#eab308" />
+              <Card icon="📕" label="POKÉMON CAUGHT" value={`${caught}`} sub={`OF ${totalCatchable()}`} color="#FFD700" />
+              <Card icon="⚡" label="MEGA EVOLUTIONS" value={`${megas}`} sub={`OF ${MEGAS.length}`} color="#eab308" />
+              <Card icon="🗺" label="BATTLES WON" value={st.battlesWon.toLocaleString()} color="#22c55e" />
+              <Card icon="🎮" label="ARCADE RUNS" value={st.arcadeRuns.toLocaleString()} color="#38bdf8" />
+              <Card icon="🔑" label="TESTS PASSED" value={st.testsPassed.toLocaleString()} color="#a78bfa" />
+              <Card icon="🔥" label="STREAK" value={`${liveStreak(save)}`} sub={`BEST ${save.streak?.best ?? 0} · ${st.daysPlayed} DAYS PLAYED`} color="#f97316" />
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
   // ABOUT
   // =========================================================================
   if (state.screen === 'about') {
@@ -1565,7 +1679,7 @@ export default function Home() {
                 </div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 8, lineHeight: 1.9 }}>
                   DIFFICULTY: LV {battle?.level}/{battle ? getTopic(battle.topic).maxLevel : ''}
-                  {entry ? <><br />CAUGHT: {new Date(entry.caughtAt).toLocaleDateString()}</> : null}
+                  {entry ? <><br />CAUGHT: {new Date(entry.caughtAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</> : null}
                 </div>
               </div>
 
@@ -1605,7 +1719,7 @@ export default function Home() {
       );
     }
     const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
-    const earned = new Date(entry.caughtAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    const earned = new Date(entry.caughtAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     return (
       <Screen bg="linear-gradient(135deg, #0a0a1a, #2a2308)" scroll>
         <NavBar onHome={game.goMenu} onBack={game.goPokedex} title={m.name.toUpperCase()} accent="#eab308" />

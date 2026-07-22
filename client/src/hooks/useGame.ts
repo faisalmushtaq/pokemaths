@@ -8,7 +8,7 @@ import { findBattle } from '@/lib/regions';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordMega, recordTestUnlock, recordPlay, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'arcade' | 'test';
@@ -29,7 +29,8 @@ export type GameScreen =
   | 'megaEntry'
   | 'about'
   | 'login'
-  | 'settings';
+  | 'settings'
+  | 'stats';
 
 export interface GameState {
   screen: GameScreen;
@@ -148,6 +149,10 @@ export function useGame(profileId: string | null) {
     setState((s) => ({ ...s, screen: 'settings' }));
   }, []);
 
+  const goStats = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'stats' }));
+  }, []);
+
   const goLogin = useCallback(() => {
     setState((s) => ({ ...s, screen: 'login' }));
   }, []);
@@ -235,6 +240,11 @@ export function useGame(profileId: string | null) {
       if (s.screen !== 'playing' || !s.question) return s;
       const correct = isAnswerCorrect(s.question, typed);
       const elapsed = (Date.now() - questionStart.current) / 1000;
+      // Lifetime stats: every answered question counts (all modes).
+      if (profileRef.current) {
+        const pid = profileRef.current;
+        setSave((prev) => recordAnswer(pid, prev, correct, elapsed));
+      }
       const speedBonus =
         correct && elapsed <= SCORE_CONFIG.speedBonusThreshold ? SCORE_CONFIG.speedBonusPoints : 0;
       const points = correct ? SCORE_CONFIG.pointsPerCorrect + speedBonus : 0;
@@ -254,6 +264,7 @@ export function useGame(profileId: string | null) {
             const mega = getMega(s.arcadePokemonDex);
             if (mega) setSave((prev) => recordMega(pid, prev, { dex: mega.dex, formId: mega.formId, name: mega.name, caughtAt: Date.now(), bestTime: Math.round(s.elapsed) }));
           }
+          setSave((prev) => recordRun(pid, prev, 'arcadeRuns'));
           setSave((prev) => recordPlay(pid, prev));
         }
         questionStart.current = Date.now();
@@ -286,7 +297,10 @@ export function useGame(profileId: string | null) {
           const passed = nextCorrect === s.total;
           if (profileRef.current) {
             const pid = profileRef.current;
-            if (passed) setSave((prev) => recordTestUnlock(pid, prev, battle.id));
+            if (passed) {
+              setSave((prev) => recordTestUnlock(pid, prev, battle.id));
+              setSave((prev) => recordRun(pid, prev, 'testsPassed'));
+            }
             setSave((prev) => recordPlay(pid, prev));
           }
           return { ...s, screen: passed ? 'testPassed' : 'testFailed', attempted, correctCount: nextCorrect, wrong: s.wrong + (correct ? 0 : 1), feedback: null, feedbackCorrect: correct };
@@ -329,6 +343,7 @@ export function useGame(profileId: string | null) {
                 caughtAt: Date.now(),
               }),
             );
+            setSave((prev) => recordRun(pid, prev, 'battlesWon'));
           }
           setSave((prev) => recordPlay(pid, prev));
         }
@@ -429,6 +444,7 @@ export function useGame(profileId: string | null) {
     viewMega,
     goAbout,
     goSettings,
+    goStats,
     goLogin,
     openRegion,
     startBattle,
