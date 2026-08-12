@@ -132,19 +132,41 @@ function PokedexSectionHeader({ label, count, accent, expanded, onToggle, compac
         fontSize: compact ? FS.small : FS.sub,
         color: accent,
         textAlign: 'left',
-        padding: compact ? '0.45rem 0.6rem' : '0.55rem 0.7rem',
-        background: `${accent}12`,
-        border: `1px solid ${accent}66`,
+        padding: compact ? '0.5rem 0.6rem' : '0.65rem 0.75rem',
+        background: expanded ? `${accent}1c` : `${accent}0c`,
+        border: `1px solid ${expanded ? `${accent}99` : `${accent}55`}`,
         borderRadius: '0.45rem',
+        boxShadow: expanded ? `0 0 10px ${accent}22` : 'none',
         cursor: 'pointer',
+        transition: 'background 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
       }}
     >
-      <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0 }}>
-        <span aria-hidden="true" style={{ color: '#e2e8f0', fontSize: compact ? FS.tiny : FS.small }}>{expanded ? '▼' : '▶'}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+        <span aria-hidden="true" style={{ color: '#e2e8f0', fontSize: compact ? FS.tiny : FS.small, display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}>▶</span>
         <span>{label}</span>
       </span>
       {count && <span style={{ fontSize: FS.tiny, color: '#94a3b8', flexShrink: 0 }}>{count}</span>}
     </button>
+  );
+}
+
+function PokedexSectionContent({ expanded, children }: { expanded: boolean; children: ReactNode }) {
+  return (
+    <div
+      aria-hidden={!expanded}
+      style={{
+        display: 'grid',
+        gridTemplateRows: expanded ? '1fr' : '0fr',
+        opacity: expanded ? 1 : 0,
+        transition: 'grid-template-rows 260ms ease, opacity 180ms ease',
+      }}
+    >
+      <div style={{ minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ paddingTop: '0.65rem', transform: expanded ? 'translateY(0)' : 'translateY(-0.35rem)', transition: 'transform 260ms ease' }}>
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -330,7 +352,11 @@ export default function Home() {
   const entryDetail = useSpeciesDetail(state.screen === 'pokedexEntry' ? state.selectedDex : null);
   const [input, setInput] = useState('');
   const [pokedexSearch, setPokedexSearch] = useState('');
-  const [collapsedPokedexSections, setCollapsedPokedexSections] = useState<Record<string, boolean>>({});
+  const [collapsedPokedexSections, setCollapsedPokedexSections] = useState<Record<string, boolean>>(() => ({
+    megas: true,
+    milestones: true,
+    ...Object.fromEntries(REGIONS.map((region) => [`region-${region.id}`, true])),
+  }));
 
   // profile flow state (shown when no player is active)
   const [profScreen, setProfScreen] = useState<'select' | 'create'>('select');
@@ -1327,12 +1353,6 @@ export default function Home() {
     const togglePokedexSection = (key: string) => {
       setCollapsedPokedexSections((current) => ({ ...current, [key]: !current[key] }));
     };
-    const toggleAllPokedexSections = () => {
-      const sectionKeys = ['caught', 'megas', 'milestones', 'all-pokemon', ...visibleRegions.map((rg) => `region-${rg.id}`)];
-      const shouldCollapse = sectionKeys.some((key) => !collapsedPokedexSections[key]);
-      setCollapsedPokedexSections(Object.fromEntries(sectionKeys.map((key) => [key, shouldCollapse])));
-    };
-
     return (
       <Screen bg={panelBg}>
         <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
@@ -1389,8 +1409,8 @@ export default function Home() {
                     expanded={isExpanded('caught')}
                     onToggle={() => togglePokedexSection('caught')}
                   />
-                  {isExpanded('caught') && (
-                    <div style={{ marginTop: '0.65rem' }}>
+                  <PokedexSectionContent expanded={isExpanded('caught')}>
+                    <div>
                       {matchingCaughtList.length === 0 ? (
                         <div className="w-full rounded-lg text-center" style={{ padding: '1rem', background: 'rgba(0,0,0,0.35)', border: '1px dashed rgba(255,215,0,0.35)' }}>
                           <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO CAUGHT POKÉMON<br />MATCH THAT NAME</div>
@@ -1410,7 +1430,7 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                  )}
+                  </PokedexSectionContent>
                 </div>
               );
             })()}
@@ -1427,8 +1447,8 @@ export default function Home() {
                     expanded={isExpanded('megas')}
                     onToggle={() => togglePokedexSection('megas')}
                   />
-                  {isExpanded('megas') && (
-                    <div style={{ marginTop: '0.65rem' }}>
+                  <PokedexSectionContent expanded={isExpanded('megas')}>
+                    <div>
                       {megaCount === 0 && (
                         <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', lineHeight: 1.8, marginBottom: 10, textAlign: 'center' }}>
                           FINISH A 24-QUESTION ARCADE RUN<br />WITH A MEGA-CAPABLE POKÉMON TO EARN ONE!
@@ -1449,7 +1469,7 @@ export default function Home() {
                         })}
                       </div>
                     </div>
-                  )}
+                  </PokedexSectionContent>
                 </div>
               );
             })()}
@@ -1467,8 +1487,8 @@ export default function Home() {
                     expanded={isExpanded('milestones')}
                     onToggle={() => togglePokedexSection('milestones')}
                   />
-                  {isExpanded('milestones') && (
-                    <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)', marginTop: '0.65rem' }}>
+                  <PokedexSectionContent expanded={isExpanded('milestones')}>
+                    <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
                       {STREAK_MILESTONES.map((m) => {
                         const got = best >= m.days;
                         return (
@@ -1481,32 +1501,24 @@ export default function Home() {
                         );
                       })}
                     </div>
-                  )}
+                  </PokedexSectionContent>
                 </div>
               );
             })()}
 
             <div className="w-full" style={{ marginBottom: '1.25rem' }}>
-              <div className="flex items-center" style={{ gap: '0.5rem', marginBottom: '0.65rem' }}>
-                <div style={{ flex: 1 }}>
-                  <PokedexSectionHeader
-                    label="ALL POKÉMON"
-                    count={`${caughtCount(save)}/${totalCatchable()}`}
-                    accent="#94a3b8"
-                    expanded={isExpanded('all-pokemon')}
-                    onToggle={() => togglePokedexSection('all-pokemon')}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleAllPokedexSections}
-                  style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', background: 'rgba(148,163,184,0.08)', border: '1px solid #94a3b866', borderRadius: '0.45rem', padding: '0.55rem 0.45rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  {visibleRegions.some((rg) => isExpanded(`region-${rg.id}`)) ? '− ALL' : '+ ALL'}
-                </button>
-              </div>
-              {isExpanded('all-pokemon') && (
-                <div className="flex flex-col w-full" style={{ gap: '0.75rem' }}>
+              <PokedexSectionHeader
+                label="REGIONS"
+                count={`${caughtCount(save)}/${totalCatchable()}`}
+                accent="#94a3b8"
+                expanded={isExpanded('regions')}
+                onToggle={() => togglePokedexSection('regions')}
+              />
+              <PokedexSectionContent expanded={isExpanded('regions')}>
+                <div className="flex flex-col w-full" style={{ gap: '0.65rem' }}>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#64748b', textAlign: 'center', lineHeight: 1.7 }}>
+                    TAP A REGION TO VIEW OR HIDE ITS POKÉMON
+                  </div>
                   {visibleRegions.map((rg) => {
                     const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
                     const regionKey = `region-${rg.id}`;
@@ -1520,8 +1532,8 @@ export default function Home() {
                           onToggle={() => togglePokedexSection(regionKey)}
                           compact
                         />
-                        {isExpanded(regionKey) && (
-                          <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)', marginTop: '0.55rem' }}>
+                        <PokedexSectionContent expanded={isExpanded(regionKey)}>
+                          <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
                             {rg.battles.map((b) => {
                               const isOwned = Boolean(save.caught[b.dex]);
                               return (
@@ -1537,12 +1549,12 @@ export default function Home() {
                               );
                             })}
                           </div>
-                        )}
+                        </PokedexSectionContent>
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </PokedexSectionContent>
             </div>
           </Frame>
         </div>
