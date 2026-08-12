@@ -86,6 +86,12 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
     fontFamily: PIXEL_FONT, fontSize: 'clamp(1.1rem, 4.5vw, 1.7rem)', background: 'none', border: 'none',
     cursor: 'pointer', padding: '0.15rem 0.35rem', lineHeight: 1,
   };
+  const homeBtn: CSSProperties = {
+    width: 'clamp(1.8rem, 7vw, 2.35rem)', height: 'clamp(1.8rem, 7vw, 2.35rem)', position: 'relative',
+    borderRadius: '50%', border: '2px solid #FFD700', cursor: 'pointer', flexShrink: 0,
+    background: 'linear-gradient(to bottom, #ef4444 0%, #ef4444 43%, #101010 43%, #101010 56%, #f8fafc 56%, #d8dee9 100%)',
+    boxShadow: '0 0 8px rgba(255,215,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.65)',
+  };
   return (
     <div
       className="w-full flex items-center justify-between shrink-0"
@@ -95,7 +101,9 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
       }}
     >
       <div className="flex items-center" style={{ gap: 'clamp(0.25rem, 1.5vw, 0.75rem)' }}>
-        <button onClick={onHome} aria-label="Home" title="Home" style={{ ...iconBtn, color: '#FFD700' }}>🏠</button>
+        <button onClick={onHome} aria-label="Return to menu" title="Return to menu" style={homeBtn}>
+          <span aria-hidden="true" style={{ position: 'absolute', inset: '50% auto auto 50%', transform: 'translate(-50%, -50%)', width: 'clamp(0.5rem, 2.4vw, 0.72rem)', height: 'clamp(0.5rem, 2.4vw, 0.72rem)', borderRadius: '50%', background: '#f8fafc', border: '2px solid #101010', boxShadow: '0 0 0 1px rgba(255,215,0,0.7)' }} />
+        </button>
         {onBack && <button onClick={onBack} aria-label="Back" title="Back" style={{ ...iconBtn, color: '#aaa' }}>←</button>}
       </div>
       {title && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: accent, textAlign: 'center', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 0.5rem' }}>{title}</div>}
@@ -105,6 +113,41 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
 }
 
 // Centred content column used by list/card screens
+function PokedexSectionHeader({ label, count, accent, expanded, onToggle, compact = false }: {
+  label: string;
+  count?: string;
+  accent: string;
+  expanded: boolean;
+  onToggle: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="w-full flex items-center justify-between active:scale-[0.99] transition-transform"
+      style={{
+        fontFamily: PIXEL_FONT,
+        fontSize: compact ? FS.small : FS.sub,
+        color: accent,
+        textAlign: 'left',
+        padding: compact ? '0.45rem 0.6rem' : '0.55rem 0.7rem',
+        background: `${accent}12`,
+        border: `1px solid ${accent}66`,
+        borderRadius: '0.45rem',
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0 }}>
+        <span aria-hidden="true" style={{ color: '#e2e8f0', fontSize: compact ? FS.tiny : FS.small }}>{expanded ? '▼' : '▶'}</span>
+        <span>{label}</span>
+      </span>
+      {count && <span style={{ fontSize: FS.tiny, color: '#94a3b8', flexShrink: 0 }}>{count}</span>}
+    </button>
+  );
+}
+
 function Frame({ children, className = '', style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
     <div className={`w-full flex flex-col items-center ${className}`} style={{ width: FRAME, ...style }}>
@@ -286,6 +329,8 @@ export default function Home() {
   const nameOf = useSpeciesNames();
   const entryDetail = useSpeciesDetail(state.screen === 'pokedexEntry' ? state.selectedDex : null);
   const [input, setInput] = useState('');
+  const [pokedexSearch, setPokedexSearch] = useState('');
+  const [collapsedPokedexSections, setCollapsedPokedexSections] = useState<Record<string, boolean>>({});
 
   // profile flow state (shown when no player is active)
   const [profScreen, setProfScreen] = useState<'select' | 'create'>('select');
@@ -1269,16 +1314,64 @@ export default function Home() {
   // POKÉDEX
   // =========================================================================
   if (state.screen === 'pokedex') {
+    const searchTerm = pokedexSearch.trim().toLocaleLowerCase();
+    const caughtList = REGIONS
+      .flatMap((rg) => rg.battles)
+      .filter((b) => save.caught[b.dex])
+      .sort((a, b) => a.dex - b.dex);
+    const matchingCaughtList = searchTerm
+      ? caughtList.filter((b) => nameOf(b.dex).toLocaleLowerCase().includes(searchTerm))
+      : caughtList;
+    const visibleRegions = REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg));
+    const isExpanded = (key: string) => !collapsedPokedexSections[key];
+    const togglePokedexSection = (key: string) => {
+      setCollapsedPokedexSections((current) => ({ ...current, [key]: !current[key] }));
+    };
+    const toggleAllPokedexSections = () => {
+      const sectionKeys = ['caught', 'megas', 'milestones', 'all-pokemon', ...visibleRegions.map((rg) => `region-${rg.id}`)];
+      const shouldCollapse = sectionKeys.some((key) => !collapsedPokedexSections[key]);
+      setCollapsedPokedexSections(Object.fromEntries(sectionKeys.map((key) => [key, shouldCollapse])));
+    };
+
     return (
       <Screen bg={panelBg}>
         <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '1rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '0.75rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
+
+            <div className="w-full" style={{ marginBottom: '1rem' }}>
+              <label htmlFor="pokedex-search" style={{ display: 'block', fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', marginBottom: 6 }}>
+                SEARCH YOUR CAUGHT POKÉMON
+              </label>
+              <div className="flex items-center" style={{ background: 'rgba(0,0,0,0.5)', border: '2px solid #ef4444', borderRadius: '0.55rem', boxShadow: '0 0 10px rgba(239,68,68,0.12)' }}>
+                <span aria-hidden="true" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#ef4444', paddingLeft: '0.7rem' }}>⌕</span>
+                <input
+                  id="pokedex-search"
+                  type="search"
+                  value={pokedexSearch}
+                  onChange={(event) => setPokedexSearch(event.target.value)}
+                  placeholder="TYPE A NAME"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full"
+                  style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#f8fafc', background: 'transparent', border: 'none', outline: 'none', padding: '0.75rem 0.6rem', minWidth: 0 }}
+                />
+                {pokedexSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPokedexSearch('')}
+                    aria-label="Clear Pokédex search"
+                    style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.75rem' }}
+                  >
+                    CLEAR
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* --- caught showcase: everything you own, up top --- */}
             {(() => {
-              const caughtList = REGIONS.flatMap((rg) => rg.battles).filter((b) => save.caught[b.dex]).sort((a, b) => a.dex - b.dex);
               if (caughtList.length === 0) {
                 return (
                   <div className="w-full rounded-xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', marginBottom: '1.5rem' }}>
@@ -1288,23 +1381,36 @@ export default function Home() {
                 );
               }
               return (
-                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700' }}>★ CAUGHT</span>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{caughtList.length}</span>
-                  </div>
-                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
-                    {caughtList.map((b) => (
-                      <button key={`caught-${b.id}`} onClick={() => game.viewEntry(b.dex)} className="rounded-lg flex flex-col items-center"
-                        style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: 'rgba(255,215,0,0.06)', border: '1px solid #FFD700', boxShadow: '0 0 8px rgba(255,215,0,0.15)', cursor: 'pointer' }}>
-                        <img src={pixelSprite(b.dex)} alt={nameOf(b.dex)} loading="lazy"
-                          onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
-                          style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
-                        <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 4 }}>#{b.dex}</span>
-                        <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 2, textAlign: 'center', lineHeight: 1.4 }}>{nameOf(b.dex)}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="w-full" style={{ marginBottom: '1.25rem' }}>
+                  <PokedexSectionHeader
+                    label="★ CAUGHT"
+                    count={searchTerm ? `${matchingCaughtList.length}/${caughtList.length}` : String(caughtList.length)}
+                    accent="#FFD700"
+                    expanded={isExpanded('caught')}
+                    onToggle={() => togglePokedexSection('caught')}
+                  />
+                  {isExpanded('caught') && (
+                    <div style={{ marginTop: '0.65rem' }}>
+                      {matchingCaughtList.length === 0 ? (
+                        <div className="w-full rounded-lg text-center" style={{ padding: '1rem', background: 'rgba(0,0,0,0.35)', border: '1px dashed rgba(255,215,0,0.35)' }}>
+                          <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO CAUGHT POKÉMON<br />MATCH THAT NAME</div>
+                        </div>
+                      ) : (
+                        <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                          {matchingCaughtList.map((b) => (
+                            <button key={`caught-${b.id}`} onClick={() => game.viewEntry(b.dex)} className="rounded-lg flex flex-col items-center"
+                              style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: 'rgba(255,215,0,0.06)', border: '1px solid #FFD700', boxShadow: '0 0 8px rgba(255,215,0,0.15)', cursor: 'pointer' }}>
+                              <img src={pixelSprite(b.dex)} alt={nameOf(b.dex)} loading="lazy"
+                                onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
+                                style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 4 }}>#{b.dex}</span>
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 2, textAlign: 'center', lineHeight: 1.4 }}>{nameOf(b.dex)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1313,30 +1419,37 @@ export default function Home() {
             {(() => {
               const megaCount = Object.keys(save.megas).length;
               return (
-                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308' }}>⚡ MEGA EVOLUTIONS</span>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{megaCount}/{MEGAS.length}</span>
-                  </div>
-                  {megaCount === 0 && (
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', lineHeight: 1.8, marginBottom: 10, textAlign: 'center' }}>
-                      FINISH A 24-QUESTION ARCADE RUN<br />WITH A MEGA-CAPABLE POKÉMON TO EARN ONE!
+                <div className="w-full" style={{ marginBottom: '1.25rem' }}>
+                  <PokedexSectionHeader
+                    label="⚡ MEGA EVOLUTIONS"
+                    count={`${megaCount}/${MEGAS.length}`}
+                    accent="#eab308"
+                    expanded={isExpanded('megas')}
+                    onToggle={() => togglePokedexSection('megas')}
+                  />
+                  {isExpanded('megas') && (
+                    <div style={{ marginTop: '0.65rem' }}>
+                      {megaCount === 0 && (
+                        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#777', lineHeight: 1.8, marginBottom: 10, textAlign: 'center' }}>
+                          FINISH A 24-QUESTION ARCADE RUN<br />WITH A MEGA-CAPABLE POKÉMON TO EARN ONE!
+                        </div>
+                      )}
+                      <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                        {MEGAS.map((m) => {
+                          const owned = Boolean(save.megas[m.dex]);
+                          return (
+                            <button key={`mega-${m.dex}`} disabled={!owned} onClick={() => owned && game.viewMega(m.dex)} className="rounded-lg flex flex-col items-center"
+                              style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: owned ? 'rgba(234,179,8,0.06)' : 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#eab308' : '#2a2a2a'}`, boxShadow: owned ? '0 0 8px rgba(234,179,8,0.15)' : 'none', cursor: owned ? 'pointer' : 'default' }}>
+                              <img src={artwork(m.formId)} alt={owned ? m.name : 'Unknown'} loading="lazy"
+                                onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(m.dex)) img.src = artwork(m.dex); }}
+                                style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', filter: owned ? 'none' : 'brightness(0)' }} />
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: owned ? '#eab308' : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{owned ? m.name.toUpperCase() : '???'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
-                    {MEGAS.map((m) => {
-                      const owned = Boolean(save.megas[m.dex]);
-                      return (
-                        <button key={`mega-${m.dex}`} disabled={!owned} onClick={() => owned && game.viewMega(m.dex)} className="rounded-lg flex flex-col items-center"
-                          style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: owned ? 'rgba(234,179,8,0.06)' : 'rgba(0,0,0,0.4)', border: `1px solid ${owned ? '#eab308' : '#2a2a2a'}`, boxShadow: owned ? '0 0 8px rgba(234,179,8,0.15)' : 'none', cursor: owned ? 'pointer' : 'default' }}>
-                          <img src={artwork(m.formId)} alt={owned ? m.name : 'Unknown'} loading="lazy"
-                            onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(m.dex)) img.src = artwork(m.dex); }}
-                            style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', filter: owned ? 'none' : 'brightness(0)' }} />
-                          <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: owned ? '#eab308' : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{owned ? m.name.toUpperCase() : '???'}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               );
             })()}
@@ -1346,57 +1459,90 @@ export default function Home() {
               const best = save.streak?.best ?? 0;
               const earned = achievedMilestones(best).length;
               return (
-                <div className="w-full" style={{ marginBottom: '1.75rem' }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>🏅 STREAK MILESTONES</span>
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{earned}/{STREAK_MILESTONES.length}</span>
-                  </div>
-                  <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
-                    {STREAK_MILESTONES.map((m) => {
-                      const got = best >= m.days;
-                      return (
-                        <div key={`ms-${m.days}`} className="rounded-lg flex flex-col items-center justify-center"
-                          style={{ padding: 'clamp(0.5rem,2vw,0.8rem)', minHeight: 'clamp(84px,24vw,110px)', background: got ? `${m.color}14` : 'rgba(0,0,0,0.4)', border: `1px solid ${got ? m.color : '#2a2a2a'}`, boxShadow: got ? `0 0 8px ${m.color}33` : 'none' }}>
-                          <span style={{ fontSize: 'clamp(1.4rem,6vw,2rem)', filter: got ? 'none' : 'grayscale(1) opacity(0.35)' }}>{got ? m.icon : '🔒'}</span>
-                          <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: got ? m.color : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{m.days} DAY{m.days === 1 ? '' : 'S'}</span>
-                          {got && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', marginTop: 3, textAlign: 'center', lineHeight: 1.4 }}>{m.name.toUpperCase()}</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="w-full" style={{ marginBottom: '1.25rem' }}>
+                  <PokedexSectionHeader
+                    label="🏅 STREAK MILESTONES"
+                    count={`${earned}/${STREAK_MILESTONES.length}`}
+                    accent="#f97316"
+                    expanded={isExpanded('milestones')}
+                    onToggle={() => togglePokedexSection('milestones')}
+                  />
+                  {isExpanded('milestones') && (
+                    <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)', marginTop: '0.65rem' }}>
+                      {STREAK_MILESTONES.map((m) => {
+                        const got = best >= m.days;
+                        return (
+                          <div key={`ms-${m.days}`} className="rounded-lg flex flex-col items-center justify-center"
+                            style={{ padding: 'clamp(0.5rem,2vw,0.8rem)', minHeight: 'clamp(84px,24vw,110px)', background: got ? `${m.color}14` : 'rgba(0,0,0,0.4)', border: `1px solid ${got ? m.color : '#2a2a2a'}`, boxShadow: got ? `0 0 8px ${m.color}33` : 'none' }}>
+                            <span style={{ fontSize: 'clamp(1.4rem,6vw,2rem)', filter: got ? 'none' : 'grayscale(1) opacity(0.35)' }}>{got ? m.icon : '🔒'}</span>
+                            <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: got ? m.color : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{m.days} DAY{m.days === 1 ? '' : 'S'}</span>
+                            {got && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', marginTop: 3, textAlign: 'center', lineHeight: 1.4 }}>{m.name.toUpperCase()}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })()}
 
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', marginBottom: '1rem', textAlign: 'center' }}>ALL POKÉMON</div>
-            <div className="flex flex-col gap-4 w-full">
-              {REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg)).map((rg) => {
-                const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
-                return (
-                  <div key={rg.id} className="w-full">
-                    <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: rg.accentColor }}>{rg.name.toUpperCase()}</span>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{owned}/{rg.battles.length}</span>
-                    </div>
-                    <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
-                      {rg.battles.map((b) => {
-                        const isOwned = Boolean(save.caught[b.dex]);
-                        return (
-                          <button key={b.id} disabled={!isOwned} onClick={() => isOwned && game.viewEntry(b.dex)}
-                            className="rounded-lg flex flex-col items-center"
-                            style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: 'rgba(0,0,0,0.4)', border: `1px solid ${isOwned ? rg.accentColor : '#2a2a2a'}`, cursor: isOwned ? 'pointer' : 'default' }}>
-                            <img src={pixelSprite(b.dex)} alt={isOwned ? nameOf(b.dex) : 'Unknown'} loading="lazy"
-                              onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
-                              style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', imageRendering: 'pixelated', filter: isOwned ? 'none' : 'brightness(0)' }} />
-                            <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 4 }}>#{b.dex}</span>
-                            <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: isOwned ? '#FFD700' : '#555', marginTop: 2, textAlign: 'center', lineHeight: 1.4 }}>{isOwned ? nameOf(b.dex) : '???'}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="w-full" style={{ marginBottom: '1.25rem' }}>
+              <div className="flex items-center" style={{ gap: '0.5rem', marginBottom: '0.65rem' }}>
+                <div style={{ flex: 1 }}>
+                  <PokedexSectionHeader
+                    label="ALL POKÉMON"
+                    count={`${caughtCount(save)}/${totalCatchable()}`}
+                    accent="#94a3b8"
+                    expanded={isExpanded('all-pokemon')}
+                    onToggle={() => togglePokedexSection('all-pokemon')}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAllPokedexSections}
+                  style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', background: 'rgba(148,163,184,0.08)', border: '1px solid #94a3b866', borderRadius: '0.45rem', padding: '0.55rem 0.45rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {visibleRegions.some((rg) => isExpanded(`region-${rg.id}`)) ? '− ALL' : '+ ALL'}
+                </button>
+              </div>
+              {isExpanded('all-pokemon') && (
+                <div className="flex flex-col w-full" style={{ gap: '0.75rem' }}>
+                  {visibleRegions.map((rg) => {
+                    const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
+                    const regionKey = `region-${rg.id}`;
+                    return (
+                      <div key={rg.id} className="w-full">
+                        <PokedexSectionHeader
+                          label={rg.name.toUpperCase()}
+                          count={`${owned}/${rg.battles.length}`}
+                          accent={rg.accentColor}
+                          expanded={isExpanded(regionKey)}
+                          onToggle={() => togglePokedexSection(regionKey)}
+                          compact
+                        />
+                        {isExpanded(regionKey) && (
+                          <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(84px, 26vw, 120px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)', marginTop: '0.55rem' }}>
+                            {rg.battles.map((b) => {
+                              const isOwned = Boolean(save.caught[b.dex]);
+                              return (
+                                <button key={b.id} disabled={!isOwned} onClick={() => isOwned && game.viewEntry(b.dex)}
+                                  className="rounded-lg flex flex-col items-center"
+                                  style={{ padding: 'clamp(0.35rem,1.5vw,0.6rem)', background: 'rgba(0,0,0,0.4)', border: `1px solid ${isOwned ? rg.accentColor : '#2a2a2a'}`, cursor: isOwned ? 'pointer' : 'default' }}>
+                                  <img src={pixelSprite(b.dex)} alt={isOwned ? nameOf(b.dex) : 'Unknown'} loading="lazy"
+                                    onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
+                                    style={{ width: 'clamp(56px,18vw,88px)', height: 'clamp(56px,18vw,88px)', objectFit: 'contain', imageRendering: 'pixelated', filter: isOwned ? 'none' : 'brightness(0)' }} />
+                                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#666', marginTop: 4 }}>#{b.dex}</span>
+                                  <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: isOwned ? '#FFD700' : '#555', marginTop: 2, textAlign: 'center', lineHeight: 1.4 }}>{isOwned ? nameOf(b.dex) : '???'}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </Frame>
         </div>
