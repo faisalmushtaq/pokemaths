@@ -352,6 +352,7 @@ export default function Home() {
   const entryDetail = useSpeciesDetail(state.screen === 'pokedexEntry' ? state.selectedDex : null);
   const [input, setInput] = useState('');
   const [pokedexSearch, setPokedexSearch] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
   const [collapsedPokedexSections, setCollapsedPokedexSections] = useState<Record<string, boolean>>(() => ({
     megas: true,
     milestones: true,
@@ -1349,9 +1350,22 @@ export default function Home() {
       ? caughtList.filter((b) => nameOf(b.dex).toLocaleLowerCase().includes(searchTerm))
       : caughtList;
     const visibleRegions = REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg));
+    const filteredRegions = regionFilter
+      ? visibleRegions.filter((region) => region.id === regionFilter)
+      : visibleRegions;
     const isExpanded = (key: string) => !collapsedPokedexSections[key];
     const togglePokedexSection = (key: string) => {
       setCollapsedPokedexSections((current) => ({ ...current, [key]: !current[key] }));
+    };
+    const selectRegionFilter = (regionId: string) => {
+      setRegionFilter(regionId);
+      if (regionId) {
+        setCollapsedPokedexSections((current) => ({
+          ...current,
+          regions: false,
+          [`region-${regionId}`]: false,
+        }));
+      }
     };
     return (
       <Screen bg={panelBg}>
@@ -1519,7 +1533,39 @@ export default function Home() {
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#64748b', textAlign: 'center', lineHeight: 1.7 }}>
                     TAP A REGION TO VIEW OR HIDE ITS POKÉMON
                   </div>
-                  {visibleRegions.map((rg) => {
+                  <div>
+                    <label htmlFor="region-finder" style={{ display: 'block', fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', marginBottom: 6 }}>
+                      QUICK JUMP TO A REGION
+                    </label>
+                    <div className="flex items-center" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #94a3b866', borderRadius: '0.45rem', overflow: 'hidden' }}>
+                      <select
+                        id="region-finder"
+                        value={regionFilter}
+                        onChange={(event) => selectRegionFilter(event.target.value)}
+                        aria-label="Quick jump to a Pokédex region"
+                        className="w-full"
+                        style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', background: 'transparent', border: 'none', outline: 'none', padding: '0.7rem', cursor: 'pointer', minWidth: 0 }}
+                      >
+                        <option value="" style={{ color: '#111827', background: '#e2e8f0' }}>ALL REGIONS</option>
+                        {visibleRegions.map((region) => (
+                          <option key={region.id} value={region.id} style={{ color: '#111827', background: '#e2e8f0' }}>
+                            {region.name.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                      {regionFilter && (
+                        <button
+                          type="button"
+                          onClick={() => selectRegionFilter('')}
+                          aria-label="Show all Pokédex regions"
+                          style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', background: 'rgba(148,163,184,0.12)', border: 'none', borderLeft: '1px solid #94a3b866', cursor: 'pointer', padding: '0.75rem', whiteSpace: 'nowrap' }}
+                        >
+                          ALL
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {filteredRegions.map((rg) => {
                     const owned = rg.battles.reduce((n, b) => n + (save.caught[b.dex] ? 1 : 0), 0);
                     const regionKey = `region-${rg.id}`;
                     return (
