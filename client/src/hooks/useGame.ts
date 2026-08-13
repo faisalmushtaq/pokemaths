@@ -5,11 +5,11 @@ import {
   WRONG_ANSWER_MESSAGES,
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
-import { getCurriculumBattle, getCurriculumTopic, type CurriculumBattle } from '@/lib/curriculum';
+import { bossMasteryTarget, evaluateBossMastery, getCurriculumBattle, getCurriculumTopic, type CurriculumBattle } from '@/lib/curriculum';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordCurriculumWin, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test';
@@ -55,6 +55,8 @@ export interface GameState {
   maxLevel: number; // top level for the current topic
   feedback: string | null;
   feedbackCorrect: boolean;
+  /** Boss retry outcome for targeted feedback; ordinary battle flow leaves this null. */
+  bossFailure: 'score' | 'final-mastery' | 'time' | null;
   timeRemaining: number | null; // journey boss countdown; null otherwise
   selectedDex: number | null; // Pokédex entry being viewed
   arcadeCount: number; // chosen arcade question count
@@ -98,6 +100,7 @@ const INITIAL: GameState = {
   maxLevel: 1,
   feedback: null,
   feedbackCorrect: false,
+  bossFailure: null,
   timeRemaining: null,
   selectedDex: null,
   arcadeCount: 12,
@@ -216,6 +219,7 @@ export function useGame(profileId: string | null) {
       total: battle.questionCount,
       level: Math.min(battle.level, topic.maxLevel),
       maxLevel: topic.maxLevel,
+      bossFailure: null,
       timeRemaining: battle.timeLimitSec ?? null,
     });
   }, []);
@@ -369,9 +373,13 @@ export function useGame(profileId: string | null) {
         const done = attempted >= s.total;
         if (done) {
           const perfect = nextCorrect === s.total;
+          const masteryTarget = battle.isBoss ? bossMasteryTarget(battle) : s.total;
+          const bossOutcome = battle.isBoss ? evaluateBossMastery(battle, nextCorrect, correct) : null;
+          const passed = battle.isBoss ? bossOutcome === 'passed' : perfect;
+          const bossFailure = battle.isBoss && bossOutcome !== 'passed' ? bossOutcome : null;
           if (profileRef.current) {
             const pid = profileRef.current;
-            if (perfect) {
+            if (passed) {
               setSave((prev) => recordCurriculumWin(pid, prev, battle, {
                 dex: battle.dex,
                 name: getName(battle.dex),
@@ -379,18 +387,21 @@ export function useGame(profileId: string | null) {
                 caughtAt: Date.now(),
               }, nextCorrect));
               setSave((prev) => recordRun(pid, prev, 'battlesWon'));
+            } else if (battle.isBoss && bossFailure) {
+              setSave((prev) => recordCurriculumBossAttempt(pid, prev, battle, nextCorrect, bossFailure));
             }
             setSave((prev) => recordPlay(pid, prev));
           }
           return {
             ...s,
-            screen: perfect ? 'caught' : 'failed',
+            screen: passed ? 'caught' : 'failed',
             attempted,
             correctCount: nextCorrect,
             wrong: nextWrong,
-            score: s.score + points + (perfect ? SCORE_CONFIG.evolutionBonus : 0),
+            score: s.score + points + (passed ? SCORE_CONFIG.evolutionBonus : 0),
             feedback: null,
             feedbackCorrect: correct,
+            bossFailure,
             timeRemaining: null,
           };
         }
@@ -484,7 +495,13 @@ export function useGame(profileId: string | null) {
       setState((s) => {
         if (s.screen !== 'playing' || s.timeRemaining === null) return s;
         if (s.timeRemaining <= 1) {
-          return { ...s, screen: 'failed', timeRemaining: 0, feedback: "Time's up!" };
+          const battle = s.mode === 'curriculum' && s.curriculumBattleId ? getCurriculumBattle(s.curriculumBattleId) : undefined;
+          if (battle?.isBoss && profileRef.current) {
+            const pid = profileRef.current;
+            setSave((prev) => recordCurriculumBossAttempt(pid, prev, battle, s.correctCount, 'time'));
+            setSave((prev) => recordPlay(pid, prev));
+          }
+          return { ...s, screen: 'failed', timeRemaining: 0, feedback: "Time's up!", bossFailure: battle?.isBoss ? 'time' : null };
         }
         return { ...s, timeRemaining: s.timeRemaining - 1 };
       });

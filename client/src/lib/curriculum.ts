@@ -11,6 +11,22 @@ import type { TopicId } from './topics';
 
 export type BattleMode = 'discover' | 'apply' | 'master' | 'challenge' | 'elite' | 'boss';
 
+export type BossRoundId = 'recall' | 'apply' | 'mastery';
+
+export interface BossRound {
+  id: BossRoundId;
+  label: string;
+  startQuestion: number;
+  endQuestion: number;
+}
+
+export interface BossEncounterSpec {
+  masteryThreshold: number;
+  finalMasteryRequired: boolean;
+  rounds: BossRound[];
+  retryGuidance: string;
+}
+
 export interface CurriculumBattle {
   id: string;
   topicId: string;
@@ -23,6 +39,7 @@ export interface CurriculumBattle {
   level: number;
   isBoss: boolean;
   timeLimitSec?: number;
+  bossSpec?: BossEncounterSpec;
 }
 
 export interface CurriculumModule {
@@ -1815,6 +1832,102 @@ const TOPIC_SEEDS: TopicSeed[] = [
   }
 ];
 
+const BOSS_SETTINGS: Array<{ questionCount: number; timeLimitSec: number; level: number }> = [
+  { questionCount: 10, timeLimitSec: 210, level: 2 }, // 01 Counting and number lines
+  { questionCount: 10, timeLimitSec: 210, level: 2 }, // 02 Adding up
+  { questionCount: 10, timeLimitSec: 210, level: 3 }, // 03 Subtracting
+  { questionCount: 12, timeLimitSec: 210, level: 3 }, // 04 More adding up
+  { questionCount: 12, timeLimitSec: 210, level: 4 }, // 05 More subtracting
+  { questionCount: 12, timeLimitSec: 180, level: 4 }, // 06 1, 2, 5 and 10 tables
+  { questionCount: 12, timeLimitSec: 210, level: 4 }, // 07 Adding bigger numbers
+  { questionCount: 12, timeLimitSec: 180, level: 4 }, // 08 3, 6 and 9 tables
+  { questionCount: 12, timeLimitSec: 210, level: 4 }, // 09 Units, tens, hundreds and thousands
+  { questionCount: 12, timeLimitSec: 180, level: 4 }, // 10 4 and 8 tables
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 11 Subtracting bigger numbers
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 12 Tens, hundreds and thousands
+  { questionCount: 12, timeLimitSec: 180, level: 5 }, // 13 7 table
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 14 Dividing by numbers up to 10
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 15 Dividing with remainders
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 16 Numbers less than zero
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 17 Multiply and divide by powers of ten
+  { questionCount: 12, timeLimitSec: 180, level: 5 }, // 18 11 and 12 tables
+  { questionCount: 12, timeLimitSec: 240, level: 5 }, // 19 Fractions
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 20 Decimals
+  { questionCount: 10, timeLimitSec: 300, level: 5 }, // 21 Starting long multiplication
+  { questionCount: 10, timeLimitSec: 300, level: 5 }, // 22 Starting long division
+  { questionCount: 12, timeLimitSec: 240, level: 5 }, // 23 Starting percentages
+  { questionCount: 12, timeLimitSec: 240, level: 5 }, // 24 More decimals
+  { questionCount: 12, timeLimitSec: 240, level: 5 }, // 25 More fractions
+  { questionCount: 12, timeLimitSec: 240, level: 5 }, // 26 Percentages and money
+  { questionCount: 12, timeLimitSec: 210, level: 5 }, // 27 Squares, roots and cubes
+  { questionCount: 10, timeLimitSec: 300, level: 6 }, // 28 Long multiplication mastery
+  { questionCount: 10, timeLimitSec: 300, level: 6 }, // 29 Long division mastery
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 30 Patterns and sequences
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 31 Ratio and proportion
+  { questionCount: 12, timeLimitSec: 210, level: 6 }, // 32 Estimating and checking
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 33 Number skills
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 34 Fractions, decimals and percentages
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 35 Ratio and proportion mastery
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 36 Starting algebra
+  { questionCount: 12, timeLimitSec: 240, level: 6 }, // 37 Sequences
+];
+
+const BOSS_RETRY_GUIDANCE: Record<string, string> = {
+  t01: 'REVIEW COUNTING, ORDERING, AND NUMBER-LINE POSITIONS TO 100.',
+  t02: 'REVIEW NUMBER BONDS, COUNTING ON, AND MAKING TEN.',
+  t03: 'REVIEW TAKE-AWAY, COMPARISON, AND INVERSE ADDITION.',
+  t04: 'REVIEW BRIDGING TENS AND CHECKING ADDITION IN A SECOND WAY.',
+  t05: 'REVIEW CROSSING TENS AND CHECKING SUBTRACTION WITH ADDITION.',
+  t06: 'REVIEW LINKED 1, 2, 5, AND 10 TIMES-TABLE FACTS.',
+  t07: 'REVIEW PLACE-VALUE ALIGNMENT, CARRYING, AND ADDITION CHECKS.',
+  t08: 'REVIEW 3, 6, AND 9 TIMES-TABLE PATTERNS.',
+  t09: 'REVIEW DIGIT VALUE, ORDERING, ROUNDING, AND POWERS OF TEN.',
+  t10: 'REVIEW DOUBLE-AND-DOUBLE-AGAIN LINKS IN THE 4 AND 8 TABLES.',
+  t11: 'REVIEW EXCHANGING IN COLUMN SUBTRACTION AND INVERSE CHECKING.',
+  t12: 'REVIEW PLACE-VALUE SHIFTS WITH TENS, HUNDREDS, AND THOUSANDS.',
+  t13: 'REVIEW THE 7 TIMES TABLE ALONGSIDE LINKED FACTS.',
+  t14: 'REVIEW EQUAL GROUPING, FACT FAMILIES, AND EXACT DIVISION.',
+  t15: 'REVIEW HOW TO CALCULATE AND INTERPRET REMAINDERS.',
+  t16: 'REVIEW ORDERING AND CALCULATING ACROSS ZERO.',
+  t17: 'REVIEW PLACE-VALUE SCALING BY 10, 100, AND 1,000.',
+  t18: 'REVIEW 11 AND 12 TIMES-TABLE FACTS AND THEIR INVERSES.',
+  t19: 'REVIEW FRACTION REPRESENTATION, EQUIVALENCE, AND COMPARISON.',
+  t20: 'REVIEW DECIMAL PLACE VALUE, COMPARISON, AND EQUIVALENCE.',
+  t21: 'REVIEW LONG-MULTIPLICATION ALIGNMENT, CARRYING, AND CHECKING.',
+  t22: 'REVIEW DIVISION STEPS, REMAINDERS, AND CHECKING.',
+  t23: 'REVIEW FRACTION, DECIMAL, AND PERCENTAGE EQUIVALENCE.',
+  t24: 'REVIEW DECIMAL CALCULATION, ROUNDING, AND PRECISION.',
+  t25: 'REVIEW COMMON DENOMINATORS, MIXED NUMBERS, AND FRACTIONS OF QUANTITIES.',
+  t26: 'REVIEW PERCENTAGE METHODS, MONEY CONTEXTS, AND REASONABLENESS.',
+  t27: 'REVIEW SQUARES, ROOTS, CUBES, AND INVERSE RELATIONSHIPS.',
+  t28: 'REVIEW MULTI-DIGIT MULTIPLICATION, ALIGNMENT, AND INDEPENDENT CHECKING.',
+  t29: 'REVIEW LONG-DIVISION STEPS, DECIMAL PRECISION, AND CHECKING.',
+  t30: 'REVIEW HOW TO DESCRIBE, EXTEND, AND EXPLAIN SEQUENCE RULES.',
+  t31: 'REVIEW SCALING, PROPORTIONAL SHARING, AND CONVERSION REASONING.',
+  t32: 'REVIEW ESTIMATION, PLAUSIBILITY, AND CHOOSING SENSIBLE PRECISION.',
+  t33: 'REVIEW THE LINK BETWEEN ROUNDING, FACTORS, MULTIPLES, AND CHECKING.',
+  t34: 'REVIEW WHEN TO USE FRACTIONS, DECIMALS, OR PERCENTAGES.',
+  t35: 'REVIEW MULTI-STEP SCALE FACTORS, PROPORTION, AND PERCENTAGE COMPARISON.',
+  t36: 'REVIEW FUNCTION RULES, EXPRESSIONS, SUBSTITUTION, AND FORMULAE.',
+  t37: 'REVIEW TERM-TO-TERM, POSITION, AND NTH-TERM SEQUENCE RULES.',
+};
+
+function buildBossSpec(order: number, questionCount: number): BossEncounterSpec {
+  const recallCount = questionCount === 10 ? 3 : 4;
+  const applyCount = questionCount === 10 ? 4 : 4;
+  const masteryStart = recallCount + applyCount + 1;
+  return {
+    masteryThreshold: questionCount === 10 ? 8 : 10,
+    finalMasteryRequired: true,
+    retryGuidance: BOSS_RETRY_GUIDANCE[`t${String(order).padStart(2, '0')}`] ?? 'REVIEW THE TOPIC MODULES, THEN TRY THE BOSS AGAIN.',
+    rounds: [
+      { id: 'recall', label: 'RECALL', startQuestion: 1, endQuestion: recallCount },
+      { id: 'apply', label: 'APPLY', startQuestion: recallCount + 1, endQuestion: recallCount + applyCount },
+      { id: 'mastery', label: 'MASTERY', startQuestion: masteryStart, endQuestion: questionCount },
+    ],
+  };
+}
+
 const BATTLE_BLUEPRINTS: { mode: Exclude<BattleMode, 'boss'>; label: string; questionCount: number }[] = [
   { mode: 'discover', label: 'Discover', questionCount: 8 },
   { mode: 'apply', label: 'Apply', questionCount: 10 },
@@ -1857,6 +1970,8 @@ function buildCurriculum(): CurriculumTopic[] {
       });
       return { ...moduleSeed, topicId: seed.id, battles };
     });
+    const bossSetting = BOSS_SETTINGS[seed.order - 1];
+    if (!bossSetting) throw new Error(`Missing boss specification for ${seed.id}`);
     const boss: CurriculumBattle = {
       id: `${seed.id}-boss`,
       topicId: seed.id,
@@ -1865,10 +1980,11 @@ function buildCurriculum(): CurriculumTopic[] {
       title: `${seed.title} Mastery Boss`,
       mode: 'boss',
       dex: seed.bossDex,
-      questionCount: 15,
-      level: 6,
+      questionCount: bossSetting.questionCount,
+      level: bossSetting.level,
       isBoss: true,
-      timeLimitSec: 180,
+      timeLimitSec: bossSetting.timeLimitSec,
+      bossSpec: buildBossSpec(seed.order, bossSetting.questionCount),
     };
     return { ...seed, modules, boss };
   });
@@ -1913,6 +2029,28 @@ export function battleModeLabel(mode: BattleMode): string {
 
 export function isBossBattle(battleId: string): boolean {
   return getCurriculumBattle(battleId)?.isBoss ?? false;
+}
+
+export function bossMasteryTarget(battle: CurriculumBattle): number {
+  return battle.bossSpec?.masteryThreshold ?? battle.questionCount;
+}
+
+export function bossRoundForQuestion(battle: CurriculumBattle, questionNumber: number): BossRound | undefined {
+  return battle.bossSpec?.rounds.find((round) => questionNumber >= round.startQuestion && questionNumber <= round.endQuestion);
+}
+
+export function bossIsFinalMasteryQuestion(battle: CurriculumBattle, questionNumber: number): boolean {
+  const finalRound = battle.bossSpec?.rounds.find((round) => round.id === 'mastery');
+  return Boolean(battle.bossSpec?.finalMasteryRequired && finalRound && questionNumber === finalRound.endQuestion);
+}
+
+export type BossMasteryOutcome = 'passed' | 'score' | 'final-mastery';
+
+/** Evaluate the published boss rule: reach the score target and answer the final Mastery item correctly. */
+export function evaluateBossMastery(battle: CurriculumBattle, correctCount: number, finalMasteryCorrect: boolean): BossMasteryOutcome {
+  if (correctCount < bossMasteryTarget(battle)) return 'score';
+  if (battle.bossSpec?.finalMasteryRequired && !finalMasteryCorrect) return 'final-mastery';
+  return 'passed';
 }
 
 export function curriculumSummary(): { topics: number; modules: number; battles: number; bosses: number } {

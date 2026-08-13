@@ -53,7 +53,15 @@ export interface CurriculumBattleProgress {
 export interface CurriculumBossProgress {
   defeatedAt: number;
   attempts: number;
+  bestCorrect: number;
   rewardStatus: 'captured' | 'legacy-owned';
+}
+
+export interface CurriculumBossAttempt {
+  attempts: number;
+  bestCorrect: number;
+  lastFailure: 'score' | 'final-mastery' | 'time';
+  lastAttemptAt: number;
 }
 
 export interface CurriculumProgress {
@@ -62,7 +70,10 @@ export interface CurriculumProgress {
   /** Snapshot of every dex number owned when Curriculum V2 first loaded. */
   legacyCapturedDex: number[];
   battles: Record<string, CurriculumBattleProgress>;
+  /** Defeated bosses only. Topic unlocking depends exclusively on this record. */
   bosses: Record<string, CurriculumBossProgress>;
+  /** Attempt history does not unlock topics and supports targeted boss retries. */
+  bossAttempts: Record<string, CurriculumBossAttempt>;
   /** Earned when a revised battle rewards a Pokémon already owned in legacy data. */
   masteryTokens: number;
 }
@@ -89,6 +100,7 @@ function emptyCurriculum(capturedDex: number[] = []): CurriculumProgress {
     legacyCapturedDex: Array.from(new Set(capturedDex)).sort((a, b) => a - b),
     battles: {},
     bosses: {},
+    bossAttempts: {},
     masteryTokens: 0,
   };
 }
@@ -121,6 +133,7 @@ function normaliseCurriculum(raw: Partial<CurriculumProgress> | undefined, caugh
     legacyCapturedDex: Array.from(new Set(isFirstMigration ? capturedDex : (base.legacyCapturedDex ?? []))).sort((a, b) => a - b),
     battles: base.battles ?? {},
     bosses: base.bosses ?? {},
+    bossAttempts: base.bossAttempts ?? {},
     masteryTokens: Math.max(0, base.masteryTokens ?? 0),
   };
 }
@@ -197,6 +210,7 @@ export function recordCurriculumWin(
   const alreadyOwned = Boolean(data.caught[battle.dex]);
   const priorBattle = data.curriculumV2.battles[battle.id];
   const priorBoss = data.curriculumV2.bosses[battle.id];
+  const priorBossAttempt = data.curriculumV2.bossAttempts[battle.id];
   const prior = battle.isBoss ? priorBoss : priorBattle;
   const rewardStatus: 'captured' | 'legacy-owned' = alreadyOwned ? 'legacy-owned' : 'captured';
   const masteryTokens = data.curriculumV2.masteryTokens + (alreadyOwned && !prior ? 1 : 0);
@@ -214,7 +228,8 @@ export function recordCurriculumWin(
           ...data.curriculumV2.bosses,
           [battle.id]: {
             defeatedAt: priorBoss?.defeatedAt ?? Date.now(),
-            attempts: (priorBoss?.attempts ?? 0) + 1,
+            attempts: Math.max(priorBoss?.attempts ?? 0, priorBossAttempt?.attempts ?? 0) + 1,
+            bestCorrect: Math.max(priorBoss?.bestCorrect ?? 0, priorBossAttempt?.bestCorrect ?? 0, correctCount),
             rewardStatus: priorBoss?.rewardStatus === 'captured' ? 'captured' : rewardStatus,
           },
         },
@@ -228,6 +243,35 @@ export function recordCurriculumWin(
     ...data,
     caught: alreadyOwned ? data.caught : { ...data.caught, [entry.dex]: entry },
     curriculumV2,
+  };
+  persistSave(profileId, next);
+  return next;
+}
+
+/** Record a failed legendary encounter without marking the boss as defeated. */
+export function recordCurriculumBossAttempt(
+  profileId: string,
+  data: SaveData,
+  battle: CurriculumBattle,
+  correctCount: number,
+  lastFailure: CurriculumBossAttempt['lastFailure'],
+): SaveData {
+  if (!battle.isBoss) return data;
+  const prior = data.curriculumV2.bossAttempts[battle.id];
+  const next: SaveData = {
+    ...data,
+    curriculumV2: {
+      ...data.curriculumV2,
+      bossAttempts: {
+        ...data.curriculumV2.bossAttempts,
+        [battle.id]: {
+          attempts: (prior?.attempts ?? 0) + 1,
+          bestCorrect: Math.max(prior?.bestCorrect ?? 0, correctCount),
+          lastFailure,
+          lastAttemptAt: Date.now(),
+        },
+      },
+    },
   };
   persistSave(profileId, next);
   return next;
@@ -359,7 +403,20 @@ function mergeCurriculum(a: CurriculumProgress, b: CurriculumProgress, caught: R
       : {
           defeatedAt: Math.min(existing.defeatedAt, progress.defeatedAt),
           attempts: Math.max(existing.attempts, progress.attempts),
+          bestCorrect: Math.max(existing.bestCorrect ?? 0, progress.bestCorrect ?? 0),
           rewardStatus: existing.rewardStatus === 'captured' || progress.rewardStatus === 'captured' ? 'captured' : 'legacy-owned',
+        };
+  }
+  const bossAttempts: Record<string, CurriculumBossAttempt> = { ...a.bossAttempts };
+  for (const [id, progress] of Object.entries(b.bossAttempts)) {
+    const existing = bossAttempts[id];
+    bossAttempts[id] = !existing
+      ? progress
+      : {
+          attempts: Math.max(existing.attempts, progress.attempts),
+          bestCorrect: Math.max(existing.bestCorrect, progress.bestCorrect),
+          lastFailure: existing.lastAttemptAt >= progress.lastAttemptAt ? existing.lastFailure : progress.lastFailure,
+          lastAttemptAt: Math.max(existing.lastAttemptAt, progress.lastAttemptAt),
         };
   }
   return {
@@ -368,6 +425,7 @@ function mergeCurriculum(a: CurriculumProgress, b: CurriculumProgress, caught: R
     legacyCapturedDex: Array.from(new Set([...a.legacyCapturedDex, ...b.legacyCapturedDex])).sort((x, y) => x - y),
     battles,
     bosses,
+    bossAttempts,
     masteryTokens: Math.max(a.masteryTokens, b.masteryTokens),
   };
 }

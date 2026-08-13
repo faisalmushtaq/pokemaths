@@ -25,7 +25,7 @@ import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount, liveStreak, freezeUsedToday, hasCurriculumWin, isLegacyCapture, type MegaEntry } from '@/lib/pokedex';
-import { CURRICULUM_TOPICS, battleModeLabel, getCurriculumTopic } from '@/lib/curriculum';
+import { CURRICULUM_TOPICS, battleModeLabel, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, getCurriculumTopic } from '@/lib/curriculum';
 import { isCurriculumBattleUnlocked, isCurriculumModuleUnlocked, isCurriculumTopicUnlocked, isModuleComplete, isTopicComplete, moduleCompletionCount, topicBattleCompletion } from '@/lib/curriculumProgress';
 import { playTheme, stopTheme, isThemePlaying } from '@/lib/chiptune';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
@@ -1048,6 +1048,8 @@ export default function Home() {
     if (!curriculumTopic) return null;
     const bossUnlocked = isCurriculumBattleUnlocked(save, curriculumTopic.boss);
     const bossWon = hasCurriculumWin(save, curriculumTopic.boss.id);
+    const bossTarget = bossMasteryTarget(curriculumTopic.boss);
+    const bossAttempt = save.curriculumV2.bossAttempts[curriculumTopic.boss.id];
     return (
       <Screen bg={panelBg}>
         <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title={`TOPIC ${String(curriculumTopic.order).padStart(2, '0')}`} accent="#38bdf8" />
@@ -1096,7 +1098,8 @@ export default function Home() {
                 <img src={artwork(curriculumTopic.boss.dex)} alt="" style={{ width: 'clamp(42px,11vw,60px)', height: 'clamp(42px,11vw,60px)', objectFit: 'contain', imageRendering: 'pixelated', filter: bossUnlocked || bossWon ? 'none' : 'brightness(0)' }} />
                 <div className="flex-1" style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: bossWon ? '#22c55e' : '#FFD700', lineHeight: 1.6 }}>{bossWon ? '✓ ' : '★ '}{nameOf(curriculumTopic.boss.dex).toUpperCase()} BOSS</div>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 1.6 }}>{bossUnlocked ? 'TOPIC MASTERY · 15 QUESTIONS' : 'COMPLETE EVERY MODULE TO UNLOCK'}</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 1.6 }}>{bossUnlocked ? `TOPIC MASTERY · ${curriculumTopic.boss.questionCount} QUESTIONS · ${bossTarget}/${curriculumTopic.boss.questionCount} TARGET` : 'COMPLETE EVERY MODULE TO UNLOCK'}</div>
+                  {bossUnlocked && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.15vw,0.36rem)', color: '#94a3b8', lineHeight: 1.55, marginTop: 4 }}>{Math.floor((curriculumTopic.boss.timeLimitSec ?? 0) / 60)} MIN · RECALL → APPLY → MASTERY{bossAttempt ? ` · BEST ${bossAttempt.bestCorrect}/${curriculumTopic.boss.questionCount}` : ''}</div>}
                 </div>
               </button>
             </div>
@@ -1356,16 +1359,16 @@ export default function Home() {
     const rewardAccent = curriculumBattle?.isBoss ? '#FFD700' : game.activeRegion?.accentColor ?? '#38bdf8';
     return (
       <Screen bg="linear-gradient(135deg, #0a0a1a, #1a0a3e)">
-        <NavBar onHome={game.goMenu} title="GOTCHA!" />
+        <NavBar onHome={game.goMenu} title={curriculumBattle?.isBoss ? 'TOPIC MASTERED!' : 'GOTCHA!'} />
         <Confetti />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #FFD700', boxShadow: '0 0 40px rgba(255,215,0,0.3)' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>GOTCHA!</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>{curriculumBattle?.isBoss ? 'TOPIC MASTERED!' : 'GOTCHA!'}</div>
               <div className="flex justify-center mb-3">
                 <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={150} glow={rewardAccent} />
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{legacyOwned ? <>{nameOf(b.dex).toUpperCase()} IS ALREADY IN<br />YOUR LEGACY POKÉDEX! TOKEN EARNED.</> : <>{nameOf(b.dex).toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</>}</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{curriculumBattle?.isBoss ? <>{nameOf(b.dex).toUpperCase()} DEFEATED!<br />TOPIC BADGE EARNED.</> : legacyOwned ? <>{nameOf(b.dex).toUpperCase()} IS ALREADY IN<br />YOUR LEGACY POKÉDEX! TOKEN EARNED.</> : <>{nameOf(b.dex).toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</>}</p>
               <div className="rounded-lg mb-4" style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
@@ -1412,6 +1415,16 @@ export default function Home() {
   if (state.screen === 'failed' && (game.activeBattle || game.activeCurriculumBattle)) {
     const curriculumBattle = state.mode === 'curriculum' ? game.activeCurriculumBattle : null;
     const b = curriculumBattle ?? game.activeBattle!;
+    const isCurriculumBoss = Boolean(curriculumBattle?.isBoss);
+    const bossTarget = isCurriculumBoss ? bossMasteryTarget(curriculumBattle!) : b.questionCount;
+    const retryGuidance = curriculumBattle?.bossSpec?.retryGuidance;
+    const failureText = isCurriculumBoss
+      ? state.bossFailure === 'time'
+        ? 'TIME RAN OUT. THE BOSS WILL WAIT.'
+        : state.bossFailure === 'final-mastery'
+          ? 'THE FINAL MASTERY QUESTION MUST BE CORRECT.'
+          : `YOU NEED ${bossTarget}/${b.questionCount} CORRECT.`
+      : `YOU NEED 100% TO CATCH ${nameOf(b.dex).toUpperCase()}.`;
     return (
       <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
         <NavBar onHome={game.goMenu} onBack={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} title="BATTLE LOST" accent="#ef4444" />
@@ -1427,10 +1440,11 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{state.correctCount}/{state.total} CORRECT</div>
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU NEED 100% TO CATCH<br />{nameOf(b.dex).toUpperCase()}. TRY AGAIN!</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: retryGuidance ? '0.65rem' : '1.25rem' }}>{failureText}<br />TRY AGAIN!</p>
+              {retryGuidance && <div className="rounded-lg mb-4" style={{ padding: '0.6rem', background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.28)' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', lineHeight: 1.75 }}>TRAINING TIP</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.25vw,0.4rem)', color: '#cbd5e1', lineHeight: 1.7, marginTop: 4 }}>{retryGuidance}</div></div>}
               <div className="flex flex-col gap-2">
                 <button onClick={game.retryBattle} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY</button>
-                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
+                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
               </div>
             </div>
           </Frame>
@@ -2138,6 +2152,11 @@ export default function Home() {
       : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
       : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = state.attempted;
+    const curriculumBoss = curriculum && game.activeCurriculumBattle?.isBoss ? game.activeCurriculumBattle : null;
+    const isCurriculumBoss = Boolean(curriculumBoss);
+    const bossTarget = curriculumBoss ? bossMasteryTarget(curriculumBoss) : state.total;
+    const bossRound = curriculumBoss ? bossRoundForQuestion(curriculumBoss, state.attempted + 1) : undefined;
+    const finalMasteryQuestion = curriculumBoss ? bossIsFinalMasteryQuestion(curriculumBoss, state.attempted + 1) : false;
     const progressPct = Math.min((state.correctCount / state.total) * 100, 100);
     const onExit = curriculum && game.activeCurriculumTopic ? () => game.openCurriculumTopic(game.activeCurriculumTopic!.id) : regionMode ? () => game.openRegion(region!.id) : game.goArcadeSelect;
 
@@ -2167,7 +2186,9 @@ export default function Home() {
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: state.wrong > 0 ? '#ef4444' : '#888', marginTop: 4 }}>
                     {test
                       ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
-                      : (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
+                      : isCurriculumBoss
+                        ? `${bossRound?.label ?? 'MASTERY'} · ${state.correctCount}/${bossTarget} TARGET${finalMasteryQuestion ? ' · FINAL MUST BE RIGHT!' : ''}`
+                        : (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
                   </p>
                 </div>
               </div>
@@ -2178,7 +2199,7 @@ export default function Home() {
             {/* Question */}
             <div className="w-full rounded-xl text-center flex flex-col justify-center shrink-0" style={{ padding: 'clamp(1rem,4vh,2rem) 1rem', background: 'rgba(0,0,0,0.65)', border: `2px solid ${accent}`, boxShadow: `0 0 12px ${accent}22` }}>
               <div className="flex items-center justify-center gap-2" style={{ marginBottom: 8 }}>
-                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>QUESTION {doneCount + 1} OF {state.total}</span>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>{isCurriculumBoss && bossRound ? `${bossRound.label} · ` : ''}QUESTION {doneCount + 1} OF {state.total}</span>
                 {state.maxLevel > 1 && (
                   <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: accent }}>· LV {state.level}/{state.maxLevel}</span>
                 )}
