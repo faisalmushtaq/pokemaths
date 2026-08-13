@@ -113,6 +113,38 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
 }
 
 // Centred content column used by list/card screens
+function TrainerBadgeButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Switch trainer"
+      title="Switch trainer"
+      style={{
+        width: 'clamp(1.85rem, 7vw, 2.35rem)',
+        height: 'clamp(1.85rem, 7vw, 2.35rem)',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'linear-gradient(135deg, rgba(56,189,248,0.18), rgba(15,23,42,0.95))',
+        border: '2px solid #38bdf8',
+        borderRadius: '0.3rem',
+        boxShadow: '0 0 8px rgba(56,189,248,0.35), inset 0 0 0 1px rgba(15,23,42,0.95)',
+        cursor: 'pointer',
+        padding: 0,
+        flexShrink: 0,
+      }}
+    >
+      <span aria-hidden="true" style={{ width: '70%', height: '62%', display: 'flex', alignItems: 'center', gap: '0.15rem', padding: '0 0.12rem', background: '#0f172a', border: '1px solid #facc15', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.65)' }}>
+        <span style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.38rem, 1.8vw, 0.52rem)', color: '#facc15', lineHeight: 1 }}>ID</span>
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+          <span style={{ height: '0.12rem', background: '#38bdf8', display: 'block' }} />
+          <span style={{ height: '0.12rem', width: '72%', background: '#64748b', display: 'block' }} />
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function PokedexSectionHeader({ label, count, accent, expanded, onToggle, compact = false }: {
   label: string;
   count?: string;
@@ -989,7 +1021,7 @@ export default function Home() {
     };
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="CHOOSE REGION" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="CHOOSE REGION" right={<TrainerBadgeButton onClick={switchPlayer} />} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <div className="flex flex-col gap-2 w-full">
@@ -1054,7 +1086,7 @@ export default function Home() {
   if (state.screen === 'arcadeSelect') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="ARCADE" accent="#38bdf8" right={<TrainerBadgeButton onClick={switchPlayer} />} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem clamp(1.5rem,5vh,2.5rem)' }}>
           <Frame style={{ flexShrink: 0 }}>
             {/* --- your Pokémon (mega-capable) --- */}
@@ -1369,7 +1401,7 @@ export default function Home() {
     };
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<button onClick={switchPlayer} aria-label="Switch player" title="Switch player" style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }}>👤</button>} />
+        <NavBar onHome={game.goMenu} title="POKÉDEX" accent="#ef4444" right={<TrainerBadgeButton onClick={switchPlayer} />} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: '0.75rem' }}>{caughtCount(save)} / {totalCatchable()} CAUGHT</p>
