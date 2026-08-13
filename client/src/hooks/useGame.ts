@@ -5,18 +5,21 @@ import {
   WRONG_ANSWER_MESSAGES,
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
+import { getCurriculumBattle, getCurriculumTopic, type CurriculumBattle } from '@/lib/curriculum';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordCurriculumWin, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
-export type GameMode = 'journey' | 'arcade' | 'test';
+export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test';
 
 export type GameScreen =
   | 'menu'
   | 'regionSelect'
   | 'battleSelect'
+  | 'curriculumMap'
+  | 'curriculumTopic'
   | 'arcadeSelect'
   | 'playing'
   | 'caught' // journey: battle won at 100% — Pokémon caught
@@ -37,6 +40,8 @@ export interface GameState {
   mode: GameMode;
   regionId: string | null;
   battleId: string | null;
+  curriculumTopicId: string | null;
+  curriculumBattleId: string | null;
   arcadeLevelId: string | null;
   question: Question | null;
   questionIndex: number; // 0-based within the run
@@ -78,6 +83,8 @@ const INITIAL: GameState = {
   mode: 'journey',
   regionId: null,
   battleId: null,
+  curriculumTopicId: null,
+  curriculumBattleId: null,
   arcadeLevelId: null,
   question: null,
   questionIndex: 0,
@@ -123,6 +130,15 @@ export function useGame(profileId: string | null) {
 
   const goRegionSelect = useCallback(() => {
     setState((s) => ({ ...s, screen: 'regionSelect', mode: 'journey' }));
+  }, []);
+
+  const goCurriculumMap = useCallback(() => {
+    setState((s) => ({ ...s, screen: 'curriculumMap', mode: 'curriculum', curriculumTopicId: null, curriculumBattleId: null }));
+  }, []);
+
+  const openCurriculumTopic = useCallback((topicId: string) => {
+    if (!getCurriculumTopic(topicId)) return;
+    setState((s) => ({ ...s, screen: 'curriculumTopic', mode: 'curriculum', curriculumTopicId: topicId, curriculumBattleId: null }));
   }, []);
 
   const goArcadeSelect = useCallback(() => {
@@ -178,6 +194,27 @@ export function useGame(profileId: string | null) {
       question: first,
       total: battle.questionCount,
       level: battle.level,
+      maxLevel: topic.maxLevel,
+      timeRemaining: battle.timeLimitSec ?? null,
+    });
+  }, []);
+
+  const startCurriculumBattle = useCallback((battleId: string) => {
+    const battle = getCurriculumBattle(battleId);
+    const curriculumTopic = battle ? getCurriculumTopic(battle.topicId) : undefined;
+    if (!battle || !curriculumTopic) return;
+    const topic = getTopic(curriculumTopic.mathTopicId);
+    const first = topic.generate(Math.min(battle.level, topic.maxLevel));
+    questionStart.current = Date.now();
+    setState({
+      ...INITIAL,
+      screen: 'playing',
+      mode: 'curriculum',
+      curriculumTopicId: curriculumTopic.id,
+      curriculumBattleId: battle.id,
+      question: first,
+      total: battle.questionCount,
+      level: Math.min(battle.level, topic.maxLevel),
       maxLevel: topic.maxLevel,
       timeRemaining: battle.timeLimitSec ?? null,
     });
@@ -321,6 +358,60 @@ export function useGame(profileId: string | null) {
         };
       }
 
+      // -------- CURRICULUM: every practice battle awards a unique encounter --
+      if (s.mode === 'curriculum') {
+        const battle = s.curriculumBattleId ? getCurriculumBattle(s.curriculumBattleId) : undefined;
+        const curriculumTopic = battle ? getCurriculumTopic(battle.topicId) : undefined;
+        if (!battle || !curriculumTopic) return s;
+        const attempted = s.attempted + 1;
+        const nextCorrect = s.correctCount + (correct ? 1 : 0);
+        const nextWrong = s.wrong + (correct ? 0 : 1);
+        const done = attempted >= s.total;
+        if (done) {
+          const perfect = nextCorrect === s.total;
+          if (profileRef.current) {
+            const pid = profileRef.current;
+            if (perfect) {
+              setSave((prev) => recordCurriculumWin(pid, prev, battle, {
+                dex: battle.dex,
+                name: getName(battle.dex),
+                region: 'curriculum',
+                caughtAt: Date.now(),
+              }, nextCorrect));
+              setSave((prev) => recordRun(pid, prev, 'battlesWon'));
+            }
+            setSave((prev) => recordPlay(pid, prev));
+          }
+          return {
+            ...s,
+            screen: perfect ? 'caught' : 'failed',
+            attempted,
+            correctCount: nextCorrect,
+            wrong: nextWrong,
+            score: s.score + points + (perfect ? SCORE_CONFIG.evolutionBonus : 0),
+            feedback: null,
+            feedbackCorrect: correct,
+            timeRemaining: null,
+          };
+        }
+        questionStart.current = Date.now();
+        const topic = getTopic(curriculumTopic.mathTopicId);
+        const nextQ = generateDistinct(topic, Math.min(battle.level, topic.maxLevel), s.question?.text);
+        return {
+          ...s,
+          attempted,
+          correctCount: nextCorrect,
+          wrong: nextWrong,
+          score: s.score + points,
+          question: nextQ,
+          level: Math.min(battle.level, topic.maxLevel),
+          maxLevel: topic.maxLevel,
+          questionIndex: s.questionIndex + 1,
+          feedback: feedbackMsg,
+          feedbackCorrect: correct,
+        };
+      }
+
       // -------- JOURNEY: play the whole battle, catch only at 100% ---------
       const found = s.battleId ? findBattle(s.battleId) : undefined;
       if (!found) return s;
@@ -413,8 +504,9 @@ export function useGame(profileId: string | null) {
   useEffect(() => () => clearFeedbackTimer(), []);
 
   const retryBattle = useCallback(() => {
-    if (state.battleId) startBattle(state.battleId);
-  }, [state.battleId, startBattle]);
+    if (state.mode === 'curriculum' && state.curriculumBattleId) startCurriculumBattle(state.curriculumBattleId);
+    else if (state.battleId) startBattle(state.battleId);
+  }, [state.mode, state.curriculumBattleId, state.battleId, startBattle, startCurriculumBattle]);
 
   const retryTest = useCallback(() => {
     if (state.battleId) startTest(state.battleId);
@@ -429,6 +521,8 @@ export function useGame(profileId: string | null) {
   }, []);
 
   const active = state.battleId ? findBattle(state.battleId) : undefined;
+  const activeCurriculumBattle: CurriculumBattle | null = state.curriculumBattleId ? getCurriculumBattle(state.curriculumBattleId) ?? null : null;
+  const activeCurriculumTopic = state.curriculumTopicId ? getCurriculumTopic(state.curriculumTopicId) ?? null : null;
 
   return {
     save,
@@ -436,8 +530,12 @@ export function useGame(profileId: string | null) {
     state,
     activeBattle: active?.battle ?? null,
     activeRegion: active?.region ?? null,
+    activeCurriculumBattle,
+    activeCurriculumTopic,
     goMenu,
     goRegionSelect,
+    goCurriculumMap,
+    openCurriculumTopic,
     goArcadeSelect,
     goPokedex,
     viewEntry,
@@ -448,6 +546,7 @@ export function useGame(profileId: string | null) {
     goLogin,
     openRegion,
     startBattle,
+    startCurriculumBattle,
     startTest,
     startArcade,
     submitAnswer,

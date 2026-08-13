@@ -24,7 +24,9 @@ import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
-import { caughtCount, liveStreak, freezeUsedToday, type MegaEntry } from '@/lib/pokedex';
+import { caughtCount, liveStreak, freezeUsedToday, hasCurriculumWin, isLegacyCapture, type MegaEntry } from '@/lib/pokedex';
+import { CURRICULUM_TOPICS, battleModeLabel, getCurriculumTopic } from '@/lib/curriculum';
+import { isCurriculumBattleUnlocked, isCurriculumModuleUnlocked, isCurriculumTopicUnlocked, isModuleComplete, isTopicComplete, moduleCompletionCount, topicBattleCompletion } from '@/lib/curriculumProgress';
 import { playTheme, stopTheme, isThemePlaying } from '@/lib/chiptune';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
@@ -480,44 +482,52 @@ export default function Home() {
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   // What to make a card for on the current screen.
   const cardTarget = (() => {
+    if (state.screen === 'caught' && state.mode === 'curriculum' && game.activeCurriculumBattle) {
+      return {
+        dex: game.activeCurriculumBattle.dex,
+        region: 'Curriculum',
+        accent: game.activeCurriculumBattle.isBoss ? '#FFD700' : '#38bdf8',
+        topic: game.activeCurriculumTopic?.title ?? 'Curriculum',
+      };
+    }
     if (state.screen === 'caught' && game.activeBattle && game.activeRegion) {
-      return { battle: game.activeBattle, region: game.activeRegion };
+      return { dex: game.activeBattle.dex, region: game.activeRegion.name, accent: game.activeRegion.accentColor, topic: getTopic(game.activeBattle.topic).name };
     }
     if (state.screen === 'pokedexEntry' && state.selectedDex != null) {
       const f = findBattleByDex(state.selectedDex);
-      return f ? { battle: f.battle, region: f.region } : null;
+      return f ? { dex: f.battle.dex, region: f.region.name, accent: f.region.accentColor, topic: getTopic(f.battle.topic).name } : null;
     }
     return null;
   })();
-  const cardDex = cardTarget?.battle.dex ?? null;
+  const cardDex = cardTarget?.dex ?? null;
   useEffect(() => {
     setCardBlob(null);
     setShareMsg(null);
     if (!cardTarget) return;
-    const { battle, region } = cardTarget;
+    const { dex, region, accent, topic } = cardTarget;
     let alive = true;
     buildShareCard({
-      dex: battle.dex,
-      name: nameOf(battle.dex),
-      region: region.name,
-      accent: region.accentColor,
-      topic: getTopic(battle.topic).name,
-      artworkUrl: artwork(battle.dex),
-      spriteUrl: pixelSprite(battle.dex),
+      dex,
+      name: nameOf(dex),
+      region,
+      accent,
+      topic,
+      artworkUrl: artwork(dex),
+      spriteUrl: pixelSprite(dex),
     }).then((b) => alive && setCardBlob(b)).catch(() => {});
     return () => { alive = false; };
   }, [cardDex, state.screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onShare = async () => {
     if (!cardTarget) return;
-    const res = await shareCatch(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex));
+    const res = await shareCatch(cardBlob, cardTarget.dex, nameOf(cardTarget.dex));
     if (res === 'copied') setShareMsg('COPIED TO CLIPBOARD!');
     else if (res === 'failed') setShareMsg('SHARING NOT AVAILABLE');
   };
   const onSave = async () => {
     if (!cardTarget) return;
     if (!cardBlob) { setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE"); return; }
-    const res = await saveCard(cardBlob, cardTarget.battle.dex, nameOf(cardTarget.battle.dex));
+    const res = await saveCard(cardBlob, cardTarget.dex, nameOf(cardTarget.dex));
     setShareMsg(res === 'failed' ? "COULDN'T SAVE" : 'IMAGE SAVED!');
   };
 
@@ -946,7 +956,7 @@ export default function Home() {
           {/* Actions */}
           <Frame className="items-center" style={{ maxWidth: '24rem' }}>
             <div className="flex flex-col gap-3 w-full">
-              <button onClick={game.goRegionSelect} className="w-full rounded-xl font-bold text-black"
+              <button onClick={game.goCurriculumMap} className="w-full rounded-xl font-bold text-black"
                 style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer' }}>
                 🗺 JOURNEY
               </button>
@@ -982,6 +992,115 @@ export default function Home() {
               © 2019-2026 MUSHTAQ ARCADE CORP
             </p>
           </div>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // CURRICULUM MAP
+  // =========================================================================
+  if (state.screen === 'curriculumMap') {
+    return (
+      <Screen bg={panelBg}>
+        <NavBar onHome={game.goMenu} title="CURRICULUM PATH" right={<TrainerBadgeButton onClick={switchPlayer} />} />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame>
+            <div className="rounded-xl mb-3 flex items-center" style={{ padding: '0.8rem', gap: '0.7rem', background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.35)' }}>
+              <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum mastery crest" style={{ width: 'clamp(2.6rem,11vw,3.7rem)', height: 'clamp(2.6rem,11vw,3.7rem)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', lineHeight: 1.7 }}>37 TOPICS · 238 MODULES · 1,025 POKÉMON</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aab', lineHeight: 1.7, marginTop: 4 }}>MASTER MODULE BATTLES TO UNLOCK A LEGENDARY TOPIC BOSS.</div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 w-full">
+              {CURRICULUM_TOPICS.map((topic) => {
+                const unlocked = isCurriculumTopicUnlocked(save, topic);
+                const completed = isTopicComplete(save, topic);
+                const moduleProgress = moduleCompletionCount(save, topic);
+                const battleProgress = topicBattleCompletion(save, topic);
+                const accent = completed ? '#22c55e' : unlocked ? '#38bdf8' : '#475569';
+                return (
+                  <button key={topic.id} disabled={!unlocked} onClick={() => unlocked && game.openCurriculumTopic(topic.id)}
+                    className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
+                    style={{ padding: 'clamp(0.7rem,2.5vw,1rem)', background: unlocked ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.35)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.58, cursor: unlocked ? 'pointer' : 'not-allowed', boxShadow: completed ? '0 0 12px rgba(34,197,94,0.25)' : 'none' }}>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: 'clamp(2.2rem,10vw,3rem)', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(topic.order).padStart(2, '0') : '🔒'}</div>
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.6 }}>{topic.title.toUpperCase()}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.7 }}>{moduleProgress.complete}/{moduleProgress.total} MODULES · {battleProgress.complete}/{battleProgress.total} BATTLES</div>
+                    </div>
+                    {completed && <span style={{ fontSize: 'clamp(1.1rem,4vw,1.5rem)' }}>🏆</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // CURRICULUM TOPIC
+  // =========================================================================
+  if (state.screen === 'curriculumTopic' && state.curriculumTopicId) {
+    const curriculumTopic = getCurriculumTopic(state.curriculumTopicId);
+    if (!curriculumTopic) return null;
+    const bossUnlocked = isCurriculumBattleUnlocked(save, curriculumTopic.boss);
+    const bossWon = hasCurriculumWin(save, curriculumTopic.boss.id);
+    return (
+      <Screen bg={panelBg}>
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title={`TOPIC ${String(curriculumTopic.order).padStart(2, '0')}`} accent="#38bdf8" />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+          <Frame>
+            <div className="rounded-xl mb-3" style={{ padding: 'clamp(0.85rem,3vw,1.2rem)', background: 'rgba(56,189,248,0.08)', border: '2px solid #38bdf8' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', lineHeight: 1.8 }}>{curriculumTopic.title.toUpperCase()}</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 1.7, marginTop: 4 }}>EVERY MODULE CONTAINS DISCOVER, APPLY, AND MASTER BATTLES.</div>
+            </div>
+            <div className="flex flex-col gap-3 w-full">
+              {curriculumTopic.modules.map((module) => {
+                const moduleUnlocked = isCurriculumModuleUnlocked(save, module);
+                const moduleComplete = isModuleComplete(save, module);
+                return (
+                  <div key={module.id} className="rounded-xl" style={{ padding: '0.7rem', background: moduleUnlocked ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.3)', border: `1px solid ${moduleComplete ? '#22c55e' : moduleUnlocked ? '#334155' : '#1e293b'}`, opacity: moduleUnlocked ? 1 : 0.55 }}>
+                    <div className="flex items-start gap-2" style={{ marginBottom: '0.55rem' }}>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: moduleComplete ? '#22c55e' : '#FFD700', flexShrink: 0 }}>{moduleComplete ? '✓' : String(module.order).padStart(2, '0')}</span>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: moduleUnlocked ? '#f8fafc' : '#64748b', lineHeight: 1.65 }}>{module.title.toUpperCase()}</div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {module.battles.map((battle) => {
+                        const unlocked = isCurriculumBattleUnlocked(save, battle);
+                        const complete = hasCurriculumWin(save, battle.id);
+                        const legacy = isLegacyCapture(save, battle.dex);
+                        const accent = battle.mode === 'elite' ? '#a78bfa' : '#38bdf8';
+                        return (
+                          <button key={battle.id} disabled={!unlocked} onClick={() => unlocked && game.startCurriculumBattle(battle.id)}
+                            className="w-full rounded-lg text-left flex items-center gap-2"
+                            style={{ padding: '0.55rem', background: unlocked ? 'rgba(15,23,42,0.72)' : 'rgba(0,0,0,0.35)', border: `1px solid ${complete ? '#22c55e' : unlocked ? accent : '#334155'}`, opacity: unlocked ? 1 : 0.52, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
+                            <img src={pixelSprite(battle.dex)} alt="" onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(battle.dex)) img.src = artwork(battle.dex); }} style={{ width: 'clamp(27px,7vw,36px)', height: 'clamp(27px,7vw,36px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: unlocked || complete ? 'none' : 'brightness(0)' }} />
+                            <div className="flex-1" style={{ minWidth: 0 }}>
+                              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: complete ? '#22c55e' : unlocked ? accent : '#64748b', lineHeight: 1.6 }}>{battleModeLabel(battle.mode)} · #{battle.dex}</div>
+                              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.3vw,0.4rem)', color: '#94a3b8', lineHeight: 1.5 }}>{battle.questionCount} QUESTIONS{legacy ? ' · LEGACY OWNED' : ''}</div>
+                            </div>
+                            <span style={{ fontSize: 'clamp(0.8rem,3.5vw,1.1rem)' }}>{complete ? '✅' : unlocked ? '▶' : '🔒'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              <button disabled={!bossUnlocked} onClick={() => bossUnlocked && game.startCurriculumBattle(curriculumTopic.boss.id)}
+                className="w-full rounded-xl text-left flex items-center gap-3"
+                style={{ padding: '0.85rem', marginTop: '0.25rem', background: bossUnlocked ? 'rgba(255,215,0,0.09)' : 'rgba(0,0,0,0.35)', border: `2px solid ${bossWon ? '#22c55e' : bossUnlocked ? '#FFD700' : '#475569'}`, opacity: bossUnlocked ? 1 : 0.55, cursor: bossUnlocked ? 'pointer' : 'not-allowed', boxShadow: bossUnlocked ? '0 0 14px rgba(255,215,0,0.18)' : 'none' }}>
+                <img src={artwork(curriculumTopic.boss.dex)} alt="" style={{ width: 'clamp(42px,11vw,60px)', height: 'clamp(42px,11vw,60px)', objectFit: 'contain', imageRendering: 'pixelated', filter: bossUnlocked || bossWon ? 'none' : 'brightness(0)' }} />
+                <div className="flex-1" style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: bossWon ? '#22c55e' : '#FFD700', lineHeight: 1.6 }}>{bossWon ? '✓ ' : '★ '}{nameOf(curriculumTopic.boss.dex).toUpperCase()} BOSS</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 1.6 }}>{bossUnlocked ? 'TOPIC MASTERY · 15 QUESTIONS' : 'COMPLETE EVERY MODULE TO UNLOCK'}</div>
+                </div>
+              </button>
+            </div>
+          </Frame>
         </div>
       </Screen>
     );
@@ -1230,8 +1349,11 @@ export default function Home() {
   // =========================================================================
   // CAUGHT
   // =========================================================================
-  if (state.screen === 'caught' && game.activeBattle && game.activeRegion) {
-    const b = game.activeBattle;
+  if (state.screen === 'caught' && (game.activeBattle || game.activeCurriculumBattle)) {
+    const curriculumBattle = state.mode === 'curriculum' ? game.activeCurriculumBattle : null;
+    const b = curriculumBattle ?? game.activeBattle!;
+    const legacyOwned = Boolean(curriculumBattle && isLegacyCapture(save, b.dex));
+    const rewardAccent = curriculumBattle?.isBoss ? '#FFD700' : game.activeRegion?.accentColor ?? '#38bdf8';
     return (
       <Screen bg="linear-gradient(135deg, #0a0a1a, #1a0a3e)">
         <NavBar onHome={game.goMenu} title="GOTCHA!" />
@@ -1241,9 +1363,9 @@ export default function Home() {
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #FFD700', boxShadow: '0 0 40px rgba(255,215,0,0.3)' }}>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>GOTCHA!</div>
               <div className="flex justify-center mb-3">
-                <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={150} glow={game.activeRegion.accentColor} />
+                <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={150} glow={rewardAccent} />
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{nameOf(b.dex).toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>{legacyOwned ? <>{nameOf(b.dex).toUpperCase()} IS ALREADY IN<br />YOUR LEGACY POKÉDEX! TOKEN EARNED.</> : <>{nameOf(b.dex).toUpperCase()} WAS CAUGHT<br />AND ADDED TO YOUR POKÉDEX!</>}</p>
               <div className="rounded-lg mb-4" style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', marginBottom: 4 }}>SCORE</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{state.score.toLocaleString()}</div>
@@ -1274,7 +1396,7 @@ export default function Home() {
               </div>
               {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginBottom: 8 }}>{shareMsg}</div>}
               <div className="flex flex-col gap-2">
-                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ CONTINUE</button>
+                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ CONTINUE</button>
                 <button onClick={game.goPokedex} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>📕 VIEW POKÉDEX</button>
               </div>
             </div>
@@ -1287,11 +1409,12 @@ export default function Home() {
   // =========================================================================
   // FAILED
   // =========================================================================
-  if (state.screen === 'failed' && game.activeBattle && game.activeRegion) {
-    const b = game.activeBattle;
+  if (state.screen === 'failed' && (game.activeBattle || game.activeCurriculumBattle)) {
+    const curriculumBattle = state.mode === 'curriculum' ? game.activeCurriculumBattle : null;
+    const b = curriculumBattle ?? game.activeBattle!;
     return (
       <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
-        <NavBar onHome={game.goMenu} onBack={() => game.openRegion(game.activeRegion!.id)} title="BATTLE LOST" accent="#ef4444" />
+        <NavBar onHome={game.goMenu} onBack={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} title="BATTLE LOST" accent="#ef4444" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
@@ -2002,19 +2125,21 @@ export default function Home() {
   // =========================================================================
   if (state.screen === 'playing' && state.question) {
     const journey = state.mode === 'journey';
+    const curriculum = state.mode === 'curriculum';
     const test = state.mode === 'test';
-    const regionMode = journey || test; // region-based screens (vs arcade)
-    const b = game.activeBattle;
+    const regionMode = journey || test || curriculum;
+    const b = curriculum ? game.activeCurriculumBattle : game.activeBattle;
     const region = game.activeRegion;
     const arcadeLevel = state.arcadeLevelId ? getArcadeLevel(state.arcadeLevelId) : null;
-    const accent = regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
-    const bg = regionMode ? region?.bgGradient ?? panelBg : panelBg;
+    const accent = curriculum ? (b?.isBoss ? '#FFD700' : '#38bdf8') : regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
+    const bg = curriculum ? panelBg : regionMode ? region?.bgGradient ?? panelBg : panelBg;
     const title = test
       ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
+      : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
       : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = state.attempted;
     const progressPct = Math.min((state.correctCount / state.total) * 100, 100);
-    const onExit = regionMode ? () => game.openRegion(region!.id) : game.goArcadeSelect;
+    const onExit = curriculum && game.activeCurriculumTopic ? () => game.openCurriculumTopic(game.activeCurriculumTopic!.id) : regionMode ? () => game.openRegion(region!.id) : game.goArcadeSelect;
 
     return (
       <Screen bg={bg}>
@@ -2022,7 +2147,7 @@ export default function Home() {
           onHome={game.goMenu} onBack={onExit} title={title} accent={accent}
           right={
             <>
-              {journey && state.timeRemaining !== null && (
+              {regionMode && state.timeRemaining !== null && (
                 <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: state.timeRemaining <= 10 ? '#ef4444' : '#22c55e' }}>⏱{state.timeRemaining}</span>
               )}
               <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#22c55e' }}>{state.correctCount}✓</span>
@@ -2041,8 +2166,8 @@ export default function Home() {
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: state.wrong > 0 ? '#ef4444' : '#888', marginTop: 4 }}>
                     {test
-                      ? (state.wrong > 0 ? `MISSED ${state.wrong} — NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
-                      : (state.wrong > 0 ? `MISSED ${state.wrong} — NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
+                      ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
+                      : (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
                   </p>
                 </div>
               </div>
