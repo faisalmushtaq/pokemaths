@@ -11,7 +11,8 @@ import {
   type CurriculumModule,
   type CurriculumTopic,
 } from './curriculum';
-import { hasCurriculumWin, type SaveData } from './pokedex';
+import { hasCurriculumWin, isTestUnlocked, type SaveData } from './pokedex';
+import { CURRICULUM_REGIONS, getCurriculumRegionForTopic, type CurriculumRegion } from './curriculumRegions';
 
 export function isModuleComplete(save: SaveData, module: CurriculumModule): boolean {
   return module.battles.every((battle) => hasCurriculumWin(save, battle.id));
@@ -21,8 +22,30 @@ export function isTopicComplete(save: SaveData, topic: CurriculumTopic): boolean
   return Boolean(save.curriculumV2.bosses[topic.boss.id]);
 }
 
+/** Stable save key for a passed regional entry test. */
+export function curriculumRegionTestId(regionId: string): string {
+  return `curriculum-region-${regionId}`;
+}
+
+export function hasCurriculumRegionTestPass(save: SaveData, regionId: string): boolean {
+  return isTestUnlocked(save, curriculumRegionTestId(regionId));
+}
+
+/**
+ * The first region is available immediately. Later regions open after completing
+ * the preceding region or by a perfect 3/3 entry test at the region's opening level.
+ */
+export function isCurriculumRegionUnlocked(save: SaveData, region: CurriculumRegion): boolean {
+  if (region.order === 1) return true;
+  if (hasCurriculumRegionTestPass(save, region.id)) return true;
+  const previous = CURRICULUM_REGIONS[region.order - 2];
+  return Boolean(previous && previous.topics.every((previousTopic) => isTopicComplete(save, previousTopic)));
+}
+
 export function isCurriculumTopicUnlocked(save: SaveData, topic: CurriculumTopic): boolean {
-  if (topic.order === 1) return true;
+  const region = getCurriculumRegionForTopic(topic.id);
+  if (!region) return false;
+  if (region.topics[0]?.id === topic.id) return isCurriculumRegionUnlocked(save, region);
   const previous = CURRICULUM_TOPICS[topic.order - 2];
   return Boolean(previous && isTopicComplete(save, previous));
 }
@@ -59,6 +82,13 @@ export function topicBattleCompletion(save: SaveData, topic: CurriculumTopic): {
   return {
     complete: battles.filter((battle) => hasCurriculumWin(save, battle.id)).length,
     total: battles.length,
+  };
+}
+
+export function curriculumRegionCompletionCount(save: SaveData, region: CurriculumRegion): { complete: number; total: number } {
+  return {
+    complete: region.topics.filter((topic) => isTopicComplete(save, topic)).length,
+    total: region.topics.length,
   };
 }
 

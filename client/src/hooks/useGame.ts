@@ -6,19 +6,22 @@ import {
 } from '@/lib/gameConstants';
 import { findBattle } from '@/lib/regions';
 import { bossMasteryTarget, evaluateBossMastery, getCurriculumBattle, getCurriculumTopic, type CurriculumBattle } from '@/lib/curriculum';
+import { getCurriculumRegion, getCurriculumRegionForTopic } from '@/lib/curriculumRegions';
+import { curriculumRegionTestId } from '@/lib/curriculumProgress';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
 import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
-export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test';
+export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest';
 
 export type GameScreen =
   | 'menu'
   | 'regionSelect'
   | 'battleSelect'
   | 'curriculumMap'
+  | 'curriculumRegion'
   | 'curriculumTopic'
   | 'arcadeSelect'
   | 'playing'
@@ -41,6 +44,7 @@ export interface GameState {
   regionId: string | null;
   battleId: string | null;
   curriculumTopicId: string | null;
+  curriculumRegionId: string | null;
   curriculumBattleId: string | null;
   arcadeLevelId: string | null;
   question: Question | null;
@@ -86,6 +90,7 @@ const INITIAL: GameState = {
   regionId: null,
   battleId: null,
   curriculumTopicId: null,
+  curriculumRegionId: null,
   curriculumBattleId: null,
   arcadeLevelId: null,
   question: null,
@@ -136,12 +141,19 @@ export function useGame(profileId: string | null) {
   }, []);
 
   const goCurriculumMap = useCallback(() => {
-    setState((s) => ({ ...s, screen: 'curriculumMap', mode: 'curriculum', curriculumTopicId: null, curriculumBattleId: null }));
+    setState((s) => ({ ...s, screen: 'curriculumMap', mode: 'curriculum', curriculumTopicId: null, curriculumRegionId: null, curriculumBattleId: null }));
+  }, []);
+
+  const openCurriculumRegion = useCallback((regionId: string) => {
+    if (!getCurriculumRegion(regionId)) return;
+    setState((s) => ({ ...s, screen: 'curriculumRegion', mode: 'curriculum', curriculumRegionId: regionId, curriculumTopicId: null, curriculumBattleId: null }));
   }, []);
 
   const openCurriculumTopic = useCallback((topicId: string) => {
-    if (!getCurriculumTopic(topicId)) return;
-    setState((s) => ({ ...s, screen: 'curriculumTopic', mode: 'curriculum', curriculumTopicId: topicId, curriculumBattleId: null }));
+    const topic = getCurriculumTopic(topicId);
+    const region = topic ? getCurriculumRegionForTopic(topic.id) : undefined;
+    if (!topic || !region) return;
+    setState((s) => ({ ...s, screen: 'curriculumTopic', mode: 'curriculum', curriculumRegionId: region.id, curriculumTopicId: topicId, curriculumBattleId: null }));
   }, []);
 
   const goArcadeSelect = useCallback(() => {
@@ -221,6 +233,27 @@ export function useGame(profileId: string | null) {
       maxLevel: topic.maxLevel,
       bossFailure: null,
       timeRemaining: battle.timeLimitSec ?? null,
+    });
+  }, []);
+
+  // --- regional entry test (3 questions, all correct) -----------------------
+  const startCurriculumRegionTest = useCallback((regionId: string) => {
+    const region = getCurriculumRegion(regionId);
+    const openingTopic = region?.topics[0];
+    if (!region || !openingTopic) return;
+    const mathTopic = getTopic(openingTopic.mathTopicId);
+    const first = mathTopic.generate(region.entryLevel);
+    questionStart.current = Date.now();
+    setState({
+      ...INITIAL,
+      screen: 'playing',
+      mode: 'regionTest',
+      curriculumRegionId: region.id,
+      curriculumTopicId: openingTopic.id,
+      question: first,
+      total: 3,
+      level: region.entryLevel,
+      maxLevel: mathTopic.maxLevel,
     });
   }, []);
 
@@ -320,6 +353,42 @@ export function useGame(profileId: string | null) {
           question: next ? next.question : s.question,
           level: next ? next.level : s.level,
           maxLevel: next ? next.maxLevel : s.maxLevel,
+          questionIndex: s.questionIndex + 1,
+          feedback: feedbackMsg,
+          feedbackCorrect: correct,
+        };
+      }
+
+      // -------- REGION TEST: answer 3, unlock the named curriculum region ---
+      if (s.mode === 'regionTest') {
+        const region = s.curriculumRegionId ? getCurriculumRegion(s.curriculumRegionId) : undefined;
+        const openingTopic = region?.topics[0];
+        if (!region || !openingTopic) return s;
+        const attempted = s.attempted + 1;
+        const nextCorrect = s.correctCount + (correct ? 1 : 0);
+        const done = attempted >= s.total;
+        if (done) {
+          const passed = nextCorrect === s.total;
+          if (profileRef.current) {
+            const pid = profileRef.current;
+            if (passed) {
+              setSave((prev) => recordTestUnlock(pid, prev, curriculumRegionTestId(region.id)));
+              setSave((prev) => recordRun(pid, prev, 'testsPassed'));
+            }
+            setSave((prev) => recordPlay(pid, prev));
+          }
+          return { ...s, screen: passed ? 'testPassed' : 'testFailed', attempted, correctCount: nextCorrect, wrong: s.wrong + (correct ? 0 : 1), feedback: null, feedbackCorrect: correct };
+        }
+        questionStart.current = Date.now();
+        const mathTopic = getTopic(openingTopic.mathTopicId);
+        return {
+          ...s,
+          attempted,
+          correctCount: nextCorrect,
+          wrong: s.wrong + (correct ? 0 : 1),
+          question: generateDistinct(mathTopic, region.entryLevel, s.question?.text),
+          level: region.entryLevel,
+          maxLevel: mathTopic.maxLevel,
           questionIndex: s.questionIndex + 1,
           feedback: feedbackMsg,
           feedbackCorrect: correct,
@@ -526,8 +595,9 @@ export function useGame(profileId: string | null) {
   }, [state.mode, state.curriculumBattleId, state.battleId, startBattle, startCurriculumBattle]);
 
   const retryTest = useCallback(() => {
-    if (state.battleId) startTest(state.battleId);
-  }, [state.battleId, startTest]);
+    if (state.mode === 'regionTest' && state.curriculumRegionId) startCurriculumRegionTest(state.curriculumRegionId);
+    else if (state.battleId) startTest(state.battleId);
+  }, [state.mode, state.curriculumRegionId, state.battleId, startTest, startCurriculumRegionTest]);
 
   const replayArcade = useCallback(() => {
     if (state.arcadeLevelId) startArcade(state.arcadeLevelId, state.arcadeCount, state.arcadePokemonDex);
@@ -552,6 +622,7 @@ export function useGame(profileId: string | null) {
     goMenu,
     goRegionSelect,
     goCurriculumMap,
+    openCurriculumRegion,
     openCurriculumTopic,
     goArcadeSelect,
     goPokedex,
@@ -564,6 +635,7 @@ export function useGame(profileId: string | null) {
     openRegion,
     startBattle,
     startCurriculumBattle,
+    startCurriculumRegionTest,
     startTest,
     startArcade,
     submitAnswer,

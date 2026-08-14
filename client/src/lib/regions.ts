@@ -108,7 +108,7 @@ const REGION_DEFS: RegionDef[] = [
   { id: 'paldea', name: 'Paldea', gen: 'Gen IX', inspiration: 'Iberian Peninsula',
     bgGradient: 'linear-gradient(135deg, #3a1505 0%, #8a3a0a 50%, #3a1505 100%)', accentColor: '#fb923c',
     dexRange: [906, 1010], topics: ['percentages_money', 'squares_roots_cubes', 'long_mult_pro', 'long_div_pro'] },
-  { id: 'kitakami', name: 'Unidentified', gen: 'Gen IX DLC', inspiration: 'Paradox & mystery',
+  { id: 'kitakami', name: 'Kitakami', gen: 'Gen IX DLC', inspiration: 'Kitakami, Japan',
     bgGradient: 'linear-gradient(135deg, #1a0a2a 0%, #4a1a5a 50%, #1a0a2a 100%)', accentColor: '#a78bfa', secret: true,
     dexRange: [1011, 1025], topics: ['sequences_patterns', 'ratio_proportion', 'estimating'] },
   { id: 'terarium', name: 'Hisui', gen: 'Legends: Arceus', inspiration: 'Ancient Sinnoh',

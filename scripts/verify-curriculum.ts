@@ -1,5 +1,7 @@
 import { CURRICULUM_BATTLES, CURRICULUM_TOPICS, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, curriculumSummary, evaluateBossMastery, getCurriculumBattle } from '../client/src/lib/curriculum';
-import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, type CaughtEntry } from '../client/src/lib/pokedex';
+import { CURRICULUM_REGIONS } from '../client/src/lib/curriculumRegions';
+import { curriculumRegionTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
+import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
 
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -23,6 +25,9 @@ assert(summary.bosses === 37, `Expected 37 bosses, received ${summary.bosses}`);
 assert(new Set(CURRICULUM_BATTLES.map((battle) => battle.dex)).size === 1025, 'Every Pokédex number must be assigned once');
 assert(new Set(CURRICULUM_BATTLES.map((battle) => battle.id)).size === 1025, 'Every curriculum battle id must be unique');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.isBoss), 'Every topic requires a boss');
+assert(CURRICULUM_REGIONS.length === 11, 'The regional curriculum route must retain all 11 named Pokémon regions');
+assert(CURRICULUM_REGIONS.flatMap((region) => region.topics).length === 37, 'Every revised topic must appear in a named region');
+assert(CURRICULUM_REGIONS.every((region) => region.name !== 'Unidentified'), 'All curriculum regions must use their proper names');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.bossSpec?.rounds.length === 3), 'Every boss requires Recall, Apply, and Mastery rounds');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.bossSpec?.rounds.at(-1)?.endQuestion === topic.boss.questionCount), 'Every boss round plan must cover its full encounter');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.bossSpec?.finalMasteryRequired), 'Every boss must require a correct final Mastery item');
@@ -58,11 +63,20 @@ const migrated = loadSave('legacy-test');
 assert(migrated.version === 2, 'V1 save must migrate to V2');
 assert(migrated.caught[1]?.name === 'Bulbasaur', 'Migration must preserve an existing capture');
 assert(migrated.curriculumV2.legacyCapturedDex.includes(1), 'Existing capture must be recorded as legacy ownership');
+const kanto = CURRICULUM_REGIONS[0];
+const johto = CURRICULUM_REGIONS[1];
+assert(isCurriculumRegionUnlocked(migrated, kanto), 'Kanto must remain open for every player');
+assert(!isCurriculumRegionUnlocked(migrated, johto), 'A later region must begin locked before its entry test or preceding-region completion');
+assert(!isCurriculumTopicUnlocked(migrated, johto.topics[0]), 'The opening topic of a locked region must remain gated');
+const afterJohtoTest = recordTestUnlock('legacy-test', migrated, curriculumRegionTestId(johto.id));
+assert(isCurriculumRegionUnlocked(afterJohtoTest, johto), 'A passed 3/3 regional test must open that region');
+assert(isCurriculumTopicUnlocked(afterJohtoTest, johto.topics[0]), 'A passed regional test must open the first topic only');
+assert(!isCurriculumTopicUnlocked(afterJohtoTest, johto.topics[1]), 'Later topics in a test-opened region must retain topic prerequisites');
 
 const legacyBattle = getCurriculumBattle('t01-m01-b01');
 const freshBattle = getCurriculumBattle('t01-m01-b02');
 assert(legacyBattle?.dex === 1 && freshBattle?.dex === 2, 'Expected deterministic early battle mapping');
-const afterLegacyReward = recordCurriculumWin('legacy-test', migrated, legacyBattle!, legacyEntry, legacyBattle!.questionCount);
+const afterLegacyReward = recordCurriculumWin('legacy-test', afterJohtoTest, legacyBattle!, legacyEntry, legacyBattle!.questionCount);
 assert(afterLegacyReward.caught[1]?.name === 'Bulbasaur', 'Legacy reward must preserve ownership record');
 assert(afterLegacyReward.curriculumV2.masteryTokens === 1, 'Legacy reward must award one mastery token');
 assert(afterLegacyReward.curriculumV2.battles[legacyBattle!.id]?.rewardStatus === 'legacy-owned', 'Legacy battle status must be explicit');
@@ -83,4 +97,4 @@ const afterBossWin = recordCurriculumWin('legacy-test', afterBossRetry, retryBos
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.attempts === 2, 'A defeated boss must include earlier failed attempts');
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.bestCorrect === bossMasteryTarget(retryBoss), 'A defeated boss must retain its best score');
 
-console.log('Curriculum verification passed: 37 topics, 238 modules, 1,025 unique encounters, progressive boss specifications, and legacy migration preserved.');
+console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, regional entry-test gates, progressive boss specifications, and legacy migration preserved.');

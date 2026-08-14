@@ -25,8 +25,9 @@ import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
 import { caughtCount, liveStreak, freezeUsedToday, hasCurriculumWin, isLegacyCapture, type MegaEntry } from '@/lib/pokedex';
-import { CURRICULUM_TOPICS, battleModeLabel, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, getCurriculumTopic } from '@/lib/curriculum';
-import { isCurriculumBattleUnlocked, isCurriculumModuleUnlocked, isCurriculumTopicUnlocked, isModuleComplete, isTopicComplete, moduleCompletionCount, topicBattleCompletion } from '@/lib/curriculumProgress';
+import { battleModeLabel, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, getCurriculumTopic } from '@/lib/curriculum';
+import { CURRICULUM_REGIONS, getCurriculumRegion, getCurriculumRegionForTopic } from '@/lib/curriculumRegions';
+import { curriculumRegionCompletionCount, hasCurriculumRegionTestPass, isCurriculumBattleUnlocked, isCurriculumModuleUnlocked, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked, isModuleComplete, isTopicComplete, moduleCompletionCount, topicBattleCompletion } from '@/lib/curriculumProgress';
 import { playTheme, stopTheme, isThemePlaying } from '@/lib/chiptune';
 import { STREAK_MILESTONES, achievedMilestones, milestoneAt } from '@/lib/streak';
 import {
@@ -1003,33 +1004,68 @@ export default function Home() {
   if (state.screen === 'curriculumMap') {
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} title="CURRICULUM PATH" right={<TrainerBadgeButton onClick={switchPlayer} />} />
-        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
+        <NavBar onHome={game.goMenu} title="REGION JOURNEY" right={<TrainerBadgeButton onClick={switchPlayer} />} />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.6rem,2vw,1rem) 1rem' }}>
           <Frame>
-            <div className="rounded-xl mb-3 flex items-center" style={{ padding: '0.8rem', gap: '0.7rem', background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.35)' }}>
-              <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum mastery crest" style={{ width: 'clamp(2.6rem,11vw,3.7rem)', height: 'clamp(2.6rem,11vw,3.7rem)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', lineHeight: 1.7 }}>37 TOPICS · 238 MODULES · 1,025 POKÉMON</div>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#aab', lineHeight: 1.7, marginTop: 4 }}>MASTER MODULE BATTLES TO UNLOCK A LEGENDARY TOPIC BOSS.</div>
-              </div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', textAlign: 'center', marginBottom: '0.65rem' }}>CHOOSE A REGION TO BEGIN YOUR MATHS QUEST.</div>
+            <div className="flex flex-col gap-2 w-full">
+              {CURRICULUM_REGIONS.map((region) => {
+                const unlocked = isCurriculumRegionUnlocked(save, region);
+                const completed = region.topics.every((topic) => isTopicComplete(save, topic));
+                const progress = curriculumRegionCompletionCount(save, region);
+                const testedIn = hasCurriculumRegionTestPass(save, region.id);
+                const accent = completed ? '#22c55e' : unlocked ? region.accentColor : '#475569';
+                return (
+                  <button key={region.id} onClick={() => unlocked ? game.openCurriculumRegion(region.id) : game.startCurriculumRegionTest(region.id)}
+                    className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
+                    style={{ padding: 'clamp(0.7rem,2.5vw,0.95rem)', background: unlocked ? `${region.accentColor}12` : 'rgba(0,0,0,0.35)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.72, cursor: 'pointer', boxShadow: completed ? '0 0 12px rgba(34,197,94,0.25)' : 'none' }}>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: 'clamp(2.1rem,9vw,2.8rem)', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(region.order).padStart(2, '0') : '🔒'}</div>
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{region.name.toUpperCase()}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: unlocked ? '#cbd5e1' : '#94a3b8', lineHeight: 1.55 }}>{region.gen.toUpperCase()} · {progress.complete}/{progress.total} TOPICS</div>
+                    </div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.2vw,0.38rem)', color: unlocked ? accent : '#FFD700', textAlign: 'right', lineHeight: 1.55, maxWidth: '7.3rem' }}>{unlocked ? (testedIn ? 'TEST PASSED' : completed ? 'MASTERED' : 'ENTER') : 'PASS 3/3 TEST'}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  // =========================================================================
+  // CURRICULUM REGION
+  // =========================================================================
+  if (state.screen === 'curriculumRegion' && state.curriculumRegionId) {
+    const curriculumRegion = getCurriculumRegion(state.curriculumRegionId);
+    if (!curriculumRegion) return null;
+    const progress = curriculumRegionCompletionCount(save, curriculumRegion);
+    return (
+      <Screen bg={curriculumRegion.bgGradient}>
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title={curriculumRegion.name.toUpperCase()} accent={curriculumRegion.accentColor} />
+        <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.6rem,2vw,1rem) 1rem' }}>
+          <Frame>
+            <div className="rounded-xl mb-3" style={{ padding: '0.75rem', background: `${curriculumRegion.accentColor}14`, border: `1px solid ${curriculumRegion.accentColor}` }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor }}>{curriculumRegion.gen.toUpperCase()} · {curriculumRegion.inspiration.toUpperCase()}</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', marginTop: 5 }}>{progress.complete}/{progress.total} TOPICS MASTERED</div>
             </div>
             <div className="flex flex-col gap-2 w-full">
-              {CURRICULUM_TOPICS.map((topic) => {
+              {curriculumRegion.topics.map((topic) => {
                 const unlocked = isCurriculumTopicUnlocked(save, topic);
                 const completed = isTopicComplete(save, topic);
                 const moduleProgress = moduleCompletionCount(save, topic);
-                const battleProgress = topicBattleCompletion(save, topic);
-                const accent = completed ? '#22c55e' : unlocked ? '#38bdf8' : '#475569';
+                const accent = completed ? '#22c55e' : unlocked ? curriculumRegion.accentColor : '#475569';
                 return (
-                  <button key={topic.id} disabled={!unlocked} onClick={() => unlocked && game.openCurriculumTopic(topic.id)}
-                    className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
-                    style={{ padding: 'clamp(0.7rem,2.5vw,1rem)', background: unlocked ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.35)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.58, cursor: unlocked ? 'pointer' : 'not-allowed', boxShadow: completed ? '0 0 12px rgba(34,197,94,0.25)' : 'none' }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: 'clamp(2.2rem,10vw,3rem)', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(topic.order).padStart(2, '0') : '🔒'}</div>
+                  <button key={topic.id} disabled={!unlocked} onClick={() => unlocked && game.openCurriculumTopic(topic.id)} className="w-full rounded-xl text-left flex items-center gap-3"
+                    style={{ padding: '0.75rem', background: unlocked ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.28)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.6, cursor: unlocked ? 'pointer' : 'not-allowed' }}>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: '2.25rem', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(topic.order).padStart(2, '0') : '🔒'}</div>
                     <div className="flex-1" style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.6 }}>{topic.title.toUpperCase()}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.7 }}>{moduleProgress.complete}/{moduleProgress.total} MODULES · {battleProgress.complete}/{battleProgress.total} BATTLES</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{topic.title.toUpperCase()}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.55 }}>{moduleProgress.complete}/{moduleProgress.total} MODULES</div>
                     </div>
-                    {completed && <span style={{ fontSize: 'clamp(1.1rem,4vw,1.5rem)' }}>🏆</span>}
+                    {completed && <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🏆</span>}
                   </button>
                 );
               })}
@@ -1052,7 +1088,7 @@ export default function Home() {
     const bossAttempt = save.curriculumV2.bossAttempts[curriculumTopic.boss.id];
     return (
       <Screen bg={panelBg}>
-        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title={`TOPIC ${String(curriculumTopic.order).padStart(2, '0')}`} accent="#38bdf8" />
+        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(state.curriculumRegionId!)} title={`${getCurriculumRegionForTopic(curriculumTopic.id)?.name.toUpperCase() ?? 'REGION'} · T${String(curriculumTopic.order).padStart(2, '0')}`} accent={getCurriculumRegionForTopic(curriculumTopic.id)?.accentColor ?? '#38bdf8'} />
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame>
             <div className="rounded-xl mb-3" style={{ padding: 'clamp(0.85rem,3vw,1.2rem)', background: 'rgba(56,189,248,0.08)', border: '2px solid #38bdf8' }}>
@@ -1456,6 +1492,26 @@ export default function Home() {
   // =========================================================================
   // TEST-OUT PASSED / FAILED
   // =========================================================================
+  if (state.screen === 'testPassed' && state.mode === 'regionTest' && state.curriculumRegionId) {
+    const curriculumRegion = getCurriculumRegion(state.curriculumRegionId);
+    if (!curriculumRegion) return null;
+    return (
+      <Screen bg={curriculumRegion.bgGradient}>
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="REGION UNLOCKED" accent="#22c55e" />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #22c55e', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>REGION UNLOCKED!</div>
+              <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum crest" style={{ width: 'clamp(4.5rem,25vw,7rem)', height: 'clamp(4.5rem,25vw,7rem)', objectFit: 'contain', imageRendering: 'pixelated', margin: '0 auto 0.8rem' }} />
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>3/3 CORRECT!<br />{curriculumRegion.name.toUpperCase()} IS NOW OPEN.</p>
+              <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ ENTER {curriculumRegion.name.toUpperCase()}</button>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
   if (state.screen === 'testPassed' && game.activeBattle && game.activeRegion) {
     const b = game.activeBattle;
     return (
@@ -1472,6 +1528,32 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 <button onClick={() => game.startBattle(b.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ PLAY NOW</button>
                 <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'transparent', border: '1px solid #22c55e', cursor: 'pointer' }}>← BACK TO LEVELS</button>
+              </div>
+            </div>
+          </Frame>
+        </div>
+      </Screen>
+    );
+  }
+
+  if (state.screen === 'testFailed' && state.mode === 'regionTest' && state.curriculumRegionId) {
+    const curriculumRegion = getCurriculumRegion(state.curriculumRegionId);
+    if (!curriculumRegion) return null;
+    return (
+      <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="ENTRY TEST" accent="#ef4444" />
+        <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
+          <Frame>
+            <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', marginBottom: '0.75rem' }}>NOT QUITE!</div>
+              <div className="rounded-lg mb-3" style={{ padding: 'clamp(0.5rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{state.correctCount}/3 CORRECT</div>
+              </div>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>GET ALL 3 RIGHT TO ENTER<br />{curriculumRegion.name.toUpperCase()}. TRY AGAIN!</p>
+              <div className="flex flex-col gap-2">
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ TRY ENTRY TEST</button>
+                <button onClick={game.goCurriculumMap} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← REGION MAP</button>
               </div>
             </div>
           </Frame>
@@ -2141,16 +2223,20 @@ export default function Home() {
     const journey = state.mode === 'journey';
     const curriculum = state.mode === 'curriculum';
     const test = state.mode === 'test';
-    const regionMode = journey || test || curriculum;
+    const regionTest = state.mode === 'regionTest';
+    const curriculumTestRegion = regionTest && state.curriculumRegionId ? getCurriculumRegion(state.curriculumRegionId) : undefined;
+    const regionMode = journey || test || curriculum || regionTest;
     const b = curriculum ? game.activeCurriculumBattle : game.activeBattle;
     const region = game.activeRegion;
     const arcadeLevel = state.arcadeLevelId ? getArcadeLevel(state.arcadeLevelId) : null;
-    const accent = curriculum ? (b?.isBoss ? '#FFD700' : '#38bdf8') : regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
-    const bg = curriculum ? panelBg : regionMode ? region?.bgGradient ?? panelBg : panelBg;
-    const title = test
-      ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
-      : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
-      : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
+    const accent = regionTest ? curriculumTestRegion?.accentColor ?? '#FFD700' : curriculum ? (b?.isBoss ? '#FFD700' : '#38bdf8') : regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
+    const bg = regionTest ? curriculumTestRegion?.bgGradient ?? panelBg : curriculum ? panelBg : regionMode ? region?.bgGradient ?? panelBg : panelBg;
+    const title = regionTest
+      ? `ENTRY TEST · ${curriculumTestRegion?.name.toUpperCase() ?? 'REGION'}`
+      : test
+        ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
+        : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
+        : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = state.attempted;
     const curriculumBoss = curriculum && game.activeCurriculumBattle?.isBoss ? game.activeCurriculumBattle : null;
     const isCurriculumBoss = Boolean(curriculumBoss);
@@ -2158,7 +2244,13 @@ export default function Home() {
     const bossRound = curriculumBoss ? bossRoundForQuestion(curriculumBoss, state.attempted + 1) : undefined;
     const finalMasteryQuestion = curriculumBoss ? bossIsFinalMasteryQuestion(curriculumBoss, state.attempted + 1) : false;
     const progressPct = Math.min((state.correctCount / state.total) * 100, 100);
-    const onExit = curriculum && game.activeCurriculumTopic ? () => game.openCurriculumTopic(game.activeCurriculumTopic!.id) : regionMode ? () => game.openRegion(region!.id) : game.goArcadeSelect;
+    const onExit = regionTest
+      ? game.goCurriculumMap
+      : curriculum && game.activeCurriculumTopic
+        ? () => game.openCurriculumTopic(game.activeCurriculumTopic!.id)
+        : regionMode && region
+          ? () => game.openRegion(region.id)
+          : game.goArcadeSelect;
 
     return (
       <Screen bg={bg}>
@@ -2178,17 +2270,21 @@ export default function Home() {
         <div className="flex-1 min-h-0 w-full flex items-stretch justify-center" style={{ padding: 'clamp(0.5rem,2vh,1.25rem) clamp(0.5rem,3vw,1rem)' }}>
           <div className="flex flex-col" style={{ width: FRAME, height: '100%', maxHeight: '46rem', gap: 'clamp(0.5rem, 2vh, 1rem)' }}>
             {/* Wild Pokémon (journey/test) / progress (arcade) */}
-            {regionMode && b ? (
+            {regionMode && (b || regionTest) ? (
               <div className="w-full flex items-center gap-3 shrink-0">
-                <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />
+                {regionTest
+                  ? <img src="/pokemaths/images/curriculum-crest.png" alt="Regional entry test" style={{ width: 62, height: 62, objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
+                  : b && <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />}
                 <div className="flex-1">
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: state.wrong > 0 ? '#ef4444' : '#888', marginTop: 4 }}>
-                    {test
-                      ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
-                      : isCurriculumBoss
-                        ? `${bossRound?.label ?? 'MASTERY'} · ${state.correctCount}/${bossTarget} TARGET${finalMasteryQuestion ? ' · FINAL MUST BE RIGHT!' : ''}`
-                        : (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
+                    {regionTest
+                      ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3 TO ENTER!` : `PASS 3/3 TO ENTER ${curriculumTestRegion?.name.toUpperCase() ?? 'THE REGION'}!`)
+                      : test
+                        ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
+                        : isCurriculumBoss
+                          ? `${bossRound?.label ?? 'MASTERY'} · ${state.correctCount}/${bossTarget} TARGET${finalMasteryQuestion ? ' · FINAL MUST BE RIGHT!' : ''}`
+                          : (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 100%!` : `${state.total - state.attempted} LEFT · STAY PERFECT!`)}
                   </p>
                 </div>
               </div>
