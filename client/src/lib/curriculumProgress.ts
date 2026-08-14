@@ -31,6 +31,15 @@ export function hasCurriculumRegionTestPass(save: SaveData, regionId: string): b
   return isTestUnlocked(save, curriculumRegionTestId(regionId));
 }
 
+/** Stable save key for a passed in-region topic-entry test. */
+export function curriculumTopicTestId(topicId: string): string {
+  return `curriculum-topic-${topicId}`;
+}
+
+export function hasCurriculumTopicTestPass(save: SaveData, topicId: string): boolean {
+  return isTestUnlocked(save, curriculumTopicTestId(topicId));
+}
+
 /**
  * The first region is available immediately. Later regions open after completing
  * the preceding region or by a perfect 3/3 entry test at the region's opening level.
@@ -44,8 +53,9 @@ export function isCurriculumRegionUnlocked(save: SaveData, region: CurriculumReg
 
 export function isCurriculumTopicUnlocked(save: SaveData, topic: CurriculumTopic): boolean {
   const region = getCurriculumRegionForTopic(topic.id);
-  if (!region) return false;
-  if (region.topics[0]?.id === topic.id) return isCurriculumRegionUnlocked(save, region);
+  if (!region || !isCurriculumRegionUnlocked(save, region)) return false;
+  if (region.topics[0]?.id === topic.id) return true;
+  if (hasCurriculumTopicTestPass(save, topic.id)) return true;
   const previous = CURRICULUM_TOPICS[topic.order - 2];
   return Boolean(previous && isTopicComplete(save, previous));
 }

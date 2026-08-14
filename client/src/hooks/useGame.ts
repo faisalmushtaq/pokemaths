@@ -7,14 +7,14 @@ import {
 import { findBattle } from '@/lib/regions';
 import { bossMasteryTarget, evaluateBossMastery, getCurriculumBattle, getCurriculumTopic, type CurriculumBattle } from '@/lib/curriculum';
 import { getCurriculumRegion, getCurriculumRegionForTopic } from '@/lib/curriculumRegions';
-import { curriculumRegionTestId } from '@/lib/curriculumProgress';
+import { curriculumRegionTestId, curriculumTopicTestId } from '@/lib/curriculumProgress';
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
 import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
-export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest';
+export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest' | 'topicTest';
 
 export type GameScreen =
   | 'menu'
@@ -257,6 +257,29 @@ export function useGame(profileId: string | null) {
     });
   }, []);
 
+  // --- in-region topic entry test (3 questions, all correct) ----------------
+  const startCurriculumTopicTest = useCallback((topicId: string) => {
+    const topic = getCurriculumTopic(topicId);
+    const region = topic ? getCurriculumRegionForTopic(topic.id) : undefined;
+    const openingBattle = topic?.modules[0]?.battles[0];
+    if (!topic || !region || !openingBattle) return;
+    const mathTopic = getTopic(topic.mathTopicId);
+    const level = Math.min(openingBattle.level, mathTopic.maxLevel);
+    const first = mathTopic.generate(level);
+    questionStart.current = Date.now();
+    setState({
+      ...INITIAL,
+      screen: 'playing',
+      mode: 'topicTest',
+      curriculumRegionId: region.id,
+      curriculumTopicId: topic.id,
+      question: first,
+      total: 3,
+      level,
+      maxLevel: mathTopic.maxLevel,
+    });
+  }, []);
+
   // --- test-out (3 questions to unlock a level) -----------------------------
   const startTest = useCallback((battleId: string) => {
     const found = findBattle(battleId);
@@ -353,6 +376,43 @@ export function useGame(profileId: string | null) {
           question: next ? next.question : s.question,
           level: next ? next.level : s.level,
           maxLevel: next ? next.maxLevel : s.maxLevel,
+          questionIndex: s.questionIndex + 1,
+          feedback: feedbackMsg,
+          feedbackCorrect: correct,
+        };
+      }
+
+      // -------- TOPIC TEST: answer 3, unlock one topic within its region ------
+      if (s.mode === 'topicTest') {
+        const topic = s.curriculumTopicId ? getCurriculumTopic(s.curriculumTopicId) : undefined;
+        const openingBattle = topic?.modules[0]?.battles[0];
+        if (!topic || !openingBattle) return s;
+        const attempted = s.attempted + 1;
+        const nextCorrect = s.correctCount + (correct ? 1 : 0);
+        const done = attempted >= s.total;
+        if (done) {
+          const passed = nextCorrect === s.total;
+          if (profileRef.current) {
+            const pid = profileRef.current;
+            if (passed) {
+              setSave((prev) => recordTestUnlock(pid, prev, curriculumTopicTestId(topic.id)));
+              setSave((prev) => recordRun(pid, prev, 'testsPassed'));
+            }
+            setSave((prev) => recordPlay(pid, prev));
+          }
+          return { ...s, screen: passed ? 'testPassed' : 'testFailed', attempted, correctCount: nextCorrect, wrong: s.wrong + (correct ? 0 : 1), feedback: null, feedbackCorrect: correct };
+        }
+        questionStart.current = Date.now();
+        const mathTopic = getTopic(topic.mathTopicId);
+        const level = Math.min(openingBattle.level, mathTopic.maxLevel);
+        return {
+          ...s,
+          attempted,
+          correctCount: nextCorrect,
+          wrong: s.wrong + (correct ? 0 : 1),
+          question: generateDistinct(mathTopic, level, s.question?.text),
+          level,
+          maxLevel: mathTopic.maxLevel,
           questionIndex: s.questionIndex + 1,
           feedback: feedbackMsg,
           feedbackCorrect: correct,
@@ -595,9 +655,10 @@ export function useGame(profileId: string | null) {
   }, [state.mode, state.curriculumBattleId, state.battleId, startBattle, startCurriculumBattle]);
 
   const retryTest = useCallback(() => {
-    if (state.mode === 'regionTest' && state.curriculumRegionId) startCurriculumRegionTest(state.curriculumRegionId);
+    if (state.mode === 'topicTest' && state.curriculumTopicId) startCurriculumTopicTest(state.curriculumTopicId);
+    else if (state.mode === 'regionTest' && state.curriculumRegionId) startCurriculumRegionTest(state.curriculumRegionId);
     else if (state.battleId) startTest(state.battleId);
-  }, [state.mode, state.curriculumRegionId, state.battleId, startTest, startCurriculumRegionTest]);
+  }, [state.mode, state.curriculumTopicId, state.curriculumRegionId, state.battleId, startTest, startCurriculumTopicTest, startCurriculumRegionTest]);
 
   const replayArcade = useCallback(() => {
     if (state.arcadeLevelId) startArcade(state.arcadeLevelId, state.arcadeCount, state.arcadePokemonDex);
@@ -636,6 +697,7 @@ export function useGame(profileId: string | null) {
     startBattle,
     startCurriculumBattle,
     startCurriculumRegionTest,
+    startCurriculumTopicTest,
     startTest,
     startArcade,
     submitAnswer,

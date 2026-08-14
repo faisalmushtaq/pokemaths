@@ -1,6 +1,6 @@
 import { CURRICULUM_BATTLES, CURRICULUM_TOPICS, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, curriculumSummary, evaluateBossMastery, getCurriculumBattle } from '../client/src/lib/curriculum';
 import { CURRICULUM_REGIONS } from '../client/src/lib/curriculumRegions';
-import { curriculumRegionTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
+import { curriculumRegionTestId, curriculumTopicTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
 import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
 
 const store = new Map<string, string>();
@@ -71,12 +71,15 @@ assert(!isCurriculumTopicUnlocked(migrated, johto.topics[0]), 'The opening topic
 const afterJohtoTest = recordTestUnlock('legacy-test', migrated, curriculumRegionTestId(johto.id));
 assert(isCurriculumRegionUnlocked(afterJohtoTest, johto), 'A passed 3/3 regional test must open that region');
 assert(isCurriculumTopicUnlocked(afterJohtoTest, johto.topics[0]), 'A passed regional test must open the first topic only');
-assert(!isCurriculumTopicUnlocked(afterJohtoTest, johto.topics[1]), 'Later topics in a test-opened region must retain topic prerequisites');
+assert(!isCurriculumTopicUnlocked(afterJohtoTest, johto.topics[1]), 'Later topics in a test-opened region must remain gated before their own test or prerequisite');
+const afterJohtoTopicTest = recordTestUnlock('legacy-test', afterJohtoTest, curriculumTopicTestId(johto.topics[1].id));
+assert(isCurriculumTopicUnlocked(afterJohtoTopicTest, johto.topics[1]), 'A passed 3/3 topic test must open its selected in-region topic');
+assert(!isCurriculumTopicUnlocked(afterJohtoTopicTest, johto.topics[2]), 'A passed topic test must not open later topics in the region');
 
 const legacyBattle = getCurriculumBattle('t01-m01-b01');
 const freshBattle = getCurriculumBattle('t01-m01-b02');
 assert(legacyBattle?.dex === 1 && freshBattle?.dex === 2, 'Expected deterministic early battle mapping');
-const afterLegacyReward = recordCurriculumWin('legacy-test', afterJohtoTest, legacyBattle!, legacyEntry, legacyBattle!.questionCount);
+const afterLegacyReward = recordCurriculumWin('legacy-test', afterJohtoTopicTest, legacyBattle!, legacyEntry, legacyBattle!.questionCount);
 assert(afterLegacyReward.caught[1]?.name === 'Bulbasaur', 'Legacy reward must preserve ownership record');
 assert(afterLegacyReward.curriculumV2.masteryTokens === 1, 'Legacy reward must award one mastery token');
 assert(afterLegacyReward.curriculumV2.battles[legacyBattle!.id]?.rewardStatus === 'legacy-owned', 'Legacy battle status must be explicit');
@@ -97,4 +100,4 @@ const afterBossWin = recordCurriculumWin('legacy-test', afterBossRetry, retryBos
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.attempts === 2, 'A defeated boss must include earlier failed attempts');
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.bestCorrect === bossMasteryTarget(retryBoss), 'A defeated boss must retain its best score');
 
-console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, regional entry-test gates, progressive boss specifications, and legacy migration preserved.');
+console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, regional and in-region topic entry-test gates, progressive boss specifications, and legacy migration preserved.');
