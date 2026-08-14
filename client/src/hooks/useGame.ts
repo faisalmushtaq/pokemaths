@@ -14,7 +14,7 @@ import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/li
 import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
-export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest' | 'topicTest';
+export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest' | 'topicTest' | 'gym';
 
 export type GameScreen =
   | 'menu'
@@ -23,6 +23,7 @@ export type GameScreen =
   | 'curriculumMap'
   | 'curriculumRegion'
   | 'curriculumTopic'
+  | 'gymTrail'
   | 'arcadeSelect'
   | 'playing'
   | 'caught' // journey: battle won at 100% — Pokémon caught
@@ -154,6 +155,12 @@ export function useGame(profileId: string | null) {
     const region = topic ? getCurriculumRegionForTopic(topic.id) : undefined;
     if (!topic || !region) return;
     setState((s) => ({ ...s, screen: 'curriculumTopic', mode: 'curriculum', curriculumRegionId: region.id, curriculumTopicId: topicId, curriculumBattleId: null }));
+  }, []);
+
+  const openGymTrail = useCallback((regionId: string) => {
+    const region = getCurriculumRegion(regionId);
+    if (!region) return;
+    setState((s) => ({ ...s, screen: 'gymTrail', mode: 'gym', curriculumRegionId: region.id, curriculumTopicId: region.topics[0]?.id ?? null, curriculumBattleId: null }));
   }, []);
 
   const goArcadeSelect = useCallback(() => {
@@ -685,6 +692,7 @@ export function useGame(profileId: string | null) {
     goCurriculumMap,
     openCurriculumRegion,
     openCurriculumTopic,
+    openGymTrail,
     goArcadeSelect,
     goPokedex,
     viewEntry,
