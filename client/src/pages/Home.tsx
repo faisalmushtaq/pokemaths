@@ -968,7 +968,7 @@ export default function Home() {
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{region.name.toUpperCase()}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: unlocked ? '#cbd5e1' : '#94a3b8', lineHeight: 1.55 }}>{region.gen.toUpperCase()} · {progress.complete}/{progress.total} TOPICS</div>
                     </div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.2vw,0.38rem)', color: unlocked ? accent : '#FFD700', textAlign: 'right', lineHeight: 1.55, maxWidth: '7.3rem' }}>{unlocked ? (testedIn ? 'TEST PASSED' : completed ? 'MASTERED' : 'ENTER') : 'PASS 3/3 TEST'}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.2vw,0.38rem)', color: unlocked ? accent : '#FFD700', textAlign: 'right', lineHeight: 1.55, maxWidth: '7.3rem' }}>{unlocked ? (testedIn ? 'TRIAL\nPASSED' : completed ? 'MASTERED' : 'ENTER') : '3Q\nREADINESS TRIAL'}</div>
                   </button>
                 );
               })}
@@ -1008,9 +1008,9 @@ export default function Home() {
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: '2.25rem', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(topic.order).padStart(2, '0') : '🔒'}</div>
                     <div className="flex-1" style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{topic.title.toUpperCase()}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.55 }}>{unlocked ? `${moduleProgress.complete}/${moduleProgress.total} MODULES` : 'PASS 3/3 TO UNLOCK'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.55 }}>{unlocked ? `${moduleProgress.complete}/${moduleProgress.total} MODULES` : '3Q READINESS TRIAL'}</div>
                     </div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.15vw,0.36rem)', color: unlocked ? (testedIn ? curriculumRegion.accentColor : '#94a3b8') : '#FFD700', textAlign: 'right' }}>{unlocked ? (testedIn ? 'TEST\nPASSED' : completed ? 'MASTERED' : 'ENTER') : 'PASS\n3/3 TEST'}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.15vw,0.36rem)', color: unlocked ? (testedIn ? curriculumRegion.accentColor : '#94a3b8') : '#FFD700', textAlign: 'right' }}>{unlocked ? (testedIn ? 'TRIAL\nPASSED' : completed ? 'MASTERED' : 'ENTER') : '3Q\nTRIAL'}</div>
                   </button>
                 );
               })}
@@ -1443,13 +1443,13 @@ export default function Home() {
     if (!curriculumTopic || !curriculumRegion) return null;
     return (
       <Screen bg={curriculumRegion.bgGradient}>
-        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(curriculumRegion.id)} title="TOPIC UNLOCKED" accent="#22c55e" />
+        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(curriculumRegion.id)} title="READY TO ADVANCE" accent="#22c55e" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #22c55e', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>TOPIC UNLOCKED!</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>READY TO ADVANCE!</div>
               <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum crest" style={{ width: 'clamp(4.5rem,25vw,7rem)', height: 'clamp(4.5rem,25vw,7rem)', objectFit: 'contain', imageRendering: 'pixelated', margin: '0 auto 0.8rem' }} />
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>3/3 CORRECT!<br />{curriculumTopic.title.toUpperCase()} IS NOW OPEN.</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU SHOWED YOU'RE READY!<br />{curriculumTopic.title.toUpperCase()} IS NOW OPEN.</p>
               <button onClick={() => game.openCurriculumTopic(curriculumTopic.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ START TOPIC</button>
             </div>
           </Frame>
@@ -1463,13 +1463,13 @@ export default function Home() {
     if (!curriculumRegion) return null;
     return (
       <Screen bg={curriculumRegion.bgGradient}>
-        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="REGION UNLOCKED" accent="#22c55e" />
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="READY TO EXPLORE" accent="#22c55e" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #22c55e', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>REGION UNLOCKED!</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>READY TO EXPLORE!</div>
               <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum crest" style={{ width: 'clamp(4.5rem,25vw,7rem)', height: 'clamp(4.5rem,25vw,7rem)', objectFit: 'contain', imageRendering: 'pixelated', margin: '0 auto 0.8rem' }} />
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>3/3 CORRECT!<br />{curriculumRegion.name.toUpperCase()} IS NOW OPEN.</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU SHOWED YOU'RE READY!<br />{curriculumRegion.name.toUpperCase()} IS NOW OPEN.</p>
               <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ ENTER {curriculumRegion.name.toUpperCase()}</button>
             </div>
           </Frame>
@@ -1508,7 +1508,7 @@ export default function Home() {
     if (!curriculumTopic || !curriculumRegion) return null;
     return (
       <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
-        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(curriculumRegion.id)} title="TOPIC TEST" accent="#ef4444" />
+        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(curriculumRegion.id)} title="READINESS TRIAL" accent="#ef4444" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
@@ -1517,9 +1517,9 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{state.correctCount}/3 CORRECT</div>
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>GET ALL 3 RIGHT TO UNLOCK<br />{curriculumTopic.title.toUpperCase()}.</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>SHOW YOU'RE READY FOR THIS TOPIC.<br />A READINESS TRIAL NEEDS 3/3.</p>
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ TRY TOPIC TEST</button>
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY READINESS TRIAL</button>
                 <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK TO REGION</button>
               </div>
             </div>
@@ -1534,7 +1534,7 @@ export default function Home() {
     if (!curriculumRegion) return null;
     return (
       <Screen bg="linear-gradient(135deg, #1a0000, #0a0a1a)">
-        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="ENTRY TEST" accent="#ef4444" />
+        <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title="READINESS TRIAL" accent="#ef4444" />
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
@@ -1543,9 +1543,9 @@ export default function Home() {
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: 3 }}>{state.correctCount}/3 CORRECT</div>
               </div>
-              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>GET ALL 3 RIGHT TO ENTER<br />{curriculumRegion.name.toUpperCase()}. TRY AGAIN!</p>
+              <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>SHOW YOU'RE READY FOR THIS REGION.<br />A READINESS TRIAL NEEDS 3/3.</p>
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ TRY ENTRY TEST</button>
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY READINESS TRIAL</button>
                 <button onClick={game.goCurriculumMap} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← REGION MAP</button>
               </div>
             </div>
@@ -2228,9 +2228,9 @@ export default function Home() {
     const accent = entryTest ? curriculumTestRegion?.accentColor ?? '#FFD700' : curriculum ? (b?.isBoss ? '#FFD700' : '#38bdf8') : regionMode ? region?.accentColor ?? '#38bdf8' : arcadeLevel?.accentColor ?? '#38bdf8';
     const bg = entryTest ? curriculumTestRegion?.bgGradient ?? panelBg : curriculum ? panelBg : regionMode ? region?.bgGradient ?? panelBg : panelBg;
     const title = topicTest
-      ? `TOPIC TEST · T${String(curriculumTestTopic?.order ?? 0).padStart(2, '0')}`
+      ? `READINESS TRIAL · T${String(curriculumTestTopic?.order ?? 0).padStart(2, '0')}`
       : regionTest
-        ? `ENTRY TEST · ${curriculumTestRegion?.name.toUpperCase() ?? 'REGION'}`
+        ? `READINESS TRIAL · ${curriculumTestRegion?.name.toUpperCase() ?? 'REGION'}`
         : test
           ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
           : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
@@ -2273,15 +2273,15 @@ export default function Home() {
             {regionMode && (b || entryTest) ? (
               <div className="w-full flex items-center gap-3 shrink-0">
                 {entryTest
-                  ? <img src="/pokemaths/images/curriculum-crest.png" alt={topicTest ? 'Topic readiness test' : 'Regional entry test'} style={{ width: 62, height: 62, objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
+                  ? <img src="/pokemaths/images/curriculum-crest.png" alt={topicTest ? 'Topic readiness trial' : 'Regional readiness trial'} style={{ width: 62, height: 62, objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
                   : b && <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={72} glow={progressPct > 60 ? accent : undefined} fallback={artwork(b.dex)} label={false} />}
                 <div className="flex-1">
                   <PowerBar correct={state.correctCount} total={state.total} accentColor={accent} />
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: state.wrong > 0 ? '#ef4444' : '#888', marginTop: 4 }}>
                     {topicTest
-                      ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3 TO UNLOCK!` : `PASS 3/3 TO UNLOCK ${curriculumTestTopic?.title.toUpperCase() ?? 'THIS TOPIC'}!`)
+                      ? (state.wrong > 0 ? `MISSED ${state.wrong} · A TRIAL NEEDS 3/3!` : `SHOW YOU'RE READY · 3/3 TO UNLOCK THIS TOPIC!`)
                       : regionTest
-                        ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3 TO ENTER!` : `PASS 3/3 TO ENTER ${curriculumTestRegion?.name.toUpperCase() ?? 'THE REGION'}!`)
+                        ? (state.wrong > 0 ? `MISSED ${state.wrong} · A TRIAL NEEDS 3/3!` : `SHOW YOU'RE READY · 3/3 TO ENTER THIS REGION!`)
                         : test
                           ? (state.wrong > 0 ? `MISSED ${state.wrong} · NEED 3/3!` : `GET ${state.total}/${state.total} TO UNLOCK!`)
                           : isCurriculumBoss
