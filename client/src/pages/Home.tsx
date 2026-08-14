@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
-import { NumberTrailGym } from '@/components/gym/NumberTrailGym';
+import { ViridianForestGym } from '@/components/gym/ViridianForestGym';
 import {
   REGIONS,
   MAINLINE_REGIONS,
@@ -1051,7 +1051,7 @@ export default function Home() {
     return (
       <Screen bg={gymRegion.bgGradient}>
         <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(gymRegion.id)} title="VIRIDIAN FOREST GYM" accent="#34d399" />
-        <NumberTrailGym onBack={() => game.openCurriculumRegion(gymRegion.id)} onReturnToJourney={() => game.openCurriculumTopic(gymRegion.topics[0].id)} />
+        <ViridianForestGym onBack={() => game.openCurriculumRegion(gymRegion.id)} onReturnToJourney={() => game.openCurriculumTopic(gymRegion.topics[0].id)} />
       </Screen>
     );
   }

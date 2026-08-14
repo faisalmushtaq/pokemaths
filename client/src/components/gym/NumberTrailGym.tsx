@@ -62,9 +62,11 @@ function rangeValues([start, end]: readonly [number, number]) {
 export function NumberTrailGym({
   onBack,
   onReturnToJourney,
+  backLabel = '← BACK TO KANTO',
 }: {
   onBack: () => void;
   onReturnToJourney: () => void;
+  backLabel?: string;
 }) {
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [selected, setSelected] = useState(TRAIL_CHALLENGES[0].start);
@@ -138,7 +140,7 @@ export function NumberTrailGym({
             <div className="flex flex-col gap-2">
               <button type="button" onClick={onReturnToJourney} className="w-full rounded-xl" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', padding: '0.85rem 0.7rem', background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '2px solid #fde68a', cursor: 'pointer' }}>▶ RETURN TO JOURNEY</button>
               <button type="button" onClick={() => { setChallengeIndex(0); setSelected(TRAIL_CHALLENGES[0].start); setChecked('idle'); setShowHint(false); setComplete(false); }} className="w-full rounded-xl" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.58rem)', padding: '0.7rem', background: 'rgba(15,23,42,0.82)', color: '#7dd3fc', border: '1px solid #38bdf8', cursor: 'pointer' }}>↻ PRACTISE AGAIN</button>
-              <button type="button" onClick={onBack} className="w-full rounded-xl" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.38rem,1.8vw,0.52rem)', padding: '0.65rem', background: 'transparent', color: '#cbd5e1', border: '1px solid #64748b', cursor: 'pointer' }}>← BACK TO KANTO</button>
+              <button type="button" onClick={onBack} className="w-full rounded-xl" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.38rem,1.8vw,0.52rem)', padding: '0.65rem', background: 'transparent', color: '#cbd5e1', border: '1px solid #64748b', cursor: 'pointer' }}>{backLabel}</button>
             </div>
           </div>
         </div>
@@ -204,7 +206,7 @@ export function NumberTrailGym({
             </div>
           </section>
 
-          <button type="button" onClick={onBack} style={{ alignSelf: 'center', fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.8vw,0.5rem)', color: '#cbd5e1', background: 'rgba(15,23,42,0.74)', border: '1px solid #64748b', borderRadius: '0.5rem', padding: '0.65rem 0.9rem', cursor: 'pointer' }}>← BACK TO KANTO</button>
+          <button type="button" onClick={onBack} style={{ alignSelf: 'center', fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.8vw,0.5rem)', color: '#cbd5e1', background: 'rgba(15,23,42,0.74)', border: '1px solid #64748b', borderRadius: '0.5rem', padding: '0.65rem 0.9rem', cursor: 'pointer' }}>{backLabel}</button>
         </div>
       </div>
     </div>
