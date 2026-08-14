@@ -888,20 +888,29 @@ export default function Home() {
               const freezes = save.streak?.freezes ?? 0;
               const isNewTrainer = save.stats.correct + save.stats.wrong === 0 && caughtCount(save) === 0;
               return (
-                <div className="rounded-xl flex items-center w-full" style={{ maxWidth: '22rem', gap: '0.65rem', padding: '0.55rem 0.7rem', background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,215,0,0.35)' }}>
-                  <img src={pixelSprite(activeProfile.avatarDex)} alt=""
-                    onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(activeProfile.avatarDex)) i.src = artwork(activeProfile.avatarDex); }}
-                    style={{ width: 'clamp(2rem,9vw,2.75rem)', height: 'clamp(2rem,9vw,2.75rem)', imageRendering: 'pixelated', objectFit: 'contain', filter: 'drop-shadow(0 0 7px #FFD700)', flexShrink: 0 }} />
-                  <div className="flex-1" style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#a78bfa', lineHeight: 1.5 }}>{isNewTrainer ? 'WELCOME,' : 'WELCOME BACK,'} <span style={{ color: '#FFD700' }}>{activeProfile.name.toUpperCase()}</span></div>
-                    <div className="flex items-center flex-wrap" style={{ gap: '0.3rem 0.65rem', marginTop: 3 }}>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: streak > 0 ? '#f97316' : '#888' }}>🔥 {streak > 0 ? `${streak} DAY${streak === 1 ? '' : 'S'}` : 'PLAY TODAY'}</span>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700' }}>📕 {caughtCount(save)} CAUGHT</span>
-                      {best > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.27rem,1.1vw,0.34rem)', color: '#888' }}>BEST {best}</span>}
-                      {freezes > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8' }}>🧊 {freezes}</span>}
+                <div className="rounded-xl flex flex-col w-full" style={{ maxWidth: '25rem', gap: '0.75rem', padding: 'clamp(0.85rem,3vw,1.15rem)', background: 'linear-gradient(135deg, rgba(58,34,108,0.72), rgba(17,17,46,0.82))', border: '2px solid rgba(255,215,0,0.55)', boxShadow: '0 0 20px rgba(255,215,0,0.1)' }}>
+                  <div className="flex items-center" style={{ gap: '0.85rem' }}>
+                    <img src={pixelSprite(activeProfile.avatarDex)} alt=""
+                      onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(activeProfile.avatarDex)) i.src = artwork(activeProfile.avatarDex); }}
+                      style={{ width: 'clamp(3.5rem,15vw,4.75rem)', height: 'clamp(3.5rem,15vw,4.75rem)', imageRendering: 'pixelated', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #FFD700)', flexShrink: 0 }} />
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.55vw,0.55rem)', color: '#a78bfa', lineHeight: 1.55 }}>{isNewTrainer ? 'Welcome,' : 'Welcome back,'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.72rem,3vw,1rem)', color: '#FFD700', lineHeight: 1.35, marginTop: 3, overflowWrap: 'anywhere' }}>{activeProfile.name}</div>
                     </div>
                   </div>
-                  <button onClick={switchPlayer} aria-label="Switch player" className="rounded-lg shrink-0" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.2vw,0.4rem)', minWidth: 'clamp(4.6rem,20vw,6rem)', minHeight: '2.55rem', padding: '0.35rem 0.45rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', boxShadow: '0 0 10px rgba(56,189,248,0.2)', cursor: 'pointer', lineHeight: 1.45 }}>↻<br />SWITCH<br />PLAYER</button>
+                  <div className="grid grid-cols-2" style={{ gap: '0.6rem' }}>
+                    <div className="rounded-lg" style={{ padding: '0.65rem 0.7rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.42)' }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.25vw,0.42rem)', color: '#fbbf24' }}>Streak</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: streak > 0 ? '#f97316' : '#cbd5e1', marginTop: 5, lineHeight: 1.45 }}>🔥 {streak > 0 ? `${streak} day${streak === 1 ? '' : 's'}` : 'Play today'}</div>
+                      {best > 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.05vw,0.36rem)', color: '#94a3b8', marginTop: 3 }}>Best {best}</div>}
+                    </div>
+                    <div className="rounded-lg" style={{ padding: '0.65rem 0.7rem', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.4)' }}>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.25vw,0.42rem)', color: '#fbbf24' }}>Collection</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: '#FFD700', marginTop: 5, lineHeight: 1.45 }}>📕 {caughtCount(save)} caught</div>
+                      {freezes > 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.05vw,0.36rem)', color: '#38bdf8', marginTop: 3 }}>🧊 {freezes} freeze{freezes === 1 ? '' : 's'}</div>}
+                    </div>
+                  </div>
+                  <button onClick={switchPlayer} aria-label="Switch player" className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,1.55vw,0.55rem)', minHeight: '2.8rem', padding: '0.55rem 0.7rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', boxShadow: '0 0 12px rgba(56,189,248,0.2)', cursor: 'pointer' }}>↻ Switch player</button>
                 </div>
               );
             })()}
