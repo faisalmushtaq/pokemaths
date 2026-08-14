@@ -888,7 +888,7 @@ export default function Home() {
               const freezes = save.streak?.freezes ?? 0;
               const isNewTrainer = save.stats.correct + save.stats.wrong === 0 && caughtCount(save) === 0;
               return (
-                <button onClick={switchPlayer} className="rounded-xl flex items-center w-full" style={{ maxWidth: '22rem', gap: '0.65rem', padding: '0.55rem 0.7rem', background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,215,0,0.35)', cursor: 'pointer', textAlign: 'left' }}>
+                <div className="rounded-xl flex items-center w-full" style={{ maxWidth: '22rem', gap: '0.65rem', padding: '0.55rem 0.7rem', background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,215,0,0.35)' }}>
                   <img src={pixelSprite(activeProfile.avatarDex)} alt=""
                     onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(activeProfile.avatarDex)) i.src = artwork(activeProfile.avatarDex); }}
                     style={{ width: 'clamp(2rem,9vw,2.75rem)', height: 'clamp(2rem,9vw,2.75rem)', imageRendering: 'pixelated', objectFit: 'contain', filter: 'drop-shadow(0 0 7px #FFD700)', flexShrink: 0 }} />
@@ -901,8 +901,8 @@ export default function Home() {
                       {freezes > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8' }}>🧊 {freezes}</span>}
                     </div>
                   </div>
-                  <span style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.27rem,1.1vw,0.34rem)', color: '#888' }}>SWITCH</span>
-                </button>
+                  <button onClick={switchPlayer} aria-label="Switch player" className="rounded-lg shrink-0" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.2vw,0.4rem)', minWidth: 'clamp(4.6rem,20vw,6rem)', minHeight: '2.55rem', padding: '0.35rem 0.45rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', boxShadow: '0 0 10px rgba(56,189,248,0.2)', cursor: 'pointer', lineHeight: 1.45 }}>↻<br />SWITCH<br />PLAYER</button>
+                </div>
               );
             })()}
           </div>
