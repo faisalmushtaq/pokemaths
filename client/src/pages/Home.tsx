@@ -1227,7 +1227,7 @@ export default function Home() {
                 );
               })}
             </div>
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: arcCount === MEGA_COUNT ? '#eab308' : '#666', marginBottom: '1.5rem', textAlign: 'center', lineHeight: 1.7 }}>{arcCount === MEGA_COUNT ? 'FINISH ALL 24 TO MEGA-EVOLVE!' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: arcCount === MEGA_COUNT ? '#eab308' : '#666', marginBottom: '1.5rem', textAlign: 'center', lineHeight: 1.7 }}>{arcCount === MEGA_COUNT ? 'COMPLETE 24 QUESTIONS TO MEGA-EVOLVE. ACCURACY IS RECORDED, NOT REQUIRED.' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
 
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
             <div className="flex flex-col gap-2 w-full">
@@ -1274,6 +1274,7 @@ export default function Home() {
                   </div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: '0.5rem' }}>{mega.name.toUpperCase()}</div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#22c55e', marginTop: '0.5rem' }}>✓ ADDED TO MEGA POKÉDEX</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.1vw,0.36rem)', color: '#cbd5e1', marginTop: 6, lineHeight: 1.6 }}>24 QUESTIONS COMPLETE · ACCURACY DOES NOT AFFECT EVOLUTION</div>
                   <div className="flex gap-2" style={{ marginTop: '0.75rem' }}>
                     <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
                     <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
@@ -2194,7 +2195,7 @@ export default function Home() {
               </div>
 
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 2, marginTop: 14 }}>
-                Earned by finishing a 24-question Arcade run with {nameOf(m.dex).toUpperCase()}. Beat your best time to improve it!
+                Earned by completing any 24-question Arcade run with {nameOf(m.dex).toUpperCase()}. Accuracy is recorded, and your fastest time can still improve.
               </p>
 
               <div className="flex gap-2" style={{ marginTop: 16 }}>

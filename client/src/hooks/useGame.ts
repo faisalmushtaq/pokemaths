@@ -353,8 +353,8 @@ export function useGame(profileId: string | null) {
       if (s.mode === 'arcade') {
         const attempted = s.attempted + 1;
         const done = attempted >= s.total;
-        // Finishing a full 24-question run mega-evolves your chosen Pokémon
-        // and saves it to the Mega Pokédex.
+        // Finishing a full 24-question run mega-evolves the chosen Pokémon.
+        // Accuracy is recorded for feedback but is deliberately not a reward condition.
         if (done && profileRef.current) {
           const pid = profileRef.current;
           if (s.arcadeCount === MEGA_COUNT && s.arcadePokemonDex != null) {
