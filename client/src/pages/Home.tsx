@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
-import { ViridianForestGym } from '@/components/gym/ViridianForestGym';
+import { RegionalGym } from '@/components/gym/RegionalGym';
 import {
   REGIONS,
   MAINLINE_REGIONS,
@@ -1005,17 +1005,15 @@ export default function Home() {
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor }}>{curriculumRegion.gen.toUpperCase()} · {curriculumRegion.inspiration.toUpperCase()}</div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', marginTop: 5 }}>{progress.complete}/{progress.total} TOPICS MASTERED</div>
             </div>
-            {curriculumRegion.id === 'kanto' && (
-              <div className="rounded-xl mb-3" style={{ padding: '0.85rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(4,120,87,0.1))', border: '2px solid #34d399', boxShadow: '0 0 16px rgba(52,211,153,0.2)' }}>
-                <div className="flex items-center justify-between gap-3">
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#86efac', lineHeight: 1.7 }}>🌲 VIRIDIAN FOREST GYM</div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#d1fae5', lineHeight: 1.7, marginTop: 4 }}>NUMBER TRAIL · DRAG, TAP, AND EXPLORE</div>
-                  </div>
-                  <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br />GYM ▶</button>
+            <div className="rounded-xl mb-3" style={{ padding: '0.85rem', background: `${curriculumRegion.accentColor}18`, border: `2px solid ${curriculumRegion.accentColor}`, boxShadow: `0 0 16px ${curriculumRegion.accentColor}33` }}>
+              <div className="flex items-center justify-between gap-3">
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor, lineHeight: 1.7 }}>🏛️ {curriculumRegion.name.toUpperCase()} GYM</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#dbeafe', lineHeight: 1.7, marginTop: 4 }}>MODELS · MOVEMENT · EXPLANATIONS · TOPIC PRACTICE</div>
                 </div>
+                <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: `linear-gradient(135deg, ${curriculumRegion.accentColor}, #0f766e)`, color: '#f8fafc', border: `1px solid ${curriculumRegion.accentColor}`, borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br />GYM ▶</button>
               </div>
-            )}
+            </div>
             <div className="flex flex-col gap-2 w-full">
               {curriculumRegion.topics.map((topic) => {
                 const unlocked = isCurriculumTopicUnlocked(save, topic);
@@ -1043,15 +1041,21 @@ export default function Home() {
   }
 
   // =========================================================================
-  // VIRIDIAN FOREST GYM · NUMBER TRAIL PROTOTYPE
+  // REGIONAL GYM · CONCEPT PRACTICE ROUTE
   // =========================================================================
   if (state.screen === 'gymTrail' && state.curriculumRegionId) {
     const gymRegion = getCurriculumRegion(state.curriculumRegionId);
     if (!gymRegion) return null;
     return (
       <Screen bg={gymRegion.bgGradient}>
-        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(gymRegion.id)} title="VIRIDIAN FOREST GYM" accent="#34d399" />
-        <ViridianForestGym onBack={() => game.openCurriculumRegion(gymRegion.id)} onReturnToJourney={() => game.openCurriculumTopic(gymRegion.topics[0].id)} />
+        <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(gymRegion.id)} title={`${gymRegion.name.toUpperCase()} GYM`} accent={gymRegion.accentColor} />
+        <RegionalGym
+          region={gymRegion}
+          save={save}
+          onBack={() => game.openCurriculumRegion(gymRegion.id)}
+          onReturnToJourney={(topicId) => game.openCurriculumTopic(topicId)}
+          onRecordPractice={game.recordGymPractice}
+        />
       </Screen>
     );
   }

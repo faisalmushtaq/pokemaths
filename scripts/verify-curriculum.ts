@@ -1,8 +1,9 @@
 import { CURRICULUM_BATTLES, CURRICULUM_TOPICS, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, curriculumSummary, evaluateBossMastery, getCurriculumBattle } from '../client/src/lib/curriculum';
 import { CURRICULUM_REGIONS } from '../client/src/lib/curriculumRegions';
 import { curriculumRegionTestId, curriculumTopicTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
-import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
+import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordGymStation, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
 import { getRegionIdForDex } from '../client/src/lib/regions';
+import { GYM_TOPICS, getGymTopicsForRegion } from '../client/src/lib/gymContent';
 
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -28,6 +29,28 @@ assert(new Set(CURRICULUM_BATTLES.map((battle) => battle.id)).size === 1025, 'Ev
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.isBoss), 'Every topic requires a boss');
 assert(CURRICULUM_REGIONS.length === 11, 'The regional curriculum route must retain all 11 named Pokémon regions');
 assert(CURRICULUM_REGIONS.flatMap((region) => region.topics).length === 37, 'Every revised topic must appear in a named region');
+assert(GYM_TOPICS.length === 37, 'Every revised topic must expose a Gym room');
+assert(new Set(GYM_TOPICS.map((topic) => topic.stationId)).size === 37, 'Every Gym station id must be unique');
+assert(CURRICULUM_REGIONS.every((region) => getGymTopicsForRegion(region.id).length === region.topics.length), 'Every named region must expose Gym rooms for all of its curriculum topics');
+assert(GYM_TOPICS.every((topic) => topic.topic.modules.length > 0 && topic.objective.length > 0), 'Every Gym room must provide a module route and concept objective');
+assert(GYM_TOPICS.every((topic) => topic.values.length >= 3), 'Every Gym room must provide at least three varied example seeds');
+assert(new Set(GYM_TOPICS.map((topic) => topic.engine)).size >= 10, 'The Gym programme must use a broad representation library rather than one interaction pattern');
+const expectedGymEngines: Record<string, string[]> = {
+  kanto: ['quantity', 'combine', 'takeAway', 'placeValue'],
+  johto: ['takeAway', 'groups', 'column'],
+  hoenn: ['groups', 'placeValue', 'groups'],
+  sinnoh: ['column', 'placeValue', 'groups'],
+  unova: ['division', 'division', 'numberLine'],
+  kalos: ['placeValue', 'groups', 'fraction'],
+  alola: ['decimal', 'column', 'division'],
+  galar: ['percentage', 'decimal', 'fraction'],
+  paldea: ['percentage', 'pattern', 'column', 'division'],
+  kitakami: ['pattern', 'ratio', 'numberLine'],
+  terarium: ['numberLine', 'fraction', 'ratio', 'function', 'function'],
+};
+for (const [regionId, engines] of Object.entries(expectedGymEngines)) {
+  assert(getGymTopicsForRegion(regionId).map((topic) => topic.engine).join('|') === engines.join('|'), `Gym engine map must retain the approved ${regionId} route`);
+}
 assert(CURRICULUM_REGIONS.every((region) => region.name !== 'Unidentified'), 'All curriculum regions must use their proper names');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.bossSpec?.rounds.length === 3), 'Every boss requires Recall, Apply, and Mastery rounds');
 assert(CURRICULUM_TOPICS.every((topic) => topic.boss.bossSpec?.rounds.at(-1)?.endQuestion === topic.boss.questionCount), 'Every boss round plan must cover its full encounter');
@@ -94,8 +117,15 @@ assert(afterFreshReward.caught[2]?.region === 'kanto', 'New rewards must use the
 assert(!afterFreshReward.curriculumV2.legacyCapturedDex.includes(2), 'New curriculum reward must not be marked as legacy');
 assert(afterFreshReward.curriculumV2.battles[freshBattle!.id]?.rewardStatus === 'captured', 'Fresh battle reward must be recorded as captured');
 
+const afterGymPractice = recordGymStation('legacy-test', afterFreshReward, GYM_TOPICS[0].stationId, 6, 2);
+assert(afterGymPractice.gym.stations[GYM_TOPICS[0].stationId]?.examplesCompleted === 6, 'Gym practice must record completed examples');
+assert(afterGymPractice.gym.stations[GYM_TOPICS[0].stationId]?.attempts === 1, 'Gym practice must record a separate station attempt');
+assert(afterGymPractice.gym.stations[GYM_TOPICS[0].stationId]?.hintsUsed === 2, 'Gym practice must record hints separately');
+assert(afterGymPractice.caught[1]?.name === 'Bulbasaur', 'Gym practice must never alter legacy Pokémon ownership');
+assert(afterGymPractice.curriculumV2.battles[freshBattle!.id]?.rewardStatus === 'captured', 'Gym practice must never alter curriculum battle progress');
+
 const retryBoss = firstBoss;
-const afterBossRetry = recordCurriculumBossAttempt('legacy-test', afterFreshReward, retryBoss, 7, 'score');
+const afterBossRetry = recordCurriculumBossAttempt('legacy-test', afterGymPractice, retryBoss, 7, 'score');
 assert(!afterBossRetry.curriculumV2.bosses[retryBoss.id], 'A failed boss attempt must not unlock the topic');
 assert(afterBossRetry.curriculumV2.bossAttempts[retryBoss.id]?.attempts === 1, 'A failed boss attempt must be retained');
 assert(afterBossRetry.curriculumV2.bossAttempts[retryBoss.id]?.bestCorrect === 7, 'A failed boss attempt must retain its best score');
@@ -104,4 +134,4 @@ const afterBossWin = recordCurriculumWin('legacy-test', afterBossRetry, retryBos
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.attempts === 2, 'A defeated boss must include earlier failed attempts');
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.bestCorrect === bossMasteryTarget(retryBoss), 'A defeated boss must retain its best score');
 
-console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, canonical legacy-catch regional attribution, regional and in-region topic entry-test gates, progressive boss specifications, and legacy migration preserved.');
+console.log('Curriculum verification passed: 37 topics in 11 named regions, 37 Gym rooms, 238 modules, 1,025 unique encounters, canonical legacy-catch regional attribution, region and topic readiness gates, progressive boss specifications, and separate Gym familiarity records preserved.');

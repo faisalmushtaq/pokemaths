@@ -11,7 +11,7 @@ import { curriculumRegionTestId, curriculumTopicTestId } from '@/lib/curriculumP
 import { getArcadeLevel } from '@/lib/arcade';
 import { getMega, MEGA_COUNT } from '@/lib/mega';
 import { getTopic, isAnswerCorrect, levelForProgress, type Question } from '@/lib/topics';
-import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
+import { loadSave, recordWin, recordCurriculumWin, recordCurriculumBossAttempt, recordMega, recordTestUnlock, recordPlay, recordAnswer, recordRun, recordGymStation, EMPTY_SAVE, type SaveData } from '@/lib/pokedex';
 import { getName } from '@/lib/species';
 
 export type GameMode = 'journey' | 'curriculum' | 'arcade' | 'test' | 'regionTest' | 'topicTest' | 'gym';
@@ -675,6 +675,12 @@ export function useGame(profileId: string | null) {
     setSave(profileRef.current ? loadSave(profileRef.current) : EMPTY_SAVE);
   }, []);
 
+  const recordGymPractice = useCallback((stationId: string, examplesCompleted: number, hintsUsed: number) => {
+    const pid = profileRef.current;
+    if (!pid) return;
+    setSave((previous) => recordGymStation(pid, previous, stationId, examplesCompleted, hintsUsed));
+  }, []);
+
   const active = state.battleId ? findBattle(state.battleId) : undefined;
   const activeCurriculumBattle: CurriculumBattle | null = state.curriculumBattleId ? getCurriculumBattle(state.curriculumBattleId) ?? null : null;
   const activeCurriculumTopic = state.curriculumTopicId ? getCurriculumTopic(state.curriculumTopicId) ?? null : null;
@@ -682,6 +688,7 @@ export function useGame(profileId: string | null) {
   return {
     save,
     reloadSave,
+    recordGymPractice,
     state,
     activeBattle: active?.battle ?? null,
     activeRegion: active?.region ?? null,

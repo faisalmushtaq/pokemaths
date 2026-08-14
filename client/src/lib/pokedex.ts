@@ -79,6 +79,19 @@ export interface CurriculumProgress {
   masteryTokens: number;
 }
 
+export interface GymStationProgress {
+  completedAt: number;
+  attempts: number;
+  examplesCompleted: number;
+  hintsUsed: number;
+}
+
+export interface GymProgress {
+  schemaVersion: 1;
+  stations: Record<string, GymStationProgress>;
+  lastStationId: string | null;
+}
+
 export interface SaveData {
   version: 2;
   caught: Record<number, CaughtEntry>;
@@ -89,6 +102,8 @@ export interface SaveData {
   streak: StreakData;
   stats: Stats;
   curriculumV2: CurriculumProgress;
+  /** Voluntary concept practice only. This never unlocks Journey, captures, or bosses. */
+  gym: GymProgress;
 }
 
 export const EMPTY_STREAK: StreakData = { current: 0, best: 0, lastDay: '', freezes: 0 };
@@ -106,6 +121,30 @@ function emptyCurriculum(capturedDex: number[] = []): CurriculumProgress {
   };
 }
 
+function emptyGym(): GymProgress {
+  return { schemaVersion: 1, stations: {}, lastStationId: null };
+}
+
+function normaliseGym(raw: Partial<GymProgress> | undefined): GymProgress {
+  const stations = Object.fromEntries(
+    Object.entries(raw?.stations ?? {}).flatMap(([id, entry]) => {
+      if (!entry || typeof entry !== 'object') return [];
+      const progress = entry as Partial<GymStationProgress>;
+      return [[id, {
+        completedAt: typeof progress.completedAt === 'number' ? progress.completedAt : Date.now(),
+        attempts: Math.max(0, progress.attempts ?? 0),
+        examplesCompleted: Math.max(0, progress.examplesCompleted ?? 0),
+        hintsUsed: Math.max(0, progress.hintsUsed ?? 0),
+      }]];
+    }),
+  ) as Record<string, GymStationProgress>;
+  return {
+    schemaVersion: 1,
+    stations,
+    lastStationId: typeof raw?.lastStationId === 'string' ? raw.lastStationId : null,
+  };
+}
+
 export const EMPTY_SAVE: SaveData = {
   version: 2,
   caught: {},
@@ -115,6 +154,7 @@ export const EMPTY_SAVE: SaveData = {
   streak: { ...EMPTY_STREAK },
   stats: { ...EMPTY_STATS },
   curriculumV2: emptyCurriculum(),
+  gym: emptyGym(),
 };
 
 const KEY_PREFIX = 'pokemaths.save.';
@@ -177,6 +217,7 @@ function parse(raw: string | null): SaveData {
       streak: { ...EMPTY_STREAK, ...(p.streak ?? {}) },
       stats: { ...EMPTY_STATS, ...(p.stats ?? {}) },
       curriculumV2,
+      gym: normaliseGym(p.gym),
     };
   } catch {
     return { ...EMPTY_SAVE, curriculumV2: emptyCurriculum() };
@@ -351,6 +392,34 @@ export function recordPlay(profileId: string, data: SaveData): SaveData {
   return next;
 }
 
+export function recordGymStation(
+  profileId: string,
+  data: SaveData,
+  stationId: string,
+  examplesCompleted: number,
+  hintsUsed: number,
+): SaveData {
+  const prior = data.gym.stations[stationId];
+  const next: SaveData = {
+    ...data,
+    gym: {
+      ...data.gym,
+      lastStationId: stationId,
+      stations: {
+        ...data.gym.stations,
+        [stationId]: {
+          completedAt: prior?.completedAt ?? Date.now(),
+          attempts: (prior?.attempts ?? 0) + 1,
+          examplesCompleted: Math.max(prior?.examplesCompleted ?? 0, examplesCompleted),
+          hintsUsed: (prior?.hintsUsed ?? 0) + Math.max(0, hintsUsed),
+        },
+      },
+    },
+  };
+  persistSave(profileId, next);
+  return next;
+}
+
 export function recordAnswer(profileId: string, data: SaveData, correct: boolean, seconds: number): SaveData {
   const capped = Math.min(Math.max(seconds, 0), 120);
   const next: SaveData = {
@@ -404,6 +473,26 @@ export function recordTestUnlock(profileId: string, data: SaveData, battleId: st
 
 export function isTestUnlocked(data: SaveData, battleId: string): boolean {
   return data.testUnlocked.includes(battleId);
+}
+
+function mergeGym(a: GymProgress | undefined, b: GymProgress | undefined): GymProgress {
+  const first = normaliseGym(a);
+  const second = normaliseGym(b);
+  const stations: Record<string, GymStationProgress> = { ...first.stations };
+  for (const [id, progress] of Object.entries(second.stations)) {
+    const existing = stations[id];
+    stations[id] = !existing ? progress : {
+      completedAt: Math.min(existing.completedAt, progress.completedAt),
+      attempts: Math.max(existing.attempts, progress.attempts),
+      examplesCompleted: Math.max(existing.examplesCompleted, progress.examplesCompleted),
+      hintsUsed: Math.max(existing.hintsUsed, progress.hintsUsed),
+    };
+  }
+  return {
+    schemaVersion: 1,
+    stations,
+    lastStationId: second.lastStationId ?? first.lastStationId,
+  };
 }
 
 function mergeCurriculum(a: CurriculumProgress, b: CurriculumProgress, caught: Record<number, CaughtEntry>): CurriculumProgress {
@@ -488,6 +577,7 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     streak,
     stats,
     curriculumV2: mergeCurriculum(a.curriculumV2, b.curriculumV2, canonicalCaught),
+    gym: mergeGym(a.gym, b.gym),
   };
 }
 
