@@ -179,3 +179,8 @@ for (const region of REGIONS) {
 export function findBattleByDex(dex: number): { region: Region; battle: Battle } | undefined {
   return DEX_INDEX.get(dex);
 }
+
+/** The canonical named Pokémon region for a National Pokédex number. */
+export function getRegionIdForDex(dex: number): string | undefined {
+  return DEX_INDEX.get(dex)?.region.id;
+}

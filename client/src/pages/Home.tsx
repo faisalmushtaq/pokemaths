@@ -1629,7 +1629,9 @@ export default function Home() {
     const matchingCaughtList = searchTerm
       ? caughtList.filter((b) => nameOf(b.dex).toLocaleLowerCase().includes(searchTerm))
       : caughtList;
-    const visibleRegions = REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg));
+    // Legacy ownership takes precedence over Journey secrecy: a caught Pokémon
+    // must always remain visible in its own named Pokédex region.
+    const visibleRegions = REGIONS.filter((rg) => !rg.secret || isRegionUnlocked(save, rg) || rg.battles.some((battle) => Boolean(save.caught[battle.dex])));
     const filteredRegions = regionFilter
       ? visibleRegions.filter((region) => region.id === regionFilter)
       : visibleRegions;

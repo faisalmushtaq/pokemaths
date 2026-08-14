@@ -7,6 +7,7 @@
 // =============================================================================
 
 import type { CurriculumBattle } from './curriculum';
+import { getRegionIdForDex } from './regions';
 
 export interface CaughtEntry {
   dex: number;
@@ -123,6 +124,28 @@ function keyFor(profileId: string): string {
   return `${KEY_PREFIX}${profileId}`;
 }
 
+/**
+ * Historical saves may retain a stale or generic region label. Ownership is
+ * identified by National Pokédex number, so region attribution can always be
+ * rebuilt safely from the current canonical region map.
+ */
+export function canonicaliseCaughtEntry(entry: CaughtEntry): CaughtEntry {
+  const region = getRegionIdForDex(entry.dex);
+  return region ? { ...entry, region } : entry;
+}
+
+function normaliseCaught(raw: Record<number, CaughtEntry>): Record<number, CaughtEntry> {
+  return Object.fromEntries(
+    Object.entries(raw)
+      .map(([key, entry]) => {
+        const dex = Number(key);
+        if (!Number.isFinite(dex) || !entry) return null;
+        return [dex, canonicaliseCaughtEntry({ ...entry, dex })] as const;
+      })
+      .filter((entry): entry is readonly [number, CaughtEntry] => entry !== null),
+  );
+}
+
 function normaliseCurriculum(raw: Partial<CurriculumProgress> | undefined, caught: Record<number, CaughtEntry>): CurriculumProgress {
   const capturedDex = Object.keys(caught).map(Number).filter((dex) => Number.isFinite(dex));
   const isFirstMigration = !raw;
@@ -143,7 +166,7 @@ function parse(raw: string | null): SaveData {
   if (!raw) return { ...EMPTY_SAVE, curriculumV2: emptyCurriculum() };
   try {
     const p = JSON.parse(raw) as Partial<SaveData> & { curriculum?: Partial<CurriculumProgress> };
-    const caught = p.caught ?? {};
+    const caught = normaliseCaught(p.caught ?? {});
     const curriculumV2 = normaliseCurriculum(p.curriculumV2 ?? p.curriculum, caught);
     return {
       version: 2,
@@ -188,7 +211,7 @@ export function recordWin(profileId: string, data: SaveData, battleId: string, e
   const next: SaveData = {
     ...data,
     version: 2,
-    caught: { ...data.caught, [entry.dex]: data.caught[entry.dex] ?? entry },
+    caught: { ...data.caught, [entry.dex]: data.caught[entry.dex] ?? canonicaliseCaughtEntry(entry) },
     wonBattles: data.wonBattles.includes(battleId) ? data.wonBattles : [...data.wonBattles, battleId],
   };
   persistSave(profileId, next);
@@ -207,6 +230,7 @@ export function recordCurriculumWin(
   entry: CaughtEntry,
   correctCount: number,
 ): SaveData {
+  const canonicalEntry = canonicaliseCaughtEntry(entry);
   const alreadyOwned = Boolean(data.caught[battle.dex]);
   const priorBattle = data.curriculumV2.battles[battle.id];
   const priorBoss = data.curriculumV2.bosses[battle.id];
@@ -241,7 +265,7 @@ export function recordCurriculumWin(
       };
   const next: SaveData = {
     ...data,
-    caught: alreadyOwned ? data.caught : { ...data.caught, [entry.dex]: entry },
+    caught: alreadyOwned ? data.caught : { ...data.caught, [canonicalEntry.dex]: canonicalEntry },
     curriculumV2,
   };
   persistSave(profileId, next);
@@ -454,15 +478,16 @@ export function mergeSaves(a: SaveData, b: SaveData): SaveData {
     testsPassed: Math.max(sta.testsPassed, stb.testsPassed),
     daysPlayed: Math.max(sta.daysPlayed, stb.daysPlayed),
   };
+  const canonicalCaught = normaliseCaught(caught);
   return {
     version: 2,
-    caught,
+    caught: canonicalCaught,
     megas,
     wonBattles: Array.from(new Set([...a.wonBattles, ...b.wonBattles])),
     testUnlocked: Array.from(new Set([...a.testUnlocked, ...b.testUnlocked])),
     streak,
     stats,
-    curriculumV2: mergeCurriculum(a.curriculumV2, b.curriculumV2, caught),
+    curriculumV2: mergeCurriculum(a.curriculumV2, b.curriculumV2, canonicalCaught),
   };
 }
 

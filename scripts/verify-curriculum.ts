@@ -2,6 +2,7 @@ import { CURRICULUM_BATTLES, CURRICULUM_TOPICS, bossIsFinalMasteryQuestion, boss
 import { CURRICULUM_REGIONS } from '../client/src/lib/curriculumRegions';
 import { curriculumRegionTestId, curriculumTopicTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
 import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
+import { getRegionIdForDex } from '../client/src/lib/regions';
 
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -48,7 +49,7 @@ assert(evaluateBossMastery(firstBoss, 7, true) === 'score', 'A boss score below 
 assert(evaluateBossMastery(firstBoss, 8, false) === 'final-mastery', 'A correct score without the final Mastery item must fail');
 assert(evaluateBossMastery(firstBoss, 8, true) === 'passed', 'A score at target with the final Mastery item must pass');
 
-const legacyEntry: CaughtEntry = { dex: 1, name: 'Bulbasaur', region: 'kanto', caughtAt: 1 };
+const legacyEntry: CaughtEntry = { dex: 1, name: 'Bulbasaur', region: 'unidentified', caughtAt: 1 };
 store.set('pokemaths.save.legacy-test', JSON.stringify({
   version: 1,
   caught: { 1: legacyEntry },
@@ -62,6 +63,8 @@ store.set('pokemaths.save.legacy-test', JSON.stringify({
 const migrated = loadSave('legacy-test');
 assert(migrated.version === 2, 'V1 save must migrate to V2');
 assert(migrated.caught[1]?.name === 'Bulbasaur', 'Migration must preserve an existing capture');
+assert(migrated.caught[1]?.region === 'kanto', 'Legacy catches must be reattributed to their canonical named region');
+assert(getRegionIdForDex(899) === 'terarium' && getRegionIdForDex(1012) === 'kitakami', 'Late and secret-region catches must retain their canonical regional homes');
 assert(migrated.curriculumV2.legacyCapturedDex.includes(1), 'Existing capture must be recorded as legacy ownership');
 const kanto = CURRICULUM_REGIONS[0];
 const johto = CURRICULUM_REGIONS[1];
@@ -87,6 +90,7 @@ assert(afterLegacyReward.curriculumV2.battles[legacyBattle!.id]?.rewardStatus ==
 const freshEntry: CaughtEntry = { dex: 2, name: 'Ivysaur', region: 'curriculum', caughtAt: 2 };
 const afterFreshReward = recordCurriculumWin('legacy-test', afterLegacyReward, freshBattle!, freshEntry, freshBattle!.questionCount);
 assert(afterFreshReward.caught[2]?.name === 'Ivysaur', 'New curriculum reward must add the Pokémon to the Pokédex');
+assert(afterFreshReward.caught[2]?.region === 'kanto', 'New rewards must use the canonical Pokédex region rather than a generic curriculum label');
 assert(!afterFreshReward.curriculumV2.legacyCapturedDex.includes(2), 'New curriculum reward must not be marked as legacy');
 assert(afterFreshReward.curriculumV2.battles[freshBattle!.id]?.rewardStatus === 'captured', 'Fresh battle reward must be recorded as captured');
 
@@ -100,4 +104,4 @@ const afterBossWin = recordCurriculumWin('legacy-test', afterBossRetry, retryBos
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.attempts === 2, 'A defeated boss must include earlier failed attempts');
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.bestCorrect === bossMasteryTarget(retryBoss), 'A defeated boss must retain its best score');
 
-console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, regional and in-region topic entry-test gates, progressive boss specifications, and legacy migration preserved.');
+console.log('Curriculum verification passed: 37 topics in 11 named regions, 238 modules, 1,025 unique encounters, canonical legacy-catch regional attribution, regional and in-region topic entry-test gates, progressive boss specifications, and legacy migration preserved.');
