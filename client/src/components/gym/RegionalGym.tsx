@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { GYM_ENGINE_LABELS, getGymTopicsForRegion, type GymEngineId, type GymTopicConfig } from '@/lib/gymContent';
 import type { CurriculumRegion } from '@/lib/curriculumRegions';
-import type { SaveData } from '@/lib/pokedex';
+import { getGymBadge, type GymBadgeDefinition } from '@/lib/gymBadges';
+import { hasGymBadge, type SaveData } from '@/lib/pokedex';
 import { ViridianForestGym } from './ViridianForestGym';
 
 type CheckState = 'idle' | 'correct' | 'incorrect';
@@ -191,12 +192,14 @@ function TopicPractice({
   onBack,
   onJourney,
   onComplete,
+  badgeAward,
 }: {
   config: GymTopicConfig;
   region: CurriculumRegion;
   onBack: () => void;
   onJourney: () => void;
   onComplete: (examples: number, hints: number) => void;
+  badgeAward?: GymBadgeDefinition;
 }) {
   const [moduleIndex, setModuleIndex] = useState(0);
   const [exampleIndex, setExampleIndex] = useState(0);
@@ -204,6 +207,7 @@ function TopicPractice({
   const [state, setState] = useState<CheckState>('idle');
   const [hints, setHints] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [newlyEarnedBadge, setNewlyEarnedBadge] = useState<GymBadgeDefinition | undefined>();
   const module = config.topic.modules[moduleIndex];
   const task = useMemo(() => taskFor(config, moduleIndex * 3 + exampleIndex), [config, moduleIndex, exampleIndex]);
 
@@ -216,6 +220,7 @@ function TopicPractice({
       return;
     }
     if (moduleIndex + 1 >= config.topic.modules.length) {
+      if (badgeAward) setNewlyEarnedBadge(badgeAward);
       onComplete(config.topic.modules.length * 3, hints);
       setFinished(true);
       return;
@@ -233,9 +238,17 @@ function TopicPractice({
           <div style={{ fontSize: 'clamp(2.1rem,10vw,3.2rem)' }}>🏅</div>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.62rem,3vw,0.88rem)', color: config.accent, marginTop: '0.55rem' }}>FAMILIARITY RECORDED</div>
           <p style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.5rem)', color: '#e2e8f0', lineHeight: 1.9, margin: '0.75rem auto 1.15rem', maxWidth: '29rem' }}>You practised three varied examples for every module in {config.topic.title}. Return to Journey when you are ready to use these models in a battle.</p>
+          {newlyEarnedBadge && (
+            <div className="rounded-xl flex flex-col items-center" style={{ margin: '0 auto 1rem', maxWidth: '23rem', padding: '0.78rem', background: `${newlyEarnedBadge.accent}16`, border: `1px solid ${newlyEarnedBadge.accent}`, boxShadow: `0 0 14px ${newlyEarnedBadge.accent}33` }}>
+              <img src={`${import.meta.env.BASE_URL}${newlyEarnedBadge.assetPath.replace(/^\//, '')}`} alt={newlyEarnedBadge.name} style={{ width: 'clamp(62px,20vw,86px)', height: 'clamp(62px,20vw,86px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.43rem,2vw,0.58rem)', color: newlyEarnedBadge.accent, marginTop: '0.35rem', lineHeight: 1.65 }}>REGIONAL GYM COMPLETE</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.6vw,0.47rem)', color: '#fef3c7', marginTop: '0.2rem', lineHeight: 1.65 }}>YOU EARNED THE {newlyEarnedBadge.name.toUpperCase()}</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.45vw,0.42rem)', color: '#dbeafe', marginTop: '0.32rem', lineHeight: 1.7 }}>VIEW IT IN YOUR POKÉDEX BADGE COLLECTION.</div>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <button type="button" onClick={onJourney} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a', color: '#111827' }}>▶ OPEN JOURNEY TOPIC</button>
-            <button type="button" onClick={() => { setModuleIndex(0); setExampleIndex(0); setHints(0); reset(); setFinished(false); }} style={{ ...controlStyle, background: 'rgba(15,23,42,0.78)', border: `1px solid ${config.accent}`, color: config.accent }}>↻ PRACTISE AGAIN</button>
+            <button type="button" onClick={() => { setModuleIndex(0); setExampleIndex(0); setHints(0); setNewlyEarnedBadge(undefined); reset(); setFinished(false); }} style={{ ...controlStyle, background: 'rgba(15,23,42,0.78)', border: `1px solid ${config.accent}`, color: config.accent }}>↻ PRACTISE AGAIN</button>
           </div>
         </section>
       </Shell>
@@ -305,10 +318,17 @@ export function RegionalGym({ region, save, onBack, onReturnToJourney, onRecordP
   const topics = getGymTopicsForRegion(region.id);
   const active = topics.find((topic) => topic.topic.id === activeTopicId) ?? null;
   const completed = topics.filter((topic) => Boolean(save.gym.stations[topic.stationId])).length;
+  const regionalBadge = getGymBadge(region.id);
+  const regionalBadgeEarned = hasGymBadge(save, region.id);
+  const badgeAwardForRoom = (candidate: GymTopicConfig): GymBadgeDefinition | undefined => {
+    if (regionalBadgeEarned || !regionalBadge) return undefined;
+    const finalRoomForRegion = topics.every((topic) => topic.stationId === candidate.stationId || (save.gym.stations[topic.stationId]?.examplesCompleted ?? 0) >= topic.topic.modules.length * 3);
+    return finalRoomForRegion ? regionalBadge : undefined;
+  };
 
   if (view === 'viridian') return <ViridianForestGym onBack={() => setView('hub')} onReturnToJourney={() => onReturnToJourney(topics[0]?.topic.id ?? '')} />;
   if (view === 'johtoWorkshop') return <JohtoWorkshop region={region} onBack={() => setView('hub')} onReturnToJourney={onReturnToJourney} onRecordPractice={onRecordPractice} />;
-  if (view === 'practice' && active) return <TopicPractice config={active} region={region} onBack={() => { setActiveTopicId(null); setView('hub'); }} onJourney={() => onReturnToJourney(active.topic.id)} onComplete={(examples, hints) => onRecordPractice(active.stationId, examples, hints)} />;
+  if (view === 'practice' && active) return <TopicPractice config={active} region={region} onBack={() => { setActiveTopicId(null); setView('hub'); }} onJourney={() => onReturnToJourney(active.topic.id)} onComplete={(examples, hints) => onRecordPractice(active.stationId, examples, hints)} badgeAward={badgeAwardForRoom(active)} />;
 
   return (
     <Shell region={region} title={`${region.name} Gym`} subtitle="Practise with models, movement, and explanations. Gym familiarity is separate from Journey rewards." onBack={onBack}>
@@ -317,8 +337,11 @@ export function RegionalGym({ region, save, onBack, onReturnToJourney, onRecordP
           <div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.58rem)', color: '#fef3c7' }}>CONCEPT ROOMS</div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.55vw,0.45rem)', color: '#cbd5e1', lineHeight: 1.75, marginTop: '0.34rem' }}>{completed}/{topics.length} TOPIC ROOMS FAMILIAR</div>
+            {regionalBadge && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.29rem,1.4vw,0.41rem)', color: regionalBadgeEarned ? '#86efac' : '#94a3b8', lineHeight: 1.7, marginTop: '0.32rem' }}>{regionalBadgeEarned ? `${regionalBadge.name.toUpperCase()} EARNED` : 'COMPLETE ALL ROOMS FOR A BADGE'}</div>}
           </div>
-          <div style={{ fontSize: 'clamp(1.6rem,7vw,2.3rem)' }}>🏛️</div>
+          {regionalBadge && regionalBadgeEarned
+            ? <img src={`${import.meta.env.BASE_URL}${regionalBadge.assetPath.replace(/^\//, '')}`} alt={regionalBadge.name} style={{ width: 'clamp(2.25rem,10vw,3.1rem)', height: 'clamp(2.25rem,10vw,3.1rem)', objectFit: 'contain', imageRendering: 'pixelated' }} />
+            : <div style={{ fontSize: 'clamp(1.6rem,7vw,2.3rem)' }}>🏛️</div>}
         </div>
       </section>
 

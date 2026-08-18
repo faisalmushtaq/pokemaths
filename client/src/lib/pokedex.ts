@@ -7,6 +7,8 @@
 // =============================================================================
 
 import type { CurriculumBattle } from './curriculum';
+import { GYM_TOPICS } from './gymContent';
+import { GYM_BADGES } from './gymBadges';
 import { getRegionIdForDex } from './regions';
 
 export interface CaughtEntry {
@@ -86,9 +88,15 @@ export interface GymStationProgress {
   hintsUsed: number;
 }
 
+export interface GymBadgeProgress {
+  earnedAt: number;
+}
+
 export interface GymProgress {
-  schemaVersion: 1;
+  schemaVersion: 2;
   stations: Record<string, GymStationProgress>;
+  /** Regional Gym completion rewards. These remain separate from Pokémon, Journey, and bosses. */
+  badges: Record<string, GymBadgeProgress>;
   lastStationId: string | null;
 }
 
@@ -122,7 +130,27 @@ function emptyCurriculum(capturedDex: number[] = []): CurriculumProgress {
 }
 
 function emptyGym(): GymProgress {
-  return { schemaVersion: 1, stations: {}, lastStationId: null };
+  return { schemaVersion: 2, stations: {}, badges: {}, lastStationId: null };
+}
+
+function regionGymIsComplete(stations: Record<string, GymStationProgress>, regionId: string): boolean {
+  const requiredRooms = GYM_TOPICS.filter((topic) => topic.regionId === regionId);
+  return requiredRooms.length > 0 && requiredRooms.every((topic) => {
+    const progress = stations[topic.stationId];
+    return Boolean(progress && progress.examplesCompleted >= topic.topic.modules.length * 3);
+  });
+}
+
+/** Awards every qualifying regional Gym badge. Safe to call on load, merge, and practice completion. */
+function awardGymBadges(gym: GymProgress): GymProgress {
+  const badges = { ...gym.badges };
+  const now = Date.now();
+  for (const badge of GYM_BADGES) {
+    if (!badges[badge.regionId] && regionGymIsComplete(gym.stations, badge.regionId)) {
+      badges[badge.regionId] = { earnedAt: now };
+    }
+  }
+  return { ...gym, schemaVersion: 2, badges };
 }
 
 function normaliseGym(raw: Partial<GymProgress> | undefined): GymProgress {
@@ -138,11 +166,19 @@ function normaliseGym(raw: Partial<GymProgress> | undefined): GymProgress {
       }]];
     }),
   ) as Record<string, GymStationProgress>;
-  return {
-    schemaVersion: 1,
+  const badges = Object.fromEntries(
+    Object.entries(raw?.badges ?? {}).flatMap(([regionId, entry]) => {
+      if (!entry || typeof entry !== 'object') return [];
+      const progress = entry as Partial<GymBadgeProgress>;
+      return [[regionId, { earnedAt: typeof progress.earnedAt === 'number' ? progress.earnedAt : Date.now() }]];
+    }),
+  ) as Record<string, GymBadgeProgress>;
+  return awardGymBadges({
+    schemaVersion: 2,
     stations,
+    badges,
     lastStationId: typeof raw?.lastStationId === 'string' ? raw.lastStationId : null,
-  };
+  });
 }
 
 export const EMPTY_SAVE: SaveData = {
@@ -400,21 +436,23 @@ export function recordGymStation(
   hintsUsed: number,
 ): SaveData {
   const prior = data.gym.stations[stationId];
-  const next: SaveData = {
-    ...data,
-    gym: {
-      ...data.gym,
-      lastStationId: stationId,
-      stations: {
-        ...data.gym.stations,
-        [stationId]: {
-          completedAt: prior?.completedAt ?? Date.now(),
-          attempts: (prior?.attempts ?? 0) + 1,
-          examplesCompleted: Math.max(prior?.examplesCompleted ?? 0, examplesCompleted),
-          hintsUsed: (prior?.hintsUsed ?? 0) + Math.max(0, hintsUsed),
-        },
+  const gym = awardGymBadges({
+    ...data.gym,
+    schemaVersion: 2,
+    lastStationId: stationId,
+    stations: {
+      ...data.gym.stations,
+      [stationId]: {
+        completedAt: prior?.completedAt ?? Date.now(),
+        attempts: (prior?.attempts ?? 0) + 1,
+        examplesCompleted: Math.max(prior?.examplesCompleted ?? 0, examplesCompleted),
+        hintsUsed: (prior?.hintsUsed ?? 0) + Math.max(0, hintsUsed),
       },
     },
+  });
+  const next: SaveData = {
+    ...data,
+    gym,
   };
   persistSave(profileId, next);
   return next;
@@ -488,11 +526,12 @@ function mergeGym(a: GymProgress | undefined, b: GymProgress | undefined): GymPr
       hintsUsed: Math.max(existing.hintsUsed, progress.hintsUsed),
     };
   }
-  return {
-    schemaVersion: 1,
+  return awardGymBadges({
+    schemaVersion: 2,
     stations,
+    badges: { ...first.badges, ...second.badges },
     lastStationId: second.lastStationId ?? first.lastStationId,
-  };
+  });
 }
 
 function mergeCurriculum(a: CurriculumProgress, b: CurriculumProgress, caught: Record<number, CaughtEntry>): CurriculumProgress {
@@ -587,6 +626,14 @@ export function hasWon(data: SaveData, battleId: string): boolean {
 
 export function caughtCount(data: SaveData): number {
   return Object.keys(data.caught).length;
+}
+
+export function hasGymBadge(data: SaveData, regionId: string): boolean {
+  return Boolean(data.gym.badges[regionId]);
+}
+
+export function gymBadgeCount(data: SaveData): number {
+  return Object.keys(data.gym.badges).length;
 }
 
 export function takeLegacySave(): SaveData | null {

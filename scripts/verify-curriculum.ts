@@ -1,9 +1,10 @@
 import { CURRICULUM_BATTLES, CURRICULUM_TOPICS, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, curriculumSummary, evaluateBossMastery, getCurriculumBattle } from '../client/src/lib/curriculum';
 import { CURRICULUM_REGIONS } from '../client/src/lib/curriculumRegions';
 import { curriculumRegionTestId, curriculumTopicTestId, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked } from '../client/src/lib/curriculumProgress';
-import { loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordGymStation, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
+import { gymBadgeCount, hasGymBadge, loadSave, recordCurriculumBossAttempt, recordCurriculumWin, recordGymStation, recordTestUnlock, type CaughtEntry } from '../client/src/lib/pokedex';
 import { getRegionIdForDex } from '../client/src/lib/regions';
 import { GYM_TOPICS, getGymTopicsForRegion } from '../client/src/lib/gymContent';
+import { GYM_BADGES } from '../client/src/lib/gymBadges';
 
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -34,6 +35,10 @@ assert(new Set(GYM_TOPICS.map((topic) => topic.stationId)).size === 37, 'Every G
 assert(CURRICULUM_REGIONS.every((region) => getGymTopicsForRegion(region.id).length === region.topics.length), 'Every named region must expose Gym rooms for all of its curriculum topics');
 assert(GYM_TOPICS.every((topic) => topic.topic.modules.length > 0 && topic.objective.length > 0), 'Every Gym room must provide a module route and concept objective');
 assert(GYM_TOPICS.every((topic) => topic.values.length >= 3), 'Every Gym room must provide at least three varied example seeds');
+assert(GYM_BADGES.length === 11, 'The Gym Badge catalogue must retain one badge for all 11 curriculum regions');
+assert(new Set(GYM_BADGES.map((badge) => badge.regionId)).size === 11, 'Every Gym Badge must have a unique regional key');
+assert(CURRICULUM_REGIONS.every((region) => GYM_BADGES.filter((badge) => badge.regionId === region.id).length === 1), 'Every curriculum region must have exactly one regional Gym Badge');
+assert(GYM_BADGES.every((badge) => badge.assetPath.startsWith('/images/gym-badges/') && badge.assetPath.endsWith('.webp')), 'Every Gym Badge must use an optimised public badge asset');
 assert(new Set(GYM_TOPICS.map((topic) => topic.engine)).size >= 10, 'The Gym programme must use a broad representation library rather than one interaction pattern');
 const expectedGymEngines: Record<string, string[]> = {
   kanto: ['quantity', 'combine', 'takeAway', 'placeValue'],
@@ -123,6 +128,36 @@ assert(afterGymPractice.gym.stations[GYM_TOPICS[0].stationId]?.attempts === 1, '
 assert(afterGymPractice.gym.stations[GYM_TOPICS[0].stationId]?.hintsUsed === 2, 'Gym practice must record hints separately');
 assert(afterGymPractice.caught[1]?.name === 'Bulbasaur', 'Gym practice must never alter legacy Pokémon ownership');
 assert(afterGymPractice.curriculumV2.battles[freshBattle!.id]?.rewardStatus === 'captured', 'Gym practice must never alter curriculum battle progress');
+assert(!hasGymBadge(afterGymPractice, kanto.id), 'One Gym room must not award a regional badge before every room is complete');
+
+let afterKantoGymCompletion = afterGymPractice;
+for (const room of getGymTopicsForRegion(kanto.id)) {
+  afterKantoGymCompletion = recordGymStation('legacy-test', afterKantoGymCompletion, room.stationId, room.topic.modules.length * 3, 0);
+}
+assert(hasGymBadge(afterKantoGymCompletion, kanto.id), 'Completing every Gym room in a region must award its regional Gym Badge');
+assert(gymBadgeCount(afterKantoGymCompletion) === 1, 'A fully completed single region must award exactly one Gym Badge');
+assert(typeof afterKantoGymCompletion.gym.badges[kanto.id]?.earnedAt === 'number', 'A Gym Badge award must retain its earned date');
+assert(afterKantoGymCompletion.caught[1]?.name === 'Bulbasaur', 'Gym Badge awards must never alter legacy Pokémon ownership');
+assert(afterKantoGymCompletion.curriculumV2.battles[freshBattle!.id]?.rewardStatus === 'captured', 'Gym Badge awards must never alter Journey battle progress');
+
+const retrospectiveGymSave = {
+  ...afterFreshReward,
+  gym: {
+    schemaVersion: 1,
+    stations: Object.fromEntries(getGymTopicsForRegion(kanto.id).map((room) => [room.stationId, {
+      completedAt: 1,
+      attempts: 1,
+      examplesCompleted: room.topic.modules.length * 3,
+      hintsUsed: 0,
+    }])),
+    lastStationId: getGymTopicsForRegion(kanto.id).at(-1)?.stationId ?? null,
+  },
+};
+store.set('pokemaths.save.retrospective-gym-badge-test', JSON.stringify(retrospectiveGymSave));
+const retrospectivelyAwarded = loadSave('retrospective-gym-badge-test');
+assert(retrospectivelyAwarded.gym.schemaVersion === 2, 'Existing Gym saves must migrate to the Gym Badge schema');
+assert(hasGymBadge(retrospectivelyAwarded, kanto.id), 'Existing completed Gym routes must receive their Gym Badge retrospectively');
+assert(retrospectivelyAwarded.caught[1]?.name === 'Bulbasaur', 'Retrospective Gym Badge migration must preserve legacy Pokémon ownership');
 
 const retryBoss = firstBoss;
 const afterBossRetry = recordCurriculumBossAttempt('legacy-test', afterGymPractice, retryBoss, 7, 'score');
@@ -134,4 +169,4 @@ const afterBossWin = recordCurriculumWin('legacy-test', afterBossRetry, retryBos
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.attempts === 2, 'A defeated boss must include earlier failed attempts');
 assert(afterBossWin.curriculumV2.bosses[retryBoss.id]?.bestCorrect === bossMasteryTarget(retryBoss), 'A defeated boss must retain its best score');
 
-console.log('Curriculum verification passed: 37 topics in 11 named regions, 37 Gym rooms, 238 modules, 1,025 unique encounters, canonical legacy-catch regional attribution, region and topic readiness gates, progressive boss specifications, and separate Gym familiarity records preserved.');
+console.log('Curriculum verification passed: 37 topics in 11 named regions, 37 Gym rooms, 11 regional Gym Badges with retrospective awards, 238 modules, 1,025 unique encounters, canonical legacy-catch regional attribution, region and topic readiness gates, progressive boss specifications, and separate Gym familiarity records preserved.');

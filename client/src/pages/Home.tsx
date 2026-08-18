@@ -25,7 +25,8 @@ import { getTopic } from '@/lib/topics';
 import { ARCADE_LEVELS, getArcadeLevel } from '@/lib/arcade';
 import { pixelSprite, artwork } from '@/lib/sprites';
 import { useSpeciesNames, useSpeciesDetail } from '@/lib/species';
-import { caughtCount, liveStreak, freezeUsedToday, hasCurriculumWin, isLegacyCapture, type MegaEntry } from '@/lib/pokedex';
+import { caughtCount, gymBadgeCount, hasGymBadge, liveStreak, freezeUsedToday, hasCurriculumWin, isLegacyCapture, type MegaEntry } from '@/lib/pokedex';
+import { GYM_BADGES } from '@/lib/gymBadges';
 import { battleModeLabel, bossIsFinalMasteryQuestion, bossMasteryTarget, bossRoundForQuestion, getCurriculumTopic } from '@/lib/curriculum';
 import { CURRICULUM_REGIONS, getCurriculumRegion, getCurriculumRegionForTopic } from '@/lib/curriculumRegions';
 import { curriculumRegionCompletionCount, hasCurriculumRegionTestPass, hasCurriculumTopicTestPass, isCurriculumBattleUnlocked, isCurriculumModuleUnlocked, isCurriculumRegionUnlocked, isCurriculumTopicUnlocked, isModuleComplete, isTopicComplete, moduleCompletionCount, topicBattleCompletion } from '@/lib/curriculumProgress';
@@ -996,6 +997,9 @@ export default function Home() {
     const curriculumRegion = getCurriculumRegion(state.curriculumRegionId);
     if (!curriculumRegion) return null;
     const progress = curriculumRegionCompletionCount(save, curriculumRegion);
+    const gymBadge = GYM_BADGES.find((badge) => badge.regionId === curriculumRegion.id);
+    const gymBadgeEarned = gymBadge ? hasGymBadge(save, gymBadge.regionId) : false;
+    const gymBadgeAsset = gymBadge ? `${import.meta.env.BASE_URL}${gymBadge.assetPath.replace(/^\//, '')}` : '';
     return (
       <Screen bg={curriculumRegion.bgGradient}>
         <NavBar onHome={game.goMenu} onBack={game.goCurriculumMap} title={curriculumRegion.name.toUpperCase()} accent={curriculumRegion.accentColor} />
@@ -1010,8 +1014,12 @@ export default function Home() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor, lineHeight: 1.7 }}>🏛️ {curriculumRegion.name.toUpperCase()} GYM</div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#dbeafe', lineHeight: 1.7, marginTop: 4 }}>MODELS · MOVEMENT · EXPLANATIONS · TOPIC PRACTICE</div>
+                  {gymBadge && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.29rem,1.35vw,0.4rem)', color: gymBadgeEarned ? '#86efac' : '#94a3b8', lineHeight: 1.7, marginTop: 5 }}>{gymBadgeEarned ? `${gymBadge.name.toUpperCase()} EARNED` : 'COMPLETE ALL GYM ROOMS FOR A BADGE'}</div>}
                 </div>
-                <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: `linear-gradient(135deg, ${curriculumRegion.accentColor}, #0f766e)`, color: '#f8fafc', border: `1px solid ${curriculumRegion.accentColor}`, borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br />GYM ▶</button>
+                <div className="flex items-center" style={{ gap: '0.45rem', flexShrink: 0 }}>
+                  {gymBadge && gymBadgeEarned && <img src={gymBadgeAsset} alt={gymBadge.name} style={{ width: 'clamp(2rem,8vw,2.65rem)', height: 'clamp(2rem,8vw,2.65rem)', objectFit: 'contain', imageRendering: 'pixelated' }} />}
+                  <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: `linear-gradient(135deg, ${curriculumRegion.accentColor}, #0f766e)`, color: '#f8fafc', border: `1px solid ${curriculumRegion.accentColor}`, borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br />GYM ▶</button>
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-2 w-full">
@@ -1639,6 +1647,7 @@ export default function Home() {
     const filteredRegions = regionFilter
       ? visibleRegions.filter((region) => region.id === regionFilter)
       : visibleRegions;
+    const badgeAsset = (assetPath: string) => `${import.meta.env.BASE_URL}${assetPath.replace(/^\//, '')}`;
     const isExpanded = (key: string) => !collapsedPokedexSections[key];
     const togglePokedexSection = (key: string) => {
       setCollapsedPokedexSections((current) => ({ ...current, [key]: !current[key] }));
@@ -1800,6 +1809,50 @@ export default function Home() {
                           </div>
                         );
                       })}
+                    </div>
+                  </PokedexSectionContent>
+                </div>
+              );
+            })()}
+
+            {/* --- regional Gym rewards --- */}
+            {(() => {
+              const badgeCount = gymBadgeCount(save);
+              return (
+                <div className="w-full" style={{ marginBottom: '1.25rem' }}>
+                  <PokedexSectionHeader
+                    label="GYM BADGES"
+                    count={`${badgeCount}/${GYM_BADGES.length}`}
+                    accent="#facc15"
+                    expanded={isExpanded('badges')}
+                    onToggle={() => togglePokedexSection('badges')}
+                  />
+                  <PokedexSectionContent expanded={isExpanded('badges')}>
+                    <div>
+                      {badgeCount === 0 && (
+                        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.8, marginBottom: 10, textAlign: 'center' }}>
+                          COMPLETE EVERY GYM ROOM IN A REGION<br />TO EARN ITS BADGE.
+                        </div>
+                      )}
+                      <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(94px, 28vw, 130px), 1fr))', gap: 'clamp(0.4rem,1.5vw,0.75rem)' }}>
+                        {GYM_BADGES.map((badge) => {
+                          const progress = save.gym.badges[badge.regionId];
+                          const earned = hasGymBadge(save, badge.regionId);
+                          const earnedDate = progress
+                            ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(progress.earnedAt)).toUpperCase()
+                            : null;
+                          return (
+                            <div key={`gym-badge-${badge.regionId}`} className="rounded-lg flex flex-col items-center"
+                              style={{ minHeight: 'clamp(148px,40vw,178px)', padding: 'clamp(0.42rem,1.8vw,0.7rem)', background: earned ? `${badge.accent}12` : 'rgba(0,0,0,0.4)', border: `1px solid ${earned ? badge.accent : '#2a2a2a'}`, boxShadow: earned ? `0 0 10px ${badge.accent}33` : 'none' }}>
+                              <img src={badgeAsset(badge.assetPath)} alt={earned ? badge.name : 'Locked Gym Badge'} loading="lazy"
+                                style={{ width: 'clamp(60px,20vw,88px)', height: 'clamp(60px,20vw,88px)', objectFit: 'contain', imageRendering: 'pixelated', filter: earned ? 'none' : 'grayscale(1) brightness(0.26)', opacity: earned ? 1 : 0.65 }} />
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: earned ? badge.accent : '#64748b', marginTop: 4, textAlign: 'center', lineHeight: 1.45 }}>{earned ? badge.name.toUpperCase() : 'LOCKED BADGE'}</span>
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.35vw,0.39rem)', color: earned ? '#dbeafe' : '#4b5563', marginTop: 3, textAlign: 'center', lineHeight: 1.45 }}>{badge.regionName.toUpperCase()}</span>
+                              <span style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.29rem,1.3vw,0.37rem)', color: earned ? '#86efac' : '#475569', marginTop: 4, textAlign: 'center', lineHeight: 1.4 }}>{earnedDate ? `EARNED ${earnedDate}` : 'COMPLETE ALL ROOMS'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </PokedexSectionContent>
                 </div>
