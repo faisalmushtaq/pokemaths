@@ -17,12 +17,12 @@ export interface CardOpts {
   topic: string;
   artworkUrl: string;
   spriteUrl: string;
-  headline?: string; // top banner (default "★ GOTCHA! ★")
+  headline?: string; // top banner (default "GOTCHA!")
   caption?: string; // small line under the dex/region (default "MASTERED <topic>")
 }
 
 export function catchText(dex: number, name: string): string {
-  return `I caught #${dex} ${name} on Pokémaths! 🎮 ${GAME_URL}`;
+  return `I caught #${dex} ${name} on Pokemaths! ${GAME_URL}`;
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -101,7 +101,7 @@ export async function buildShareCard(o: CardOpts): Promise<Blob> {
 
   // header
   ctx.fillStyle = '#FFD700';
-  const headline = o.headline ?? '★ GOTCHA! ★';
+  const headline = o.headline ?? 'GOTCHA!';
   const hPx = fitFont(ctx, headline, W - 160, 54);
   ctx.font = `${hPx}px ${PIXEL}`;
   ctx.fillText(headline, W / 2, 150);

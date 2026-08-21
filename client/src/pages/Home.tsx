@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type MouseEvent, 
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
 import { RegionalGym } from '@/components/gym/RegionalGym';
+import { PixelIcon, PixelIconLabel, type PixelIconName } from '@/components/ui/PixelIcon';
 import {
   REGIONS,
   MAINLINE_REGIONS,
@@ -109,7 +110,7 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
         <button onClick={onHome} aria-label="Return to menu" title="Return to menu" style={homeBtn}>
           <span aria-hidden="true" style={{ position: 'absolute', inset: '50% auto auto 50%', transform: 'translate(-50%, -50%)', width: 'clamp(0.5rem, 2.4vw, 0.72rem)', height: 'clamp(0.5rem, 2.4vw, 0.72rem)', borderRadius: '50%', background: '#f8fafc', border: '2px solid #101010', boxShadow: '0 0 0 1px rgba(255,215,0,0.7)' }} />
         </button>
-        {onBack && <button onClick={onBack} aria-label="Back" title="Back" style={{ ...iconBtn, color: '#aaa' }}>←</button>}
+        {onBack && <button onClick={onBack} aria-label="Back" title="Back" style={{ ...iconBtn, color: '#aaa', display: 'grid', placeItems: 'center' }}><PixelIcon name="arrowLeft" size="0.9em" /></button>}
       </div>
       {title && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: accent, textAlign: 'center', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 0.5rem' }}>{title}</div>}
       <div className="flex items-center justify-end" style={{ minWidth: 'clamp(1.5rem, 8vw, 3rem)', gap: '0.5rem' }}>{right}</div>
@@ -151,7 +152,7 @@ function TrainerBadgeButton({ onClick }: { onClick: () => void }) {
 }
 
 function PokedexSectionHeader({ label, count, accent, expanded, onToggle, compact = false }: {
-  label: string;
+  label: ReactNode;
   count?: string;
   accent: string;
   expanded: boolean;
@@ -179,7 +180,7 @@ function PokedexSectionHeader({ label, count, accent, expanded, onToggle, compac
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-        <span aria-hidden="true" style={{ color: '#e2e8f0', fontSize: compact ? FS.tiny : FS.small, display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}>▶</span>
+        <span aria-hidden="true" style={{ color: '#e2e8f0', fontSize: compact ? FS.tiny : FS.small, display: 'inline-flex', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}><PixelIcon name="arrowRight" size="0.82em" /></span>
         <span>{label}</span>
       </span>
       {count && <span style={{ fontSize: FS.tiny, color: '#94a3b8', flexShrink: 0 }}>{count}</span>}
@@ -283,7 +284,7 @@ function NumberKeypad({ onKey, onToggleSign, onDelete, onSubmit, currentInput, a
           onPointerDown={e => { e.preventDefault(); onDelete(); }}>DEL</button>
         <button className="flex-1 flex items-center justify-center rounded-lg text-white select-none active:scale-95 transition-transform"
           style={keyStyle('#22c55e', FS.btn, 'linear-gradient(135deg, #1a4a1a, #0a2d0a)')}
-          onPointerDown={e => { e.preventDefault(); onSubmit(); }}>OK ✓</button>
+          onPointerDown={e => { e.preventDefault(); onSubmit(); }}><PixelIconLabel name="check" size="0.78em">OK</PixelIconLabel></button>
       </div>
     </div>
   );
@@ -554,7 +555,7 @@ export default function Home() {
       topic: '',
       artworkUrl: artwork(arcadeMega.formId),
       spriteUrl: artwork(arcadeMega.dex),
-      headline: '⚡ MEGA EVOLVED! ⚡',
+      headline: 'MEGA EVOLVED!',
       caption: 'EARNED IN ARCADE MODE',
     }).then((b) => alive && setMegaBlob(b)).catch(() => {});
     return () => { alive = false; };
@@ -635,7 +636,7 @@ export default function Home() {
 
   const backBtn = (label: string, onClick: () => void, color = '#888'): ReactNode => (
     <button onClick={onClick} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color, border: `1px solid ${color}55`, background: 'transparent', padding: '0.7rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}>
-      {label}
+      <PixelIconLabel name="arrowLeft" size="0.82em">{label}</PixelIconLabel>
     </button>
   );
 
@@ -704,7 +705,7 @@ export default function Home() {
             </div>
             <button onClick={saveEdit} disabled={!canSave} className="w-full rounded-xl font-bold text-black"
               style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', flexShrink: 0, background: canSave ? 'linear-gradient(135deg, #38bdf8, #0ea5e9)' : '#333', color: canSave ? '#001' : '#666', border: '2px solid #38bdf8', cursor: canSave ? 'pointer' : 'not-allowed', opacity: canSave ? 1 : 0.5 }}>
-              ✓ SAVE CHANGES
+              <PixelIconLabel name="check" size="0.78em">SAVE CHANGES</PixelIconLabel>
             </button>
           </Frame>
         </div>
@@ -767,7 +768,7 @@ export default function Home() {
             </div>
             <button onClick={doCreate} disabled={!canCreate} className="w-full rounded-xl font-bold text-black"
               style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.3rem) 0', maxWidth: '18rem', flexShrink: 0, background: canCreate ? 'linear-gradient(135deg, #FFD700, #FFA500)' : '#333', color: canCreate ? '#000' : '#666', border: '2px solid #FFD700', cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.5 }}>
-              ✓ START JOURNEY
+              <PixelIconLabel name="map" size="0.78em">START JOURNEY</PixelIconLabel>
             </button>
           </Frame>
         </div>
@@ -791,14 +792,14 @@ export default function Home() {
                     <img src={pixelSprite(p.avatarDex)} alt={p.name} loading="lazy"
                       onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(p.avatarDex)) i.src = artwork(p.avatarDex); }}
                       style={{ width: 'clamp(56px,16vw,88px)', height: 'clamp(56px,16vw,88px)', objectFit: 'contain', imageRendering: 'pixelated' }} />
-                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>{p.name.toUpperCase()}{p.pin ? ' 🔒' : ''}</span>
+                    <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#FFD700', marginTop: 8, lineHeight: 1.5, textAlign: 'center', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>{p.name.toUpperCase()}{p.pin && <PixelIcon name="lock" size="0.85em" />}</span>
                   </button>
                   {manageProfiles && confirmDeleteId !== p.id && (
                     <>
                       <button onClick={() => openEdit(p)} aria-label="Edit player"
-                        style={{ position: 'absolute', top: -8, left: -8, width: 26, height: 26, borderRadius: '50%', background: '#38bdf8', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✎</button>
+                        style={{ position: 'absolute', top: -8, left: -8, width: 26, height: 26, borderRadius: '50%', background: '#38bdf8', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><PixelIcon name="pencil" size="0.7rem" /></button>
                       <button onClick={() => setConfirmDeleteId(p.id)} aria-label="Delete player"
-                        style={{ position: 'absolute', top: -8, right: -8, width: 26, height: 26, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer' }}>✕</button>
+                        style={{ position: 'absolute', top: -8, right: -8, width: 26, height: 26, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #0a0a1a', fontFamily: PIXEL_FONT, fontSize: '0.6rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><PixelIcon name="cross" size="0.7rem" /></button>
                     </>
                   )}
                   {confirmDeleteId === p.id && (
@@ -818,14 +819,14 @@ export default function Home() {
               {profilesData.profiles.length < MAX_PROFILES && (
                 <button onClick={() => setProfScreen('create')} className="rounded-xl flex flex-col items-center justify-center"
                   style={{ padding: 'clamp(0.6rem,2vw,1rem)', minHeight: 'clamp(110px,32vw,170px)', background: 'rgba(56,189,248,0.06)', border: '2px dashed #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
-                  <span style={{ fontSize: 'clamp(1.6rem,6vw,2.4rem)' }}>＋</span>
+                  <PixelIcon name="plus" size="clamp(1.4rem,5.4vw,2rem)" />
                   <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, marginTop: 8 }}>NEW PLAYER</span>
                 </button>
               )}
             </div>
             {profilesData.profiles.length > 0 && (
               <button onClick={() => setManageProfiles((m) => !m)} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: manageProfiles ? '#FFD700' : '#888', background: 'none', border: 'none', cursor: 'pointer' }}>
-                {manageProfiles ? '✓ DONE' : '✎ MANAGE'}
+                {manageProfiles ? <PixelIconLabel name="check" size="0.78em">DONE</PixelIconLabel> : <PixelIconLabel name="pencil" size="0.78em">MANAGE</PixelIconLabel>}
               </button>
             )}
 
@@ -834,14 +835,14 @@ export default function Home() {
               <div className="w-full rounded-xl flex flex-col items-center" style={{ maxWidth: '26rem', marginTop: 'clamp(0.5rem,2vh,1rem)', padding: 'clamp(0.85rem,3.5vw,1.25rem)', background: cloudUser ? 'rgba(34,197,94,0.06)' : 'rgba(56,189,248,0.06)', border: `2px solid ${cloudUser ? 'rgba(34,197,94,0.4)' : '#38bdf8'}`, gap: 10 }}>
                 {cloudUser ? (
                   <>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e' }}>☁️ SYNCED ✓</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e' }}><PixelIconLabel name="cloud" size="0.86em">SYNCED <PixelIcon name="check" size="0.82em" /></PixelIconLabel></div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', textAlign: 'center', lineHeight: 1.7, wordBreak: 'break-all' }}>{cloudUser.email ?? cloudUser.displayName ?? 'your account'}</div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>YOUR PROFILES SYNC TO EVERY DEVICE</div>
                     <button onClick={() => signOutCloud()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2 }}>SIGN OUT</button>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', textAlign: 'center', lineHeight: 1.7 }}>☁️ SAVE ACROSS DEVICES</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', textAlign: 'center', lineHeight: 1.7 }}><PixelIconLabel name="cloud" size="0.86em">SAVE ACROSS DEVICES</PixelIconLabel></div>
                     <button onClick={() => signInGoogle()} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
                       style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', maxWidth: '16rem', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
                       <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
@@ -868,7 +869,7 @@ export default function Home() {
           {/* Mute toggle for the theme tune (top-right) */}
           <button onClick={toggleMute} aria-label={settings.muteTune ? 'Unmute theme' : 'Mute theme'} title={settings.muteTune ? 'Theme muted' : 'Theme on'}
             style={{ position: 'absolute', top: 'clamp(0.75rem,3vw,1.25rem)', right: 'clamp(0.75rem,3vw,1.25rem)', fontSize: 'clamp(1.1rem,4.5vw,1.5rem)', background: 'rgba(0,0,0,0.3)', border: '2px solid #444', borderRadius: 999, width: 'clamp(2.2rem,9vw,3rem)', height: 'clamp(2.2rem,9vw,3rem)', cursor: 'pointer', lineHeight: 1 }}>
-            {settings.muteTune ? '🔇' : '🔊'}
+            <PixelIcon name={settings.muteTune ? 'mute' : 'sound'} size="clamp(1rem,4vw,1.35rem)" />
           </button>
 
           {/* Hero: pokéball (tap to play the theme) + title */}
@@ -880,7 +881,7 @@ export default function Home() {
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textShadow: '0 0 18px rgba(255,215,0,0.6), 0 3px 0 #7c1d6f', letterSpacing: '0.08em', textAlign: 'center', lineHeight: 1.4 }}>
               POKÉMATHS
             </div>
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#6b7280', textAlign: 'center', marginTop: -4 }}>♪ TAP THE POKÉBALL ♪</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#6b7280', textAlign: 'center', marginTop: -4 }}><PixelIconLabel name="note" size="0.8em">TAP THE POKÉBALL</PixelIconLabel></div>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', textAlign: 'center', lineHeight: 2 }}>
               WIN MATHS BATTLES<br />TO CATCH POKÉMON!
             </p>
@@ -903,16 +904,16 @@ export default function Home() {
                   <div className="grid grid-cols-2" style={{ gap: '0.6rem' }}>
                     <div className="rounded-lg" style={{ padding: '0.65rem 0.7rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.42)' }}>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.25vw,0.42rem)', color: '#fbbf24' }}>Streak</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: streak > 0 ? '#f97316' : '#cbd5e1', marginTop: 5, lineHeight: 1.45 }}>🔥 {streak > 0 ? `${streak} day${streak === 1 ? '' : 's'}` : 'Play today'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: streak > 0 ? '#f97316' : '#cbd5e1', marginTop: 5, lineHeight: 1.45 }}><PixelIconLabel name="flame" size="0.86em">{streak > 0 ? `${streak} day${streak === 1 ? '' : 's'}` : 'Play today'}</PixelIconLabel></div>
                       {best > 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.05vw,0.36rem)', color: '#94a3b8', marginTop: 3 }}>Best {best}</div>}
                     </div>
                     <div className="rounded-lg" style={{ padding: '0.65rem 0.7rem', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.4)' }}>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.25vw,0.42rem)', color: '#fbbf24' }}>Collection</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: '#FFD700', marginTop: 5, lineHeight: 1.45 }}>📕 {caughtCount(save)} caught</div>
-                      {freezes > 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.05vw,0.36rem)', color: '#38bdf8', marginTop: 3 }}>🧊 {freezes} freeze{freezes === 1 ? '' : 's'}</div>}
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.48rem,1.85vw,0.68rem)', color: '#FFD700', marginTop: 5, lineHeight: 1.45 }}><PixelIconLabel name="book" size="0.86em">{caughtCount(save)} caught</PixelIconLabel></div>
+                      {freezes > 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.05vw,0.36rem)', color: '#38bdf8', marginTop: 3 }}><PixelIconLabel name="frost" size="0.86em">{freezes} freeze{freezes === 1 ? '' : 's'}</PixelIconLabel></div>}
                     </div>
                   </div>
-                  <button onClick={switchPlayer} aria-label="Switch player" className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,1.55vw,0.55rem)', minHeight: '2.8rem', padding: '0.55rem 0.7rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', boxShadow: '0 0 12px rgba(56,189,248,0.2)', cursor: 'pointer' }}>↻ Switch player</button>
+                  <button onClick={switchPlayer} aria-label="Switch player" className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,1.55vw,0.55rem)', minHeight: '2.8rem', padding: '0.55rem 0.7rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', boxShadow: '0 0 12px rgba(56,189,248,0.2)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.84em">SWITCH PLAYER</PixelIconLabel></button>
                 </div>
               );
             })()}
@@ -923,15 +924,15 @@ export default function Home() {
             <div className="flex flex-col gap-3 w-full">
               <button onClick={game.goCurriculumMap} className="w-full rounded-xl font-bold text-black"
                 style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer' }}>
-                🗺 {activeProfile ? 'CONTINUE JOURNEY' : 'START JOURNEY'}
+                <PixelIconLabel name="map" size="0.82em">{activeProfile ? 'CONTINUE JOURNEY' : 'START JOURNEY'}</PixelIconLabel>
               </button>
               <button onClick={game.goArcadeSelect} className="w-full rounded-xl font-bold"
                 style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'rgba(56,189,248,0.08)', border: '2px solid #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
-                ▶ ARCADE
+                <PixelIconLabel name="play" size="0.82em">ARCADE</PixelIconLabel>
               </button>
               <button onClick={game.goPokedex} className="w-full rounded-xl font-bold"
                 style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#ef4444', cursor: 'pointer' }}>
-                📕 POKÉDEX ({caughtCount(save)}/{totalCatchable()})
+                <PixelIconLabel name="book" size="0.82em">POKÉDEX ({caughtCount(save)}/{totalCatchable()})</PixelIconLabel>
               </button>
             </div>
           </Frame>
@@ -939,10 +940,10 @@ export default function Home() {
           {/* Footer: about / login + copyright */}
           <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1rem)' }}>
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
-              <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}>📊 MY STATS</button>
-              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}>👤 LOG IN</button>
-              <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>ℹ ABOUT</button>
-              <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}>⚙ SETTINGS</button>
+              <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="stats" size="0.82em">MY STATS</PixelIconLabel></button>
+              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">LOG IN</PixelIconLabel></button>
+              <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="info" size="0.82em">ABOUT</PixelIconLabel></button>
+              <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="settings" size="0.82em">SETTINGS</PixelIconLabel></button>
             </div>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#555', textAlign: 'center' }}>
               © 2019-2026 MUSHTAQ ARCADE CORP
@@ -974,7 +975,7 @@ export default function Home() {
                   <button key={region.id} onClick={() => unlocked ? game.openCurriculumRegion(region.id) : game.startCurriculumRegionTest(region.id)}
                     className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
                     style={{ padding: 'clamp(0.7rem,2.5vw,0.95rem)', background: unlocked ? `${region.accentColor}12` : 'rgba(0,0,0,0.35)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.72, cursor: 'pointer', boxShadow: completed ? '0 0 12px rgba(34,197,94,0.25)' : 'none' }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: 'clamp(2.1rem,9vw,2.8rem)', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(region.order).padStart(2, '0') : '🔒'}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: 'clamp(2.1rem,9vw,2.8rem)', textAlign: 'center', flexShrink: 0, display: 'grid', placeItems: 'center' }}>{completed ? <PixelIcon name="check" size="0.9em" /> : unlocked ? String(region.order).padStart(2, '0') : <PixelIcon name="lock" size="0.88em" />}</div>
                     <div className="flex-1" style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{region.name.toUpperCase()}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: unlocked ? '#cbd5e1' : '#94a3b8', lineHeight: 1.55 }}>{region.gen.toUpperCase()} · {progress.complete}/{progress.total} TOPICS</div>
@@ -1012,13 +1013,13 @@ export default function Home() {
             <div className="rounded-xl mb-3" style={{ padding: '0.85rem', background: `${curriculumRegion.accentColor}18`, border: `2px solid ${curriculumRegion.accentColor}`, boxShadow: `0 0 16px ${curriculumRegion.accentColor}33` }}>
               <div className="flex items-center justify-between gap-3">
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor, lineHeight: 1.7 }}>🏛️ {curriculumRegion.name.toUpperCase()} GYM</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: curriculumRegion.accentColor, lineHeight: 1.7 }}><PixelIconLabel name="gym" size="0.86em">{curriculumRegion.name.toUpperCase()} GYM</PixelIconLabel></div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#dbeafe', lineHeight: 1.7, marginTop: 4 }}>MODELS · MOVEMENT · EXPLANATIONS · TOPIC PRACTICE</div>
                   {gymBadge && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.29rem,1.35vw,0.4rem)', color: gymBadgeEarned ? '#86efac' : '#94a3b8', lineHeight: 1.7, marginTop: 5 }}>{gymBadgeEarned ? `${gymBadge.name.toUpperCase()} EARNED` : 'COMPLETE ALL GYM ROOMS FOR A BADGE'}</div>}
                 </div>
                 <div className="flex items-center" style={{ gap: '0.45rem', flexShrink: 0 }}>
                   {gymBadge && gymBadgeEarned && <img src={gymBadgeAsset} alt={gymBadge.name} style={{ width: 'clamp(2rem,8vw,2.65rem)', height: 'clamp(2rem,8vw,2.65rem)', objectFit: 'contain', imageRendering: 'pixelated' }} />}
-                  <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: `linear-gradient(135deg, ${curriculumRegion.accentColor}, #0f766e)`, color: '#f8fafc', border: `1px solid ${curriculumRegion.accentColor}`, borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br />GYM ▶</button>
+                  <button type="button" onClick={() => game.openGymTrail(curriculumRegion.id)} style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.48rem)', background: `linear-gradient(135deg, ${curriculumRegion.accentColor}, #0f766e)`, color: '#f8fafc', border: `1px solid ${curriculumRegion.accentColor}`, borderRadius: '0.5rem', padding: '0.62rem 0.55rem', cursor: 'pointer', flexShrink: 0 }}>ENTER<br /><PixelIcon name="gym" size="0.88em" /></button>
                 </div>
               </div>
             </div>
@@ -1032,7 +1033,7 @@ export default function Home() {
                 return (
                   <button key={topic.id} onClick={() => unlocked ? game.openCurriculumTopic(topic.id) : game.startCurriculumTopicTest(topic.id)} className="w-full rounded-xl text-left flex items-center gap-3"
                     style={{ padding: '0.75rem', background: unlocked ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.28)', border: `2px solid ${accent}`, opacity: unlocked ? 1 : 0.72, cursor: 'pointer' }}>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: '2.25rem', textAlign: 'center', flexShrink: 0 }}>{completed ? '✓' : unlocked ? String(topic.order).padStart(2, '0') : '🔒'}</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: accent, width: '2.25rem', textAlign: 'center', flexShrink: 0, display: 'grid', placeItems: 'center' }}>{completed ? <PixelIcon name="check" size="0.9em" /> : unlocked ? String(topic.order).padStart(2, '0') : <PixelIcon name="lock" size="0.88em" />}</div>
                     <div className="flex-1" style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: unlocked ? '#f8fafc' : '#64748b', lineHeight: 1.55 }}>{topic.title.toUpperCase()}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', lineHeight: 1.55 }}>{unlocked ? `${moduleProgress.complete}/${moduleProgress.total} MODULES` : '3Q READINESS TRIAL'}</div>
@@ -1094,7 +1095,7 @@ export default function Home() {
                 return (
                   <div key={module.id} className="rounded-xl" style={{ padding: '0.7rem', background: moduleUnlocked ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.3)', border: `1px solid ${moduleComplete ? '#22c55e' : moduleUnlocked ? '#334155' : '#1e293b'}`, opacity: moduleUnlocked ? 1 : 0.55 }}>
                     <div className="flex items-start gap-2" style={{ marginBottom: '0.55rem' }}>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: moduleComplete ? '#22c55e' : '#FFD700', flexShrink: 0 }}>{moduleComplete ? '✓' : String(module.order).padStart(2, '0')}</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: moduleComplete ? '#22c55e' : '#FFD700', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{moduleComplete ? <PixelIcon name="check" size="0.88em" /> : String(module.order).padStart(2, '0')}</span>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: moduleUnlocked ? '#f8fafc' : '#64748b', lineHeight: 1.65 }}>{module.title.toUpperCase()}</div>
                     </div>
                     <div className="flex flex-col gap-1">
@@ -1112,7 +1113,7 @@ export default function Home() {
                               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: complete ? '#22c55e' : unlocked ? accent : '#64748b', lineHeight: 1.6 }}>{battleModeLabel(battle.mode)} · #{battle.dex}</div>
                               <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.3vw,0.4rem)', color: '#94a3b8', lineHeight: 1.5 }}>{battle.questionCount} QUESTIONS{legacy ? ' · LEGACY OWNED' : ''}</div>
                             </div>
-                            <span style={{ fontSize: 'clamp(0.8rem,3.5vw,1.1rem)' }}>{complete ? '✅' : unlocked ? '▶' : '🔒'}</span>
+                            <span style={{ fontSize: 'clamp(0.8rem,3.5vw,1.1rem)', display: 'inline-flex', color: complete ? '#86efac' : unlocked ? accent : '#64748b' }}>{complete ? <PixelIcon name="check" size="0.88em" /> : unlocked ? <PixelIcon name="arrowRight" size="0.88em" /> : <PixelIcon name="lock" size="0.88em" />}</span>
                           </button>
                         );
                       })}
@@ -1125,9 +1126,9 @@ export default function Home() {
                 style={{ padding: '0.85rem', marginTop: '0.25rem', background: bossUnlocked ? 'rgba(255,215,0,0.09)' : 'rgba(0,0,0,0.35)', border: `2px solid ${bossWon ? '#22c55e' : bossUnlocked ? '#FFD700' : '#475569'}`, opacity: bossUnlocked ? 1 : 0.55, cursor: bossUnlocked ? 'pointer' : 'not-allowed', boxShadow: bossUnlocked ? '0 0 14px rgba(255,215,0,0.18)' : 'none' }}>
                 <img src={artwork(curriculumTopic.boss.dex)} alt="" style={{ width: 'clamp(42px,11vw,60px)', height: 'clamp(42px,11vw,60px)', objectFit: 'contain', imageRendering: 'pixelated', filter: bossUnlocked || bossWon ? 'none' : 'brightness(0)' }} />
                 <div className="flex-1" style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: bossWon ? '#22c55e' : '#FFD700', lineHeight: 1.6 }}>{bossWon ? '✓ ' : '★ '}{nameOf(curriculumTopic.boss.dex).toUpperCase()} BOSS</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: bossWon ? '#22c55e' : '#FFD700', lineHeight: 1.6 }}><PixelIconLabel name={bossWon ? 'check' : 'star'} size="0.86em">{nameOf(curriculumTopic.boss.dex).toUpperCase()} BOSS</PixelIconLabel></div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 1.6 }}>{bossUnlocked ? `TOPIC MASTERY · ${curriculumTopic.boss.questionCount} QUESTIONS · ${bossTarget}/${curriculumTopic.boss.questionCount} TARGET` : 'COMPLETE EVERY MODULE TO UNLOCK'}</div>
-                  {bossUnlocked && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.15vw,0.36rem)', color: '#94a3b8', lineHeight: 1.55, marginTop: 4 }}>{Math.floor((curriculumTopic.boss.timeLimitSec ?? 0) / 60)} MIN · RECALL → APPLY → MASTERY{bossAttempt ? ` · BEST ${bossAttempt.bestCorrect}/${curriculumTopic.boss.questionCount}` : ''}</div>}
+                  {bossUnlocked && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.15vw,0.36rem)', color: '#94a3b8', lineHeight: 1.55, marginTop: 4 }}>{Math.floor((curriculumTopic.boss.timeLimitSec ?? 0) / 60)} MIN · RECALL / APPLY / MASTERY{bossAttempt ? ` · BEST ${bossAttempt.bestCorrect}/${curriculumTopic.boss.questionCount}` : ''}</div>}
                 </div>
               </button>
             </div>
@@ -1156,8 +1157,8 @@ export default function Home() {
             boxShadow: openable ? `0 0 8px ${region.accentColor}22` : 'none',
             opacity: openable ? 1 : 0.55, cursor: openable ? 'pointer' : 'not-allowed',
           }}>
-          <div style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)', width: 'clamp(2rem,8vw,2.6rem)', textAlign: 'center', flexShrink: 0 }}>
-            {!openable ? '🔒' : done ? '✅' : unlocked ? (region.secret ? '✨' : '🌍') : '🔑'}
+          <div style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)', width: 'clamp(2rem,8vw,2.6rem)', textAlign: 'center', flexShrink: 0, display: 'grid', placeItems: 'center', color: openable ? region.accentColor : '#64748b' }}>
+            {!openable ? <PixelIcon name="lock" size="0.92em" /> : done ? <PixelIcon name="check" size="0.92em" /> : unlocked ? <PixelIcon name={region.secret ? 'spark' : 'globe'} size="0.92em" /> : <PixelIcon name="key" size="0.92em" />}
           </div>
           <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: openable ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
@@ -1176,7 +1177,7 @@ export default function Home() {
           <Frame>
             <div className="flex flex-col gap-2 w-full">
               {MAINLINE_REGIONS.map(renderRegion)}
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', margin: '0.75rem 0 0.25rem', textAlign: 'center' }}>✨ SECRET REGIONS ✨</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', margin: '0.75rem 0 0.25rem', textAlign: 'center' }}><PixelIconLabel name="spark" size="0.86em">SECRET REGIONS</PixelIconLabel></div>
               {SECRET_REGIONS.map(renderRegion)}
             </div>
           </Frame>
@@ -1208,15 +1209,15 @@ export default function Home() {
                       onError={(e) => { const img = e.currentTarget; if (img.src !== artwork(b.dex)) img.src = artwork(b.dex); }}
                       style={{ width: 'clamp(38px,11vw,56px)', height: 'clamp(38px,11vw,56px)', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0, filter: playable || won ? 'none' : 'brightness(0)' }} />
                     <div className="flex-1 flex flex-col justify-center" style={{ minWidth: 0, gap: 'clamp(4px,1.4vw,8px)' }}>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? '★ ' : ''}{playable || won ? nameOf(b.dex).toUpperCase() : '???'}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: b.isBoss ? '#FFD700' : region.accentColor }}>{b.isBoss ? <PixelIconLabel name="star" size="0.84em">{playable || won ? nameOf(b.dex).toUpperCase() : '???'}</PixelIconLabel> : (playable || won ? nameOf(b.dex).toUpperCase() : '???')}</div>
                       <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#aaa' }}>#{b.dex} · {topic.name}</div>
-                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? ` · ⏱${b.timeLimitSec}s` : ''}</div>
+                      <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{b.questionCount} Qs · 100%{b.timeLimitSec ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.28rem', marginLeft: '0.4rem' }}><PixelIcon name="timer" size="0.82em" />{b.timeLimitSec}s</span> : ''}</div>
                     </div>
                     {won ? (
-                      <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0 }}>✅</div>
+                      <div style={{ fontSize: 'clamp(1rem,4vw,1.4rem)', flexShrink: 0, color: '#86efac' }}><PixelIcon name="check" size="0.92em" /></div>
                     ) : !playable ? (
-                      <div className="flex flex-col items-center" style={{ flexShrink: 0, gap: 3 }}>
-                        <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.2rem)' }}>🔑</span>
+                      <div className="flex flex-col items-center" style={{ flexShrink: 0, gap: 3, color: '#FFD700' }}>
+                        <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.2rem)' }}><PixelIcon name="key" size="0.92em" /></span>
                         <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.34rem', color: '#FFD700', lineHeight: 1.3, textAlign: 'center' }}>TEST<br />OUT</span>
                       </div>
                     ) : null}
@@ -1269,7 +1270,7 @@ export default function Home() {
                   <button key={c} onClick={() => setArcCount(c)} className="rounded-lg shrink-0 flex flex-col items-center justify-center"
                     style={{ minWidth: 'clamp(58px,16vw,80px)', height: 'clamp(56px,15vw,68px)', gap: 3, padding: '0.4rem 0.6rem', background: sel ? (isMega ? 'rgba(234,179,8,0.18)' : 'rgba(56,189,248,0.15)') : 'rgba(255,255,255,0.04)', border: `2px solid ${sel ? (isMega ? '#eab308' : '#38bdf8') : '#333'}`, boxShadow: sel && isMega ? '0 0 12px rgba(234,179,8,0.5)' : 'none', cursor: 'pointer' }}>
                     <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: sel ? (isMega ? '#eab308' : '#38bdf8') : '#ccc' }}>{c}</span>
-                    {isMega && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: sel ? '#eab308' : '#777' }}>⚡MEGA</span>}
+                    {isMega && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: sel ? '#eab308' : '#777' }}><PixelIconLabel name="bolt" size="0.78em">MEGA</PixelIconLabel></span>}
                   </button>
                 );
               })}
@@ -1287,7 +1288,7 @@ export default function Home() {
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#aaa' }}>{lvl.subtitle}</div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#777' }}>{lvl.questionCount} QUESTIONS</div>
                   </div>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: lvl.accentColor, flexShrink: 0 }}>▶</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: lvl.accentColor, flexShrink: 0, display: 'inline-flex' }}><PixelIcon name="arrowRight" size="0.9em" /></div>
                 </button>
               ))}
             </div>
@@ -1315,21 +1316,21 @@ export default function Home() {
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: `3px solid ${mega ? '#eab308' : lvl.accentColor}`, boxShadow: `0 0 40px ${mega ? 'rgba(234,179,8,0.4)' : lvl.accentColor + '44'}` }}>
               {mega && (
                 <div className="mb-4">
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: '0.5rem', textShadow: '0 0 12px #eab308' }}>⚡ MEGA EVOLUTION! ⚡</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: '0.5rem', textShadow: '0 0 12px #eab308' }}><PixelIconLabel name="bolt" size="0.84em">MEGA EVOLUTION!</PixelIconLabel></div>
                   <div className="flex justify-center">
                     <img src={artwork(mega.formId)} alt={mega.name} onError={(e) => { (e.currentTarget as HTMLImageElement).src = artwork(mega.dex); }} style={{ width: 'clamp(150px,45vw,220px)', height: 'clamp(150px,45vw,220px)', objectFit: 'contain', filter: 'drop-shadow(0 0 22px rgba(234,179,8,0.6))' }} />
                   </div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#fff', marginTop: '0.5rem' }}>{mega.name.toUpperCase()}</div>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#22c55e', marginTop: '0.5rem' }}>✓ ADDED TO MEGA POKÉDEX</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#22c55e', marginTop: '0.5rem' }}><PixelIconLabel name="check" size="0.82em">ADDED TO MEGA POKÉDEX</PixelIconLabel></div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.28rem,1.1vw,0.36rem)', color: '#cbd5e1', marginTop: 6, lineHeight: 1.6 }}>24 QUESTIONS COMPLETE · ACCURACY DOES NOT AFFECT EVOLUTION</div>
                   <div className="flex gap-2" style={{ marginTop: '0.75rem' }}>
-                    <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
-                    <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                    <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}><PixelIconLabel name="share" size="0.82em">SHARE</PixelIconLabel></button>
+                    <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}><PixelIconLabel name="save" size="0.82em">SAVE</PixelIconLabel></button>
                   </div>
                   {megaMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 8 }}>{megaMsg}</div>}
                 </div>
               )}
-              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.25rem' }}>{perfect ? '🌟' : '🎮'}</div>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.25rem', color: perfect ? '#facc15' : lvl.accentColor }}><PixelIcon name={perfect ? 'spark' : 'target'} size="0.95em" /></div>
               <h1 style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: lvl.accentColor, marginBottom: '0.25rem' }}>{lvl.name.toUpperCase()}</h1>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: perfect ? '#FFD700' : '#e2e8f0', marginBottom: '1rem' }}>{perfect ? 'PERFECT RUN!' : 'RUN COMPLETE!'}</p>
               <div className="rounded-lg mb-3" style={{ padding: 'clamp(0.6rem,2vw,1rem)', background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)' }}>
@@ -1350,26 +1351,26 @@ export default function Home() {
               {(() => { const st = liveStreak(save); const ms = milestoneAt(st); return st > 0 ? (
                 <div className="mb-4 flex flex-col" style={{ gap: 8 }}>
                   <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
-                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#f97316' }}><PixelIcon name="flame" size="0.9em" /></span>
                     <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{st} DAY STREAK!</span>
                   </div>
                   {ms && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.7rem', background: `${ms.color}1a`, border: `2px solid ${ms.color}`, boxShadow: `0 0 14px ${ms.color}55` }}>
-                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}>{ms.icon}</span>
+                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}><PixelIcon name={ms.icon} size="0.9em" /></span>
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
                     </div>
                   )}
                   {freezeUsedToday(save) && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
-                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🧊</span>
+                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#38bdf8' }}><PixelIcon name="frost" size="0.9em" /></span>
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
                     </div>
                   )}
                 </div>
               ) : null; })()}
               <div className="flex flex-col gap-2">
-                <button onClick={game.replayArcade} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ PLAY AGAIN</button>
-                <button onClick={game.goArcadeSelect} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>☰ CHANGE LEVEL</button>
+                <button onClick={game.replayArcade} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.82em">PLAY AGAIN</PixelIconLabel></button>
+                <button onClick={game.goArcadeSelect} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}><PixelIconLabel name="target" size="0.82em">CHANGE LEVEL</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1405,31 +1406,31 @@ export default function Home() {
               {(() => { const st = liveStreak(save); const ms = milestoneAt(st); return st > 0 ? (
                 <div className="mb-4 flex flex-col" style={{ gap: 8 }}>
                   <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)' }}>
-                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🔥</span>
+                    <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#f97316' }}><PixelIcon name="flame" size="0.9em" /></span>
                     <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#f97316' }}>{st} DAY STREAK!</span>
                   </div>
                   {ms && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.7rem', background: `${ms.color}1a`, border: `2px solid ${ms.color}`, boxShadow: `0 0 14px ${ms.color}55` }}>
-                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}>{ms.icon}</span>
+                      <span style={{ fontSize: 'clamp(1.1rem,4.5vw,1.5rem)' }}><PixelIcon name={ms.icon} size="0.9em" /></span>
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: ms.color, lineHeight: 1.6 }}>{ms.name.toUpperCase()} BADGE EARNED!</span>
                     </div>
                   )}
                   {freezeUsedToday(save) && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
-                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)' }}>🧊</span>
+                      <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#38bdf8' }}><PixelIcon name="frost" size="0.9em" /></span>
                       <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
                     </div>
                   )}
                 </div>
               ) : null; })()}
               <div className="flex gap-2 mb-2">
-                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
-                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}><PixelIconLabel name="share" size="0.82em">SHARE</PixelIconLabel></button>
+                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}><PixelIconLabel name="save" size="0.82em">SAVE</PixelIconLabel></button>
               </div>
               {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginBottom: 8 }}>{shareMsg}</div>}
               <div className="flex flex-col gap-2">
-                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ CONTINUE</button>
-                <button onClick={game.goPokedex} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}>📕 VIEW POKÉDEX</button>
+                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="arrowRight" size="0.82em">CONTINUE</PixelIconLabel></button>
+                <button onClick={game.goPokedex} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#38bdf8', background: 'transparent', border: '1px solid #38bdf8', cursor: 'pointer' }}><PixelIconLabel name="book" size="0.82em">VIEW POKÉDEX</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1460,7 +1461,7 @@ export default function Home() {
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
-              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>💨</div>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem', color: '#ef4444' }}><PixelIcon name="cross" size="0.95em" /></div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', marginBottom: '0.75rem' }}>{state.feedback === "Time's up!" ? "TIME'S UP!" : 'SO CLOSE!'}</div>
               <div className="flex justify-center mb-3">
                 <PokemonSprite src={pixelSprite(b.dex)} name={nameOf(b.dex)} size={110} bounce={false} fallback={artwork(b.dex)} />
@@ -1472,8 +1473,8 @@ export default function Home() {
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: retryGuidance ? '0.65rem' : '1.25rem' }}>{failureText}<br />TRY AGAIN!</p>
               {retryGuidance && <div className="rounded-lg mb-4" style={{ padding: '0.6rem', background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.28)' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', lineHeight: 1.75 }}>TRAINING TIP</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.25vw,0.4rem)', color: '#cbd5e1', lineHeight: 1.7, marginTop: 4 }}>{retryGuidance}</div></div>}
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryBattle} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY</button>
-                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
+                <button onClick={game.retryBattle} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.82em">RETRY</PixelIconLabel></button>
+                <button onClick={() => curriculumBattle ? game.openCurriculumTopic(curriculumBattle.topicId) : game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}><PixelIconLabel name="arrowLeft" size="0.82em">BACK</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1498,7 +1499,7 @@ export default function Home() {
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>READY TO ADVANCE!</div>
               <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum crest" style={{ width: 'clamp(4.5rem,25vw,7rem)', height: 'clamp(4.5rem,25vw,7rem)', objectFit: 'contain', imageRendering: 'pixelated', margin: '0 auto 0.8rem' }} />
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU SHOWED YOU'RE READY!<br />{curriculumTopic.title.toUpperCase()} IS NOW OPEN.</p>
-              <button onClick={() => game.openCurriculumTopic(curriculumTopic.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ START TOPIC</button>
+              <button onClick={() => game.openCurriculumTopic(curriculumTopic.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="arrowRight" size="0.82em">START TOPIC</PixelIconLabel></button>
             </div>
           </Frame>
         </div>
@@ -1518,7 +1519,7 @@ export default function Home() {
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.75rem', textShadow: '0 0 12px #FFD700' }}>READY TO EXPLORE!</div>
               <img src="/pokemaths/images/curriculum-crest.png" alt="Curriculum crest" style={{ width: 'clamp(4.5rem,25vw,7rem)', height: 'clamp(4.5rem,25vw,7rem)', objectFit: 'contain', imageRendering: 'pixelated', margin: '0 auto 0.8rem' }} />
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>YOU SHOWED YOU'RE READY!<br />{curriculumRegion.name.toUpperCase()} IS NOW OPEN.</p>
-              <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ ENTER {curriculumRegion.name.toUpperCase()}</button>
+              <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="arrowRight" size="0.82em">ENTER {curriculumRegion.name.toUpperCase()}</PixelIconLabel></button>
             </div>
           </Frame>
         </div>
@@ -1534,14 +1535,14 @@ export default function Home() {
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #22c55e', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.5rem', textShadow: '0 0 12px #FFD700' }}>🔑 UNLOCKED!</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#FFD700', marginBottom: '0.5rem', textShadow: '0 0 12px #FFD700' }}><PixelIconLabel name="key" size="0.86em">UNLOCKED!</PixelIconLabel></div>
               <div className="flex justify-center mb-3">
                 <PokemonSprite src={artwork(b.dex)} name={nameOf(b.dex)} size={140} glow={game.activeRegion.accentColor} />
               </div>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>TEST PASSED! YOU CAN NOW<br />BATTLE {nameOf(b.dex).toUpperCase()} TO CATCH IT.</p>
               <div className="flex flex-col gap-2">
-                <button onClick={() => game.startBattle(b.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>▶ PLAY NOW</button>
-                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'transparent', border: '1px solid #22c55e', cursor: 'pointer' }}>← BACK TO LEVELS</button>
+                <button onClick={() => game.startBattle(b.id)} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="play" size="0.82em">PLAY NOW</PixelIconLabel></button>
+                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#22c55e', background: 'transparent', border: '1px solid #22c55e', cursor: 'pointer' }}><PixelIconLabel name="arrowLeft" size="0.82em">BACK TO LEVELS</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1567,8 +1568,8 @@ export default function Home() {
               </div>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>SHOW YOU'RE READY FOR THIS TOPIC.<br />A READINESS TRIAL NEEDS 3/3.</p>
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY READINESS TRIAL</button>
-                <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK TO REGION</button>
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.82em">RETRY READINESS TRIAL</PixelIconLabel></button>
+                <button onClick={() => game.openCurriculumRegion(curriculumRegion.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}><PixelIconLabel name="arrowLeft" size="0.82em">BACK TO REGION</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1593,8 +1594,8 @@ export default function Home() {
               </div>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>SHOW YOU'RE READY FOR THIS REGION.<br />A READINESS TRIAL NEEDS 3/3.</p>
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ RETRY READINESS TRIAL</button>
-                <button onClick={game.goCurriculumMap} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← REGION MAP</button>
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.82em">RETRY READINESS TRIAL</PixelIconLabel></button>
+                <button onClick={game.goCurriculumMap} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}><PixelIconLabel name="arrowLeft" size="0.82em">REGION MAP</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1611,7 +1612,7 @@ export default function Home() {
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.85)', border: '3px solid #ef4444' }}>
-              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>📝</div>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem', color: '#ef4444' }}><PixelIcon name="note" size="0.95em" /></div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', marginBottom: '0.75rem' }}>NOT QUITE!</div>
               <div className="rounded-lg mb-3" style={{ padding: 'clamp(0.5rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>YOU GOT</div>
@@ -1619,8 +1620,8 @@ export default function Home() {
               </div>
               <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2, marginBottom: '1.25rem' }}>GET ALL 3 RIGHT TO UNLOCK<br />THIS LEVEL. TRY AGAIN!</p>
               <div className="flex flex-col gap-2">
-                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}>↻ TRY TEST AGAIN</button>
-                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}>← BACK</button>
+                <button onClick={game.retryTest} className="w-full rounded-lg font-bold text-black" style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.8rem 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', cursor: 'pointer' }}><PixelIconLabel name="reset" size="0.82em">TRY TEST AGAIN</PixelIconLabel></button>
+                <button onClick={() => game.openRegion(game.activeRegion!.id)} className="w-full rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.6rem 0', color: '#aaa', background: 'transparent', border: '1px solid #444', cursor: 'pointer' }}><PixelIconLabel name="arrowLeft" size="0.82em">BACK</PixelIconLabel></button>
               </div>
             </div>
           </Frame>
@@ -1674,7 +1675,7 @@ export default function Home() {
                 SEARCH YOUR CAUGHT POKÉMON
               </label>
               <div className="flex items-center" style={{ background: 'rgba(0,0,0,0.5)', border: '2px solid #ef4444', borderRadius: '0.55rem', boxShadow: '0 0 10px rgba(239,68,68,0.12)' }}>
-                <span aria-hidden="true" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#ef4444', paddingLeft: '0.7rem' }}>⌕</span>
+                <span aria-hidden="true" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#ef4444', paddingLeft: '0.7rem', display: 'inline-flex' }}><PixelIcon name="search" size="0.9em" /></span>
                 <input
                   id="pokedex-search"
                   type="search"
@@ -1704,7 +1705,7 @@ export default function Home() {
               if (caughtList.length === 0) {
                 return (
                   <div className="w-full rounded-xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', marginBottom: '1.5rem' }}>
-                    <div style={{ fontSize: 'clamp(1.5rem,6vw,2rem)', marginBottom: 8 }}>🔍</div>
+                    <div style={{ fontSize: 'clamp(1.5rem,6vw,2rem)', marginBottom: 8, color: '#facc15' }}><PixelIcon name="search" size="0.92em" /></div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO POKÉMON YET —<br />WIN BATTLES TO CATCH THEM!</div>
                   </div>
                 );
@@ -1712,7 +1713,7 @@ export default function Home() {
               return (
                 <div className="w-full" style={{ marginBottom: '1.25rem' }}>
                   <PokedexSectionHeader
-                    label="★ CAUGHT"
+                    label={<PixelIconLabel name="star" size="0.82em">CAUGHT</PixelIconLabel>}
                     count={searchTerm ? `${matchingCaughtList.length}/${caughtList.length}` : String(caughtList.length)}
                     accent="#FFD700"
                     expanded={isExpanded('caught')}
@@ -1750,7 +1751,7 @@ export default function Home() {
               return (
                 <div className="w-full" style={{ marginBottom: '1.25rem' }}>
                   <PokedexSectionHeader
-                    label="⚡ MEGA EVOLUTIONS"
+                    label={<PixelIconLabel name="bolt" size="0.82em">MEGA EVOLUTIONS</PixelIconLabel>}
                     count={`${megaCount}/${MEGAS.length}`}
                     accent="#eab308"
                     expanded={isExpanded('megas')}
@@ -1790,7 +1791,7 @@ export default function Home() {
               return (
                 <div className="w-full" style={{ marginBottom: '1.25rem' }}>
                   <PokedexSectionHeader
-                    label="🏅 STREAK MILESTONES"
+                    label={<PixelIconLabel name="medal" size="0.82em">STREAK MILESTONES</PixelIconLabel>}
                     count={`${earned}/${STREAK_MILESTONES.length}`}
                     accent="#f97316"
                     expanded={isExpanded('milestones')}
@@ -1803,7 +1804,7 @@ export default function Home() {
                         return (
                           <div key={`ms-${m.days}`} className="rounded-lg flex flex-col items-center justify-center"
                             style={{ padding: 'clamp(0.5rem,2vw,0.8rem)', minHeight: 'clamp(84px,24vw,110px)', background: got ? `${m.color}14` : 'rgba(0,0,0,0.4)', border: `1px solid ${got ? m.color : '#2a2a2a'}`, boxShadow: got ? `0 0 8px ${m.color}33` : 'none' }}>
-                            <span style={{ fontSize: 'clamp(1.4rem,6vw,2rem)', filter: got ? 'none' : 'grayscale(1) opacity(0.35)' }}>{got ? m.icon : '🔒'}</span>
+                            <span style={{ fontSize: 'clamp(1.4rem,6vw,2rem)', filter: got ? 'none' : 'grayscale(1) opacity(0.35)', color: got ? m.color : '#64748b' }}><PixelIcon name={got ? m.icon : 'lock'} size="0.9em" /></span>
                             <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: got ? m.color : '#555', marginTop: 6, textAlign: 'center', lineHeight: 1.4 }}>{m.days} DAY{m.days === 1 ? '' : 'S'}</span>
                             {got && <span style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', marginTop: 3, textAlign: 'center', lineHeight: 1.4 }}>{m.name.toUpperCase()}</span>}
                           </div>
@@ -1821,7 +1822,7 @@ export default function Home() {
               return (
                 <div className="w-full" style={{ marginBottom: '1.25rem' }}>
                   <PokedexSectionHeader
-                    label="GYM BADGES"
+                    label={<PixelIconLabel name="badge" size="0.82em">GYM BADGES</PixelIconLabel>}
                     count={`${badgeCount}/${GYM_BADGES.length}`}
                     accent="#facc15"
                     expanded={isExpanded('badges')}
@@ -1961,22 +1962,22 @@ export default function Home() {
       const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
       return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`;
     };
-    const Card = ({ icon, label, value, sub, color }: { icon: string; label: string; value: string; sub?: string; color: string }) => (
+    const Card = ({ icon, label, value, sub, color }: { icon: PixelIconName; label: string; value: string; sub?: string; color: string }) => (
       <div className="rounded-xl flex flex-col" style={{ padding: 'clamp(0.7rem,3vw,1.1rem)', background: `${color}12`, border: `2px solid ${color}55`, gap: 4 }}>
-        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)' }}>{icon}</span>{label}</div>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.15rem)', color }}><PixelIcon name={icon} size="0.86em" /></span>{label}</div>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color, lineHeight: 1.3 }}>{value}</div>
         {sub && <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#777', lineHeight: 1.6 }}>{sub}</div>}
       </div>
     );
     // A little playful commentary based on how much they've done.
     const quips: string[] = [];
-    if (st.seconds >= 60) quips.push('WHO SAID SCREEN TIME WAS BAD? 😎');
-    if (st.correct >= 1) quips.push(`THAT'S ${st.correct.toLocaleString()} SUMS SOLVED — YOUR BRAIN IS BUFF! 💪`);
-    if (accuracy >= 90 && total >= 20) quips.push('SHARPSHOOTER ACCURACY! 🎯');
-    else if (accuracy >= 75 && total >= 20) quips.push('SOLID ACCURACY — KEEP GOING! ✨');
-    if (caught >= 1) quips.push(`${caught} POKÉMON CAUGHT WITH PURE MATHS POWER! ⚡`);
-    if (st.daysPlayed >= 3) quips.push(`${st.daysPlayed} DAYS OF PRACTICE — THAT'S DEDICATION! 📆`);
-    if (quips.length === 0) quips.push('PLAY A BATTLE TO START YOUR STATS! ▶');
+    if (st.seconds >= 60) quips.push('YOUR LEARNING TIME IS BUILDING UP.');
+    if (st.correct >= 1) quips.push(`${st.correct.toLocaleString()} SUMS SOLVED. YOUR BRAIN IS GROWING STRONGER.`);
+    if (accuracy >= 90 && total >= 20) quips.push('SHARPSHOOTER ACCURACY!');
+    else if (accuracy >= 75 && total >= 20) quips.push('SOLID ACCURACY. KEEP GOING!');
+    if (caught >= 1) quips.push(`${caught} POKÉMON CAUGHT WITH PURE MATHS POWER!`);
+    if (st.daysPlayed >= 3) quips.push(`${st.daysPlayed} DAYS OF PRACTICE. THAT IS DEDICATION!`);
+    if (quips.length === 0) quips.push('PLAY A BATTLE TO START YOUR STATS!');
     return (
       <Screen bg={panelBg} scroll>
         <NavBar onHome={game.goMenu} title="MY STATS" accent="#FFD700" />
@@ -1986,7 +1987,7 @@ export default function Home() {
 
             {/* Hero: total time */}
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.08)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.18)', marginBottom: '1rem' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 6 }}>⏱ TIME LEARNING</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginBottom: 6 }}><PixelIconLabel name="timer" size="0.82em">TIME LEARNING</PixelIconLabel></div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.score, color: '#FFD700' }}>{fmtDur(st.seconds)}</div>
             </div>
 
@@ -1998,16 +1999,16 @@ export default function Home() {
             </div>
 
             <div className="grid w-full" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(130px,42vw,180px), 1fr))', gap: 'clamp(0.5rem,2vw,0.75rem)' }}>
-              <Card icon="✅" label="CORRECT" value={st.correct.toLocaleString()} color="#22c55e" />
-              <Card icon="❌" label="INCORRECT" value={st.wrong.toLocaleString()} color="#ef4444" />
-              <Card icon="🎯" label="ACCURACY" value={`${accuracy}%`} sub={`${total.toLocaleString()} QUESTIONS ANSWERED`} color="#38bdf8" />
-              <Card icon="⚡" label="AVG / QUESTION" value={`${avgSec.toFixed(1)}s`} color="#eab308" />
-              <Card icon="📕" label="POKÉMON CAUGHT" value={`${caught}`} sub={`OF ${totalCatchable()}`} color="#FFD700" />
-              <Card icon="⚡" label="MEGA EVOLUTIONS" value={`${megas}`} sub={`OF ${MEGAS.length}`} color="#eab308" />
-              <Card icon="🗺" label="BATTLES WON" value={st.battlesWon.toLocaleString()} color="#22c55e" />
-              <Card icon="🎮" label="ARCADE RUNS" value={st.arcadeRuns.toLocaleString()} color="#38bdf8" />
-              <Card icon="🔑" label="TESTS PASSED" value={st.testsPassed.toLocaleString()} color="#a78bfa" />
-              <Card icon="🔥" label="STREAK" value={`${liveStreak(save)}`} sub={`BEST ${save.streak?.best ?? 0} · ${st.daysPlayed} DAYS PLAYED`} color="#f97316" />
+              <Card icon="check" label="CORRECT" value={st.correct.toLocaleString()} color="#22c55e" />
+              <Card icon="cross" label="INCORRECT" value={st.wrong.toLocaleString()} color="#ef4444" />
+              <Card icon="target" label="ACCURACY" value={`${accuracy}%`} sub={`${total.toLocaleString()} QUESTIONS ANSWERED`} color="#38bdf8" />
+              <Card icon="bolt" label="AVG / QUESTION" value={`${avgSec.toFixed(1)}s`} color="#eab308" />
+              <Card icon="book" label="POKÉMON CAUGHT" value={`${caught}`} sub={`OF ${totalCatchable()}`} color="#FFD700" />
+              <Card icon="bolt" label="MEGA EVOLUTIONS" value={`${megas}`} sub={`OF ${MEGAS.length}`} color="#eab308" />
+              <Card icon="map" label="BATTLES WON" value={st.battlesWon.toLocaleString()} color="#22c55e" />
+              <Card icon="play" label="ARCADE RUNS" value={st.arcadeRuns.toLocaleString()} color="#38bdf8" />
+              <Card icon="key" label="TESTS PASSED" value={st.testsPassed.toLocaleString()} color="#a78bfa" />
+              <Card icon="flame" label="STREAK" value={`${liveStreak(save)}`} sub={`BEST ${save.streak?.best ?? 0} · ${st.daysPlayed} DAYS PLAYED`} color="#f97316" />
             </div>
           </Frame>
         </div>
@@ -2019,7 +2020,7 @@ export default function Home() {
   // ABOUT
   // =========================================================================
   if (state.screen === 'about') {
-    const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+    const Section = ({ title, children }: { title: ReactNode; children: ReactNode }) => (
       <div className="w-full rounded-xl" style={{ padding: 'clamp(0.75rem,3vw,1.25rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#FFD700', marginBottom: 8 }}>{title}</div>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2 }}>{children}</div>
@@ -2041,8 +2042,8 @@ export default function Home() {
               <Section title="ARCADE">
                 Quick pick-up-and-play. Choose a level and race a fixed run of questions for score and accuracy — wrong answers are allowed, so it's great for practice.
               </Section>
-              <Section title="🔥 DAILY STREAK">
-                Play at least one battle or arcade run each day to build your streak. Reach 3, 7, 14, 30, 60, 100 and 365 days to earn milestone badges — see them in the Pokédex. Every 5 days you also earn a 🧊 streak freeze: if you miss a day, a freeze is spent automatically to keep your streak alive.
+              <Section title={<PixelIconLabel name="flame" size="0.86em">DAILY STREAK</PixelIconLabel>}>
+                Play at least one battle or arcade run each day to build your streak. Reach 3, 7, 14, 30, 60, 100 and 365 days to earn milestone badges in the Pokédex. Every 5 days you also earn a streak freeze. If you miss a day, a freeze is spent automatically to keep your streak alive.
               </Section>
               <Section title="LEARNING">
                 37 topics span the primary maths curriculum, from counting and number bonds up to fractions, decimals, percentages, and early algebra.
@@ -2068,7 +2069,7 @@ export default function Home() {
         <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - clamp(24px,6.5vw,30px))' : '3px', transform: 'translateY(-50%)', width: 'clamp(20px,5.5vw,26px)', height: 'clamp(20px,5.5vw,26px)', borderRadius: '50%', background: '#fff', transition: 'left 0.15s' }} />
       </button>
     );
-    const Row = ({ title, desc, on, onToggle, accent }: { title: string; desc: string; on: boolean; onToggle: () => void; accent: string }) => (
+    const Row = ({ title, desc, on, onToggle, accent }: { title: ReactNode; desc: string; on: boolean; onToggle: () => void; accent: string }) => (
       <div onClick={onToggle} role="button" className="w-full rounded-xl flex items-center gap-3" style={{ padding: 'clamp(0.75rem,3vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${on ? accent : '#333'}`, cursor: 'pointer' }}>
         <div className="flex-1" style={{ minWidth: 0 }}>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: on ? accent : '#ccc' }}>{title}</div>
@@ -2086,27 +2087,27 @@ export default function Home() {
               {activeProfile ? `${activeProfile.name.toUpperCase()}'S SETTINGS` : ''}{cloudUser ? ' · SYNCED' : ' · THIS DEVICE'}
             </p>
             <div className="flex flex-col gap-3 w-full">
-              <Row title="⚡ SPEED MODE" desc="No OK button — your answer is sent automatically as soon as you've typed enough digits." on={settings.speedMode} accent="#eab308" onToggle={() => setSetting({ speedMode: !settings.speedMode })} />
-              <Row title="◑ BLACK & WHITE" desc="Show the whole game in monochrome." on={settings.blackWhite} accent="#94a3b8" onToggle={() => setSetting({ blackWhite: !settings.blackWhite })} />
+              <Row title={<PixelIconLabel name="bolt" size="0.84em">SPEED MODE</PixelIconLabel>} desc="Your answer is sent automatically once you have typed enough digits." on={settings.speedMode} accent="#eab308" onToggle={() => setSetting({ speedMode: !settings.speedMode })} />
+              <Row title={<PixelIconLabel name="token" size="0.84em">BLACK & WHITE</PixelIconLabel>} desc="Show the whole game in monochrome." on={settings.blackWhite} accent="#94a3b8" onToggle={() => setSetting({ blackWhite: !settings.blackWhite })} />
             </div>
 
             {/* --- install to home screen (PWA) --- */}
-            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', margin: '1.75rem 0 0.75rem', textAlign: 'center' }}>📲 INSTALL AS AN APP</div>
+            <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#94a3b8', margin: '1.75rem 0 0.75rem', textAlign: 'center' }}><PixelIconLabel name="save" size="0.84em">INSTALL AS AN APP</PixelIconLabel></div>
             <div className="flex flex-col gap-3 w-full">
               <div className="w-full rounded-xl" style={{ padding: 'clamp(0.85rem,3.5vw,1.2rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #333' }}>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', marginBottom: 10 }}>🍎 IPHONE &amp; IPAD</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', marginBottom: 10 }}>IOS: IPHONE &amp; IPAD</div>
                 <ol style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2.1, listStyle: 'none', margin: 0, padding: 0 }}>
                   <li>1. OPEN THIS PAGE IN SAFARI</li>
-                  <li>2. TAP THE SHARE BUTTON <span style={{ color: '#38bdf8' }}>⬆️</span></li>
+                  <li>2. TAP THE SHARE BUTTON <span style={{ color: '#38bdf8' }}><PixelIcon name="share" size="0.84em" /></span></li>
                   <li>3. CHOOSE "ADD TO HOME SCREEN"</li>
                   <li>4. TAP "ADD" — DONE!</li>
                 </ol>
               </div>
               <div className="w-full rounded-xl" style={{ padding: 'clamp(0.85rem,3.5vw,1.2rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #333' }}>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e', marginBottom: 10 }}>🤖 ANDROID</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e', marginBottom: 10 }}>ANDROID</div>
                 <ol style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', lineHeight: 2.1, listStyle: 'none', margin: 0, padding: 0 }}>
                   <li>1. OPEN THIS PAGE IN CHROME</li>
-                  <li>2. TAP THE MENU <span style={{ color: '#22c55e' }}>⋮</span> (TOP-RIGHT)</li>
+                  <li>2. TAP THE CHROME MENU (TOP-RIGHT)</li>
                   <li>3. TAP "ADD TO HOME SCREEN" / "INSTALL APP"</li>
                   <li>4. TAP "ADD" / "INSTALL" — DONE!</li>
                 </ol>
@@ -2130,7 +2131,7 @@ export default function Home() {
         <div className="flex-1 w-full flex flex-col items-center justify-center" style={{ padding: '1rem' }}>
           <Frame>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1.25rem,5vw,2rem)', background: 'rgba(0,0,0,0.7)', border: '2px solid #38bdf8' }}>
-              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem' }}>{signedIn ? '☁️' : '👤'}</div>
+              <div style={{ fontSize: 'clamp(2rem,9vw,3rem)', marginBottom: '0.5rem', color: '#38bdf8' }}><PixelIcon name={signedIn ? 'cloud' : 'trainer'} size="0.95em" /></div>
               {!firebaseReady() ? (
                 <>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>CLOUD SYNC</div>
@@ -2138,7 +2139,7 @@ export default function Home() {
                 </>
               ) : signedIn ? (
                 <>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#22c55e', marginBottom: '0.75rem' }}>SYNCED ✓</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#22c55e', marginBottom: '0.75rem' }}><PixelIconLabel name="check" size="0.86em">SYNCED</PixelIconLabel></div>
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '0.75rem' }}>
                     Signed in as<br /><span style={{ color: '#FFD700' }}>{cloudUser!.email ?? cloudUser!.displayName ?? 'your account'}</span>
                   </p>
@@ -2215,10 +2216,10 @@ export default function Home() {
 
               {/* How it was caught */}
               <div className="rounded-lg text-left" style={{ marginTop: 14, padding: 'clamp(0.6rem,2.5vw,1rem)', background: `${accent}14`, border: `1px solid ${accent}55` }}>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: accent, marginBottom: 8 }}>★ HOW YOU CAUGHT IT</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: accent, marginBottom: 8 }}><PixelIconLabel name="star" size="0.82em">HOW YOU CAUGHT IT</PixelIconLabel></div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0', lineHeight: 2 }}>
                   By mastering <span style={{ color: '#FFD700' }}>{topicName}</span>
-                  {battle?.isBoss ? ' — as a timed legendary battle! ⏱' : '!'}
+                  {battle?.isBoss ? <span> AS A TIMED LEGENDARY BATTLE <PixelIcon name="timer" size="0.8em" />!</span> : '!'}
                 </div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', marginTop: 8, lineHeight: 1.9 }}>
                   DIFFICULTY: LV {battle?.level}/{battle ? getTopic(battle.topic).maxLevel : ''}
@@ -2236,8 +2237,8 @@ export default function Home() {
 
               {/* Share / save this Pokémon */}
               <div className="flex gap-2" style={{ marginTop: 16 }}>
-                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
-                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                <button onClick={onShare} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}><PixelIconLabel name="share" size="0.82em">SHARE</PixelIconLabel></button>
+                <button onClick={onSave} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}><PixelIconLabel name="save" size="0.82em">SAVE</PixelIconLabel></button>
               </div>
               {shareMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 10 }}>{shareMsg}</div>}
             </div>
@@ -2269,7 +2270,7 @@ export default function Home() {
         <div className="flex-1 w-full overflow-y-auto flex flex-col items-center" style={{ padding: 'clamp(0.75rem,3vw,1.5rem) 1rem' }}>
           <Frame style={{ flexShrink: 0 }}>
             <div className="w-full rounded-2xl text-center" style={{ padding: 'clamp(1rem,4vw,1.75rem)', background: 'rgba(0,0,0,0.8)', border: '3px solid #eab308', boxShadow: '0 0 30px rgba(234,179,8,0.3)' }}>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: 8, textShadow: '0 0 10px #eab308' }}>⚡ MEGA EVOLUTION ⚡</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#eab308', letterSpacing: 1, marginBottom: 8, textShadow: '0 0 10px #eab308' }}><PixelIconLabel name="bolt" size="0.84em">MEGA EVOLUTION</PixelIconLabel></div>
               <div className="flex justify-center">
                 <img src={artwork(m.formId)} alt={m.name} onError={(e) => { const i = e.currentTarget; if (i.src !== artwork(m.dex)) i.src = artwork(m.dex); }}
                   style={{ width: 'clamp(150px,45vw,220px)', height: 'clamp(150px,45vw,220px)', objectFit: 'contain', filter: 'drop-shadow(0 0 20px rgba(234,179,8,0.55))' }} />
@@ -2279,11 +2280,11 @@ export default function Home() {
 
               <div className="flex gap-2" style={{ marginTop: 16 }}>
                 <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)' }}>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>⚡ FASTEST</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}><PixelIconLabel name="bolt" size="0.8em">FASTEST</PixelIconLabel></div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#eab308', marginTop: 5 }}>{entry.bestTime != null ? fmtTime(entry.bestTime) : '—'}</div>
                 </div>
                 <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>📅 EARNED</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>EARNED</div>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#fff', marginTop: 5, lineHeight: 1.5 }}>{earned}</div>
                 </div>
               </div>
@@ -2293,8 +2294,8 @@ export default function Home() {
               </p>
 
               <div className="flex gap-2" style={{ marginTop: 16 }}>
-                <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}>📤 SHARE</button>
-                <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}>💾 SAVE</button>
+                <button onClick={onShareMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#22c55e', background: 'rgba(34,197,94,0.08)', border: '2px solid #22c55e', cursor: 'pointer' }}><PixelIconLabel name="share" size="0.82em">SHARE</PixelIconLabel></button>
+                <button onClick={onSaveMega} className="flex-1 rounded-lg font-bold" style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '2px solid #a78bfa', cursor: 'pointer' }}><PixelIconLabel name="save" size="0.82em">SAVE</PixelIconLabel></button>
               </div>
               {megaMsg && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', marginTop: 10 }}>{megaMsg}</div>}
             </div>
@@ -2327,9 +2328,9 @@ export default function Home() {
       : regionTest
         ? `READINESS TRIAL · ${curriculumTestRegion?.name.toUpperCase() ?? 'REGION'}`
         : test
-          ? `🔑 TEST · ${b ? nameOf(b.dex).toUpperCase() : ''}`
-          : curriculum ? `${b?.isBoss ? '★ BOSS · ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
-          : journey ? `${b?.isBoss ? '★ ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
+          ? `TEST: ${b ? nameOf(b.dex).toUpperCase() : ''}`
+          : curriculum ? `${b?.isBoss ? 'BOSS: ' : ''}${b ? nameOf(b.dex).toUpperCase() : 'CURRICULUM'}`
+          : journey ? `${b?.isBoss ? 'BOSS: ' : ''}${b ? nameOf(b.dex).toUpperCase() : ''}` : arcadeLevel?.name.toUpperCase() ?? 'ARCADE';
     const doneCount = state.attempted;
     const curriculumBoss = curriculum && game.activeCurriculumBattle?.isBoss ? game.activeCurriculumBattle : null;
     const isCurriculumBoss = Boolean(curriculumBoss);
@@ -2354,10 +2355,10 @@ export default function Home() {
           right={
             <>
               {regionMode && state.timeRemaining !== null && (
-                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: state.timeRemaining <= 10 ? '#ef4444' : '#22c55e' }}>⏱{state.timeRemaining}</span>
+                <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: state.timeRemaining <= 10 ? '#ef4444' : '#22c55e' }}><PixelIconLabel name="timer" size="0.82em">{state.timeRemaining}</PixelIconLabel></span>
               )}
-              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#22c55e' }}>{state.correctCount}✓</span>
-              {state.wrong > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#ef4444' }}>{state.wrong}✗</span>}
+              <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#22c55e' }}><PixelIconLabel name="check" size="0.82em">{state.correctCount}</PixelIconLabel></span>
+              {state.wrong > 0 && <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#ef4444' }}><PixelIconLabel name="cross" size="0.82em">{state.wrong}</PixelIconLabel></span>}
               <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: '#FFD700' }}>{state.score.toLocaleString()}</span>
             </>
           }
@@ -2425,7 +2426,7 @@ export default function Home() {
   // Fallback
   return (
     <Screen bg={panelBg}>
-      <div className="flex-1 flex items-center justify-center">{backBtn('← MENU', game.goMenu, '#FFD700')}</div>
+      <div className="flex-1 flex items-center justify-center">{backBtn('MENU', game.goMenu, '#FFD700')}</div>
     </Screen>
   );
 }

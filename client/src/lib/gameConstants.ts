@@ -175,7 +175,7 @@ export const ASSETS = {
 // FEEDBACK MESSAGES
 // ---------------------------------------------------------------------------
 export const WRONG_ANSWER_MESSAGES = [
-  "Not quite! Try again! 💪",
+  "Not quite! Try again!",
   "Oops! Give it another go!",
   "So close! You can do it!",
   "Nearly there! Keep trying!",
@@ -184,13 +184,13 @@ export const WRONG_ANSWER_MESSAGES = [
 ];
 
 export const CORRECT_ANSWER_MESSAGES = [
-  "Brilliant! ⚡",
-  "Amazing! 🌟",
+  "Brilliant!",
+  "Amazing!",
   "Correct! Keep going!",
-  "Superstar! ✨",
-  "Fantastic! 🎉",
-  "You're on fire! 🔥",
-  "Incredible! 💥",
+  "Superstar!",
+  "Fantastic!",
+  "You're on fire!",
+  "Incredible!",
 ];
 
 export const PIXEL_FONT = "'Press Start 2P', monospace";

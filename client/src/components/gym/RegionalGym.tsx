@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
+import { PixelIcon, PixelIconLabel } from '@/components/ui/PixelIcon';
 import { GYM_ENGINE_LABELS, getGymTopicsForRegion, type GymEngineId, type GymTopicConfig } from '@/lib/gymContent';
 import type { CurriculumRegion } from '@/lib/curriculumRegions';
 import { getGymBadge, type GymBadgeDefinition } from '@/lib/gymBadges';
@@ -60,7 +61,7 @@ function Shell({
             </div>
           </section>
           {children}
-          <button type="button" onClick={onBack} style={{ ...controlStyle, alignSelf: 'center', color: '#dbeafe', background: 'rgba(15,23,42,0.78)', border: '1px solid #64748b', padding: '0.6rem 0.9rem' }}>← BACK TO REGION</button>
+          <button type="button" onClick={onBack} style={{ ...controlStyle, alignSelf: 'center', color: '#dbeafe', background: 'rgba(15,23,42,0.78)', border: '1px solid #64748b', padding: '0.6rem 0.9rem' }}><PixelIconLabel name="arrowLeft" size="0.8em">BACK TO REGION</PixelIconLabel></button>
         </div>
       </div>
     </div>
@@ -101,7 +102,7 @@ function FractionModel({ denominator, selected, onSelect, accent }: { denominato
         onPointerCancel={() => setDragging(false)}
         style={{ gridTemplateColumns: `repeat(${denominator}, minmax(0, 1fr))`, gap: '0.3rem', marginTop: '0.45rem', touchAction: 'none', cursor: 'ew-resize' }}
       >
-        {Array.from({ length: denominator }, (_, item) => <button key={item} type="button" onClick={() => onSelect(item + 1)} aria-label={`Shade ${item + 1} equal part${item === 0 ? '' : 's'}`} style={{ minHeight: '3.35rem', borderRadius: '0.48rem', cursor: 'pointer', border: `2px solid ${item < selected ? accent : 'rgba(203,213,225,0.45)'}`, background: item < selected ? `${accent}55` : 'rgba(15,23,42,0.8)', color: item < selected ? '#fff' : '#64748b', fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.58rem)' }}>{item < selected ? '●' : '·'}</button>)}
+        {Array.from({ length: denominator }, (_, item) => <button key={item} type="button" onClick={() => onSelect(item + 1)} aria-label={`Shade ${item + 1} equal part${item === 0 ? '' : 's'}`} style={{ minHeight: '3.35rem', borderRadius: '0.48rem', cursor: 'pointer', border: `2px solid ${item < selected ? accent : 'rgba(203,213,225,0.45)'}`, background: item < selected ? `${accent}55` : 'rgba(15,23,42,0.8)', color: item < selected ? '#fff' : '#64748b', fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.58rem)' }}><PixelIcon name="token" size="0.84em" /></button>)}
       </div>
     </div>
   );
@@ -113,7 +114,7 @@ function CounterModel({ max, selected, onSelect, accent, label }: { max: number;
     <div>
       <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.65vw,0.48rem)', color: '#cbd5e1', marginTop: '0.75rem' }}>{label}: {selected}</div>
       <div className="grid grid-cols-6" style={{ gap: '0.34rem', marginTop: '0.5rem' }}>
-        {Array.from({ length: cells }, (_, item) => <button key={item} type="button" onClick={() => onSelect(item + 1)} aria-label={`Set model to ${item + 1}`} style={{ minHeight: '2.35rem', borderRadius: '0.4rem', cursor: 'pointer', border: `1px solid ${item < selected ? accent : '#475569'}`, background: item < selected ? `${accent}55` : 'rgba(15,23,42,0.78)', color: item < selected ? '#fff' : '#64748b', fontSize: 'clamp(0.66rem,3vw,0.9rem)' }}>{item < selected ? '●' : '·'}</button>)}
+        {Array.from({ length: cells }, (_, item) => <button key={item} type="button" onClick={() => onSelect(item + 1)} aria-label={`Set model to ${item + 1}`} style={{ minHeight: '2.35rem', borderRadius: '0.4rem', cursor: 'pointer', border: `1px solid ${item < selected ? accent : '#475569'}`, background: item < selected ? `${accent}55` : 'rgba(15,23,42,0.78)', color: item < selected ? '#fff' : '#64748b', fontSize: 'clamp(0.66rem,3vw,0.9rem)' }}><PixelIcon name="token" size="0.84em" /></button>)}
       </div>
     </div>
   );
@@ -235,7 +236,7 @@ function TopicPractice({
     return (
       <Shell region={region} title={`${config.room} complete`} subtitle="Your concept practice is recorded separately from Journey progress." onBack={onBack}>
         <section className="rounded-2xl text-center" style={{ ...panel(config.accent), padding: 'clamp(1.1rem,5vw,1.8rem)' }}>
-          <div style={{ fontSize: 'clamp(2.1rem,10vw,3.2rem)' }}>🏅</div>
+          <div style={{ fontSize: 'clamp(2.1rem,10vw,3.2rem)', color: config.accent }}><PixelIcon name="badge" size="0.92em" /></div>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.62rem,3vw,0.88rem)', color: config.accent, marginTop: '0.55rem' }}>FAMILIARITY RECORDED</div>
           <p style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.5rem)', color: '#e2e8f0', lineHeight: 1.9, margin: '0.75rem auto 1.15rem', maxWidth: '29rem' }}>You practised three varied examples for every module in {config.topic.title}. Return to Journey when you are ready to use these models in a battle.</p>
           {newlyEarnedBadge && (
@@ -247,8 +248,8 @@ function TopicPractice({
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <button type="button" onClick={onJourney} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a', color: '#111827' }}>▶ OPEN JOURNEY TOPIC</button>
-            <button type="button" onClick={() => { setModuleIndex(0); setExampleIndex(0); setHints(0); setNewlyEarnedBadge(undefined); reset(); setFinished(false); }} style={{ ...controlStyle, background: 'rgba(15,23,42,0.78)', border: `1px solid ${config.accent}`, color: config.accent }}>↻ PRACTISE AGAIN</button>
+            <button type="button" onClick={onJourney} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a', color: '#111827' }}><PixelIconLabel name="arrowRight" size="0.8em">OPEN JOURNEY TOPIC</PixelIconLabel></button>
+            <button type="button" onClick={() => { setModuleIndex(0); setExampleIndex(0); setHints(0); setNewlyEarnedBadge(undefined); reset(); setFinished(false); }} style={{ ...controlStyle, background: 'rgba(15,23,42,0.78)', border: `1px solid ${config.accent}`, color: config.accent }}><PixelIconLabel name="reset" size="0.8em">PRACTISE AGAIN</PixelIconLabel></button>
           </div>
         </section>
       </Shell>
@@ -269,11 +270,11 @@ function TopicPractice({
         {task.kind === 'digit' && <DigitModel value={config.values[moduleIndex % config.values.length]} selected={selected} onSelect={(value) => { setSelected(value); setState('idle'); }} accent={config.accent} title="NUMBER CARD" />}
         <Feedback state={state} explanation={task.explanation} hint={task.hint} />
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
-          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}>↻ RESET</button>
-          <button type="button" onClick={showHint} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}>? HINT</button>
+          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}><PixelIconLabel name="reset" size="0.8em">RESET</PixelIconLabel></button>
+          <button type="button" onClick={showHint} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}><PixelIconLabel name="hint" size="0.8em">HINT</PixelIconLabel></button>
           {state === 'correct'
-            ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}>NEXT ▶</button>
-            : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}>✓ CHECK</button>}
+            ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">NEXT</PixelIconLabel></button>
+            : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}><PixelIconLabel name="check" size="0.8em">CHECK</PixelIconLabel></button>}
         </div>
       </section>
       <section className="rounded-xl" style={{ padding: '0.7rem', background: 'rgba(15,23,42,0.72)', border: '1px solid rgba(203,213,225,0.35)' }}>
@@ -341,13 +342,13 @@ export function RegionalGym({ region, save, onBack, onReturnToJourney, onRecordP
           </div>
           {regionalBadge && regionalBadgeEarned
             ? <img src={`${import.meta.env.BASE_URL}${regionalBadge.assetPath.replace(/^\//, '')}`} alt={regionalBadge.name} style={{ width: 'clamp(2.25rem,10vw,3.1rem)', height: 'clamp(2.25rem,10vw,3.1rem)', objectFit: 'contain', imageRendering: 'pixelated' }} />
-            : <div style={{ fontSize: 'clamp(1.6rem,7vw,2.3rem)' }}>🏛️</div>}
+            : <div style={{ fontSize: 'clamp(1.6rem,7vw,2.3rem)', color: region.accentColor }}><PixelIcon name="gym" size="0.9em" /></div>}
         </div>
       </section>
 
-      {region.id === 'kanto' && <button type="button" onClick={() => setView('viridian')} className="w-full text-left rounded-2xl" style={{ padding: '0.9rem', background: 'rgba(5,46,22,0.8)', border: '2px solid #34d399', boxShadow: '0 0 18px rgba(52,211,153,0.22)', cursor: 'pointer' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.46rem,2.2vw,0.65rem)', color: '#86efac' }}>🌲 VIRIDIAN FOREST NUMBER SENSE STUDIOS</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#d1fae5', lineHeight: 1.75, marginTop: '0.42rem' }}>ENTER THE FOUR SPECIALIST STATIONS FOR COUNTING, COMPARISON, TEEN NUMBERS, AND NUMBER LINES.</div></button>}
+      {region.id === 'kanto' && <button type="button" onClick={() => setView('viridian')} className="w-full text-left rounded-2xl" style={{ padding: '0.9rem', background: 'rgba(5,46,22,0.8)', border: '2px solid #34d399', boxShadow: '0 0 18px rgba(52,211,153,0.22)', cursor: 'pointer' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.46rem,2.2vw,0.65rem)', color: '#86efac' }}><PixelIconLabel name="forest" size="0.84em">VIRIDIAN FOREST NUMBER SENSE STUDIOS</PixelIconLabel></div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#d1fae5', lineHeight: 1.75, marginTop: '0.42rem' }}>ENTER THE FOUR SPECIALIST STATIONS FOR COUNTING, COMPARISON, TEEN NUMBERS, AND NUMBER LINES.</div></button>}
 
-      {region.id === 'johto' && <button type="button" onClick={() => setView('johtoWorkshop')} className="w-full text-left rounded-2xl" style={{ padding: '0.9rem', background: 'rgba(69,39,4,0.82)', border: '2px solid #eab308', boxShadow: '0 0 18px rgba(234,179,8,0.22)', cursor: 'pointer' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.46rem,2.2vw,0.65rem)', color: '#fde047' }}>🏯 ECRUTEAK FRACTION AND RATIO WORKSHOP</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#fef3c7', lineHeight: 1.75, marginTop: '0.42rem' }}>SHARE EQUAL WHOLES, BUILD FRACTION BARS, AND CONNECT RELATIONSHIPS WITH DRAG-READY MODELS.</div></button>}
+      {region.id === 'johto' && <button type="button" onClick={() => setView('johtoWorkshop')} className="w-full text-left rounded-2xl" style={{ padding: '0.9rem', background: 'rgba(69,39,4,0.82)', border: '2px solid #eab308', boxShadow: '0 0 18px rgba(234,179,8,0.22)', cursor: 'pointer' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.46rem,2.2vw,0.65rem)', color: '#fde047' }}><PixelIconLabel name="shrine" size="0.84em">ECRUTEAK FRACTION AND RATIO WORKSHOP</PixelIconLabel></div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#fef3c7', lineHeight: 1.75, marginTop: '0.42rem' }}>SHARE EQUAL WHOLES, BUILD FRACTION BARS, AND CONNECT RELATIONSHIPS WITH DRAG-READY MODELS.</div></button>}
 
       <section className="rounded-2xl" style={{ padding: '0.85rem', background: 'rgba(7,16,30,0.91)', border: `2px solid ${region.accentColor}` }}>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.9vw,0.55rem)', color: region.accentColor, padding: '0.25rem 0.2rem 0.65rem' }}>TOPIC PRACTICE ROOMS</div>
@@ -358,13 +359,13 @@ export function RegionalGym({ region, save, onBack, onReturnToJourney, onRecordP
               <div className="flex items-start justify-between gap-3"><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.41rem,1.95vw,0.57rem)', color: topic.accent, lineHeight: 1.55 }}>{topic.topic.id.toUpperCase()} · {topic.room.toUpperCase()}</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.29rem,1.4vw,0.4rem)', color: progress ? '#86efac' : '#fef3c7', border: `1px solid ${progress ? '#22c55e' : '#facc15'}`, borderRadius: '0.3rem', padding: '0.23rem 0.32rem', flexShrink: 0 }}>{progress ? 'FAMILIAR' : `${topic.topic.modules.length} MODULES`}</div></div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.6vw,0.47rem)', color: '#f8fafc', lineHeight: 1.7, marginTop: '0.36rem' }}>{topic.topic.title}</div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.31rem,1.5vw,0.44rem)', color: '#cbd5e1', lineHeight: 1.75, marginTop: '0.35rem' }}>{topic.objective}</div>
-              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.31rem,1.5vw,0.44rem)', color: '#fef08a', marginTop: '0.55rem' }}>▶ ENTER {GYM_ENGINE_LABELS[topic.engine].toUpperCase()}</div>
+              <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.31rem,1.5vw,0.44rem)', color: '#fef08a', marginTop: '0.55rem' }}><PixelIconLabel name="arrowRight" size="0.8em">ENTER {GYM_ENGINE_LABELS[topic.engine].toUpperCase()}</PixelIconLabel></div>
             </button>;
           })}
         </div>
       </section>
 
-      <button type="button" onClick={() => onReturnToJourney(topics[0]?.topic.id ?? '')} style={{ ...controlStyle, color: '#111827', background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a' }}>▶ RETURN TO JOURNEY</button>
+      <button type="button" onClick={() => onReturnToJourney(topics[0]?.topic.id ?? '')} style={{ ...controlStyle, color: '#111827', background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">RETURN TO JOURNEY</PixelIconLabel></button>
     </Shell>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
+import { PixelIcon, PixelIconLabel } from '@/components/ui/PixelIcon';
 import { NumberTrailGym } from './NumberTrailGym';
 
 type StationId = 'canopy' | 'balance' | 'tenFrame' | 'trail';
@@ -62,7 +63,7 @@ function StationPage({
             </div>
           </section>
           {children}
-          <button type="button" onClick={onBack} style={{ alignSelf: 'center', ...controlStyle, color: '#cbd5e1', background: 'rgba(15,23,42,0.74)', border: '1px solid #64748b', padding: '0.65rem 0.9rem' }}>← BACK TO VIRIDIAN GYM</button>
+          <button type="button" onClick={onBack} style={{ alignSelf: 'center', ...controlStyle, color: '#cbd5e1', background: 'rgba(15,23,42,0.74)', border: '1px solid #64748b', padding: '0.65rem 0.9rem' }}><PixelIconLabel name="arrowLeft" size="0.8em">BACK TO VIRIDIAN GYM</PixelIconLabel></button>
         </div>
       </div>
     </div>
@@ -97,13 +98,13 @@ function Completion({
     <div className="flex-1 w-full overflow-y-auto" style={BACKGROUND}>
       <div className="w-full flex flex-col items-center" style={{ minHeight: '100%', padding: 'clamp(1rem,4vw,2rem) 1rem' }}>
         <div className="w-full rounded-2xl" style={{ maxWidth: '32rem', padding: 'clamp(1.1rem,5vw,1.8rem)', background: 'rgba(5,20,31,0.92)', border: '2px solid #34d399', boxShadow: '0 0 28px rgba(52,211,153,0.28)', textAlign: 'center' }}>
-          <div style={{ fontSize: 'clamp(2.2rem,10vw,3.3rem)', marginBottom: '0.6rem' }}>🌲</div>
+          <div style={{ fontSize: 'clamp(2.2rem,10vw,3.3rem)', marginBottom: '0.6rem', color: '#86efac' }}><PixelIcon name="forest" size="0.92em" /></div>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.72rem,3.5vw,1rem)', color: '#86efac', lineHeight: 1.7 }}>{title.toUpperCase()}</div>
           <p style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.9vw,0.56rem)', color: '#e2e8f0', lineHeight: 2, margin: '0.9rem auto 1.25rem', maxWidth: '26rem' }}>{message}</p>
           <div className="flex flex-col gap-2">
-            <button type="button" onClick={onJourney} className="w-full rounded-xl" style={{ ...controlStyle, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', padding: '0.85rem 0.7rem', background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '2px solid #fde68a' }}>▶ RETURN TO JOURNEY</button>
-            <button type="button" onClick={onReplay} className="w-full rounded-xl" style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(15,23,42,0.82)', border: '1px solid #38bdf8' }}>↻ PRACTISE AGAIN</button>
-            <button type="button" onClick={onBack} className="w-full rounded-xl" style={{ ...controlStyle, color: '#cbd5e1', background: 'transparent', border: '1px solid #64748b' }}>← BACK TO GYM</button>
+            <button type="button" onClick={onJourney} className="w-full rounded-xl" style={{ ...controlStyle, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', padding: '0.85rem 0.7rem', background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '2px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.82em">RETURN TO JOURNEY</PixelIconLabel></button>
+            <button type="button" onClick={onReplay} className="w-full rounded-xl" style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(15,23,42,0.82)', border: '1px solid #38bdf8' }}><PixelIconLabel name="reset" size="0.8em">PRACTISE AGAIN</PixelIconLabel></button>
+            <button type="button" onClick={onBack} className="w-full rounded-xl" style={{ ...controlStyle, color: '#cbd5e1', background: 'transparent', border: '1px solid #64748b' }}><PixelIconLabel name="arrowLeft" size="0.8em">BACK TO GYM</PixelIconLabel></button>
           </div>
         </div>
       </div>
@@ -149,7 +150,7 @@ function CanopyCount({ onBack, onJourney }: { onBack: () => void; onJourney: () 
         <div className="grid grid-cols-4" style={{ gap: '0.72rem', marginTop: '1.25rem', padding: '1rem', minHeight: '9rem', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.42)', borderRadius: '1rem' }}>
           {Array.from({ length: displayCount }, (_, item) => {
             const selected = counted.includes(item);
-            return <button key={item} type="button" onClick={() => toggleCounted(item)} aria-label={`Caterpie ${item + 1}${selected ? ', counted' : ''}`} style={{ minHeight: '3.25rem', borderRadius: '0.85rem', border: `2px solid ${selected ? '#facc15' : 'rgba(134,239,172,0.62)'}`, background: selected ? 'rgba(250,204,21,0.2)' : 'rgba(5,46,22,0.62)', boxShadow: selected ? '0 0 14px rgba(250,204,21,0.55)' : 'none', cursor: 'pointer', fontSize: 'clamp(1.45rem,7vw,2.1rem)' }}>🐛</button>;
+            return <button key={item} type="button" onClick={() => toggleCounted(item)} aria-label={`Caterpie ${item + 1}${selected ? ', counted' : ''}`} style={{ minHeight: '3.25rem', borderRadius: '0.85rem', border: `2px solid ${selected ? '#facc15' : 'rgba(134,239,172,0.62)'}`, background: selected ? 'rgba(250,204,21,0.2)' : 'rgba(5,46,22,0.62)', boxShadow: selected ? '0 0 14px rgba(250,204,21,0.55)' : 'none', cursor: 'pointer', fontSize: 'clamp(1.45rem,7vw,2.1rem)', color: selected ? '#fef08a' : '#86efac' }}><PixelIcon name="bug" size="0.9em" /></button>;
           })}
           {challenge.count === 0 && <div className="col-span-4 flex items-center justify-center" style={{ minHeight: '7rem', border: '1px dashed rgba(134,239,172,0.45)', borderRadius: '0.75rem', fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.6rem)', color: '#bbf7d0' }}>THE CLEARING IS EMPTY</div>}
         </div>
@@ -159,9 +160,9 @@ function CanopyCount({ onBack, onJourney }: { onBack: () => void; onJourney: () 
         </div>
         <Feedback state={state} explanation={challenge.explanation} hint={challenge.hint} />
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
-          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}>↻ RESET</button>
-          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}>? HINT</button>
-          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}>NEXT ▶</button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}>✓ CHECK</button>}
+          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}><PixelIconLabel name="reset" size="0.8em">RESET</PixelIconLabel></button>
+          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}><PixelIconLabel name="hint" size="0.8em">HINT</PixelIconLabel></button>
+          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">NEXT</PixelIconLabel></button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}><PixelIconLabel name="check" size="0.8em">CHECK</PixelIconLabel></button>}
         </div>
       </section>
     </StationPage>
@@ -195,18 +196,18 @@ function PikachuBalance({ onBack, onJourney }: { onBack: () => void; onJourney: 
         <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.42rem,2vw,0.58rem)', color: '#facc15', marginBottom: '0.55rem' }}>{challenge.title.toUpperCase()}</div>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.58rem,2.7vw,0.82rem)', color: '#f8fafc', lineHeight: 1.75 }}>{challenge.prompt}</div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-end" style={{ gap: '0.65rem', marginTop: '1.25rem' }}>
-          <div className="rounded-xl" style={{ minHeight: '8.6rem', padding: '0.65rem', background: 'rgba(56,189,248,0.1)', border: '2px solid #38bdf8', textAlign: 'center' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', color: '#bae6fd', marginBottom: '0.7rem' }}>LEFT</div><div style={{ fontSize: 'clamp(1.05rem,5vw,1.6rem)', lineHeight: 1.5, wordBreak: 'break-word' }}>{'🫐'.repeat(challenge.left)}</div><div style={{ fontFamily: PIXEL_FONT, color: '#f8fafc', fontSize: 'clamp(0.68rem,3vw,0.98rem)', marginTop: '0.5rem' }}>{challenge.left}</div></div>
-          <div style={{ fontSize: 'clamp(1.5rem,7vw,2.2rem)', paddingBottom: '2.1rem' }}>⚖️</div>
-          <div className="rounded-xl" style={{ minHeight: '8.6rem', padding: '0.65rem', background: 'rgba(244,114,182,0.1)', border: '2px solid #f472b6', textAlign: 'center' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', color: '#fbcfe8', marginBottom: '0.7rem' }}>RIGHT</div><div style={{ fontSize: 'clamp(1.05rem,5vw,1.6rem)', lineHeight: 1.5, wordBreak: 'break-word' }}>{'🫐'.repeat(challenge.right)}</div><div style={{ fontFamily: PIXEL_FONT, color: '#f8fafc', fontSize: 'clamp(0.68rem,3vw,0.98rem)', marginTop: '0.5rem' }}>{challenge.right}</div></div>
+          <div className="rounded-xl" style={{ minHeight: '8.6rem', padding: '0.65rem', background: 'rgba(56,189,248,0.1)', border: '2px solid #38bdf8', textAlign: 'center' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', color: '#bae6fd', marginBottom: '0.7rem' }}>LEFT</div><div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.16rem', fontSize: 'clamp(1.05rem,5vw,1.6rem)', lineHeight: 1.5, color: '#38bdf8' }}>{Array.from({ length: challenge.left }, (_, item) => <PixelIcon key={item} name="berry" size="0.8em" />)}</div><div style={{ fontFamily: PIXEL_FONT, color: '#f8fafc', fontSize: 'clamp(0.68rem,3vw,0.98rem)', marginTop: '0.5rem' }}>{challenge.left}</div></div>
+          <div style={{ fontSize: 'clamp(1.5rem,7vw,2.2rem)', paddingBottom: '2.1rem', color: '#fef08a' }}><PixelIcon name="scale" size="0.9em" /></div>
+          <div className="rounded-xl" style={{ minHeight: '8.6rem', padding: '0.65rem', background: 'rgba(244,114,182,0.1)', border: '2px solid #f472b6', textAlign: 'center' }}><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.7rem)', color: '#fbcfe8', marginBottom: '0.7rem' }}>RIGHT</div><div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.16rem', fontSize: 'clamp(1.05rem,5vw,1.6rem)', lineHeight: 1.5, color: '#f472b6' }}>{Array.from({ length: challenge.right }, (_, item) => <PixelIcon key={item} name="berry" size="0.8em" />)}</div><div style={{ fontFamily: PIXEL_FONT, color: '#f8fafc', fontSize: 'clamp(0.68rem,3vw,0.98rem)', marginTop: '0.5rem' }}>{challenge.right}</div></div>
         </div>
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
-          {[['left', '◀ LEFT'], ['equal', '= EQUAL'], ['right', 'RIGHT ▶']].map(([value, label]) => <button key={value} type="button" onClick={() => { setAnswer(value); setState('idle'); }} style={{ ...controlStyle, minHeight: '3.1rem', background: answer === value ? 'rgba(56,189,248,0.25)' : 'rgba(15,23,42,0.82)', color: answer === value ? '#e0f2fe' : '#cbd5e1', border: `2px solid ${answer === value ? '#38bdf8' : '#64748b'}` }}>{label}</button>)}
+          {(['left', 'equal', 'right'] as const).map((value) => <button key={value} type="button" onClick={() => { setAnswer(value); setState('idle'); }} style={{ ...controlStyle, minHeight: '3.1rem', background: answer === value ? 'rgba(56,189,248,0.25)' : 'rgba(15,23,42,0.82)', color: answer === value ? '#e0f2fe' : '#cbd5e1', border: `2px solid ${answer === value ? '#38bdf8' : '#64748b'}` }}>{value === 'left' ? <PixelIconLabel name="arrowLeft" size="0.8em">LEFT</PixelIconLabel> : value === 'right' ? <PixelIconLabel name="arrowRight" size="0.8em">RIGHT</PixelIconLabel> : 'EQUAL'}</button>)}
         </div>
         <Feedback state={state} explanation={challenge.explanation} hint={challenge.hint} />
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
-          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}>↻ RESET</button>
-          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}>? HINT</button>
-          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}>NEXT ▶</button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}>✓ CHECK</button>}
+          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}><PixelIconLabel name="reset" size="0.8em">RESET</PixelIconLabel></button>
+          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}><PixelIconLabel name="hint" size="0.8em">HINT</PixelIconLabel></button>
+          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">NEXT</PixelIconLabel></button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}><PixelIconLabel name="check" size="0.8em">CHECK</PixelIconLabel></button>}
         </div>
       </section>
     </StationPage>
@@ -244,11 +245,11 @@ function TenFrameGrove({ onBack, onJourney }: { onBack: () => void; onJourney: (
         <div className="grid grid-cols-2" style={{ gap: '0.75rem', marginTop: '1.2rem' }}>
           <div className="rounded-xl" style={{ padding: '0.7rem', background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.55)' }}>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.65vw,0.48rem)', color: '#fef3c7', marginBottom: '0.55rem' }}>ONE TEN</div>
-            <div className="grid grid-cols-5" style={{ gap: '0.24rem' }}>{fullFrame.map((_, item) => <div key={item} style={{ aspectRatio: '1', borderRadius: '0.32rem', background: '#facc15', border: '1px solid #fef08a', display: 'grid', placeItems: 'center', fontSize: 'clamp(0.62rem,3.2vw,0.9rem)' }}>●</div>)}</div>
+            <div className="grid grid-cols-5" style={{ gap: '0.24rem' }}>{fullFrame.map((_, item) => <div key={item} style={{ aspectRatio: '1', borderRadius: '0.32rem', background: '#facc15', border: '1px solid #fef08a', display: 'grid', placeItems: 'center', fontSize: 'clamp(0.62rem,3.2vw,0.9rem)', color: '#111827' }}><PixelIcon name="token" size="0.82em" /></div>)}</div>
           </div>
           <div className="rounded-xl" style={{ padding: '0.7rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.55)' }}>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.65vw,0.48rem)', color: '#bae6fd', marginBottom: '0.55rem' }}>ONES: {ones}</div>
-            <div className="grid grid-cols-5" style={{ gap: '0.24rem' }}>{looseFrame.map((_, item) => <button key={item} type="button" onClick={() => { setOnes(item + 1); setState('idle'); }} aria-label={`Set loose counters to ${item + 1}`} style={{ aspectRatio: '1', borderRadius: '0.32rem', background: item < ones ? '#38bdf8' : 'rgba(15,23,42,0.78)', color: item < ones ? '#e0f2fe' : '#475569', border: `1px solid ${item < ones ? '#bae6fd' : '#475569'}`, cursor: 'pointer', fontSize: 'clamp(0.62rem,3.2vw,0.9rem)', padding: 0 }}>{item < ones ? '●' : '·'}</button>)}</div>
+            <div className="grid grid-cols-5" style={{ gap: '0.24rem' }}>{looseFrame.map((_, item) => <button key={item} type="button" onClick={() => { setOnes(item + 1); setState('idle'); }} aria-label={`Set loose counters to ${item + 1}`} style={{ aspectRatio: '1', borderRadius: '0.32rem', background: item < ones ? '#38bdf8' : 'rgba(15,23,42,0.78)', color: item < ones ? '#e0f2fe' : '#475569', border: `1px solid ${item < ones ? '#bae6fd' : '#475569'}`, cursor: 'pointer', fontSize: 'clamp(0.62rem,3.2vw,0.9rem)', padding: 0 }}><PixelIcon name="token" size="0.82em" /></button>)}</div>
           </div>
         </div>
         <div className="rounded-xl" style={{ marginTop: '0.9rem', padding: '0.78rem', textAlign: 'center', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.48)' }}>
@@ -257,9 +258,9 @@ function TenFrameGrove({ onBack, onJourney }: { onBack: () => void; onJourney: (
         </div>
         <Feedback state={state} explanation={challenge.explanation} hint={challenge.hint} />
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
-          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}>↻ RESET</button>
-          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}>? HINT</button>
-          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}>NEXT ▶</button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}>✓ CHECK</button>}
+          <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}><PixelIconLabel name="reset" size="0.8em">RESET</PixelIconLabel></button>
+          <button type="button" onClick={() => setState('incorrect')} style={{ ...controlStyle, color: '#7dd3fc', background: 'rgba(56,189,248,0.12)', border: '1px solid #38bdf8' }}><PixelIconLabel name="hint" size="0.8em">HINT</PixelIconLabel></button>
+          {state === 'correct' ? <button type="button" onClick={next} style={{ ...controlStyle, background: 'linear-gradient(135deg, #facc15, #f59e0b)', color: '#111827', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">NEXT</PixelIconLabel></button> : <button type="button" onClick={check} style={{ ...controlStyle, background: 'linear-gradient(135deg, #34d399, #059669)', color: '#ecfdf5', border: '1px solid #6ee7b7' }}><PixelIconLabel name="check" size="0.8em">CHECK</PixelIconLabel></button>}
         </div>
       </section>
     </StationPage>
@@ -276,7 +277,7 @@ const STATIONS: { id: StationId; title: string; concept: string; action: string;
 export function ViridianForestGym({ onBack, onReturnToJourney }: ViridianForestGymProps) {
   const [station, setStation] = useState<StationId | null>(null);
 
-  if (station === 'trail') return <NumberTrailGym onBack={() => setStation(null)} onReturnToJourney={onReturnToJourney} backLabel="← BACK TO GYM" />;
+  if (station === 'trail') return <NumberTrailGym onBack={() => setStation(null)} onReturnToJourney={onReturnToJourney} backLabel="BACK TO GYM" />;
   if (station === 'canopy') return <CanopyCount onBack={() => setStation(null)} onJourney={onReturnToJourney} />;
   if (station === 'balance') return <PikachuBalance onBack={() => setStation(null)} onJourney={onReturnToJourney} />;
   if (station === 'tenFrame') return <TenFrameGrove onBack={() => setStation(null)} onJourney={onReturnToJourney} />;
@@ -291,7 +292,7 @@ export function ViridianForestGym({ onBack, onReturnToJourney }: ViridianForestG
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.62rem,3vw,0.9rem)', color: '#86efac', lineHeight: 1.55 }}>VIRIDIAN FOREST GYM</div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.75vw,0.52rem)', color: '#cbd5e1', lineHeight: 1.8, marginTop: '0.45rem' }}>TRAIN WITH MODELS, MOVEMENT, AND EXPLANATIONS. CHOOSE A CONCEPT STATION.</div>
               </div>
-              <div style={{ fontSize: 'clamp(1.5rem,7vw,2.25rem)', lineHeight: 1 }}>🌲</div>
+              <div style={{ fontSize: 'clamp(1.5rem,7vw,2.25rem)', lineHeight: 1, color: '#86efac' }}><PixelIcon name="forest" size="0.9em" /></div>
             </div>
           </section>
 
@@ -301,14 +302,14 @@ export function ViridianForestGym({ onBack, onReturnToJourney }: ViridianForestG
               {STATIONS.map((item) => <button key={item.id} type="button" onClick={() => setStation(item.id)} className="w-full text-left rounded-xl" style={{ padding: '0.85rem', background: 'rgba(15,23,42,0.78)', border: `1px solid ${item.colour}`, cursor: 'pointer', boxShadow: `0 0 12px ${item.colour}22` }}>
                 <div className="flex items-center justify-between gap-3"><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.45rem,2.1vw,0.62rem)', color: item.colour }}>{item.title.toUpperCase()}</div><div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.45vw,0.42rem)', color: '#e2e8f0', border: `1px solid ${item.colour}88`, borderRadius: '0.3rem', padding: '0.25rem 0.34rem', flexShrink: 0 }}>{item.status}</div></div>
                 <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#cbd5e1', lineHeight: 1.75, marginTop: '0.45rem' }}>{item.concept}</div>
-                <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#fef08a', marginTop: '0.55rem' }}>▶ {item.action}</div>
+                <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.55vw,0.46rem)', color: '#fef08a', marginTop: '0.55rem' }}><PixelIconLabel name="arrowRight" size="0.8em">{item.action}</PixelIconLabel></div>
               </button>)}
             </div>
           </section>
 
           <div className="grid grid-cols-2" style={{ gap: '0.55rem' }}>
-            <button type="button" onClick={onReturnToJourney} style={{ ...controlStyle, color: '#111827', background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a' }}>▶ JOURNEY</button>
-            <button type="button" onClick={onBack} style={{ ...controlStyle, color: '#cbd5e1', background: 'rgba(15,23,42,0.78)', border: '1px solid #64748b' }}>← KANTO</button>
+            <button type="button" onClick={onReturnToJourney} style={{ ...controlStyle, color: '#111827', background: 'linear-gradient(135deg, #facc15, #f59e0b)', border: '1px solid #fde68a' }}><PixelIconLabel name="arrowRight" size="0.8em">JOURNEY</PixelIconLabel></button>
+            <button type="button" onClick={onBack} style={{ ...controlStyle, color: '#cbd5e1', background: 'rgba(15,23,42,0.78)', border: '1px solid #64748b' }}><PixelIconLabel name="arrowLeft" size="0.8em">KANTO</PixelIconLabel></button>
           </div>
         </div>
       </div>
