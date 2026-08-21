@@ -749,7 +749,7 @@ export default function Home() {
                   className="text-center rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, padding: '0.65rem 0.5rem', background: 'rgba(0,0,0,0.5)', border: '2px solid #38bdf8', color: '#38bdf8', outline: 'none', width: '4.5rem' }} />
               </div>
               <div className="w-full flex justify-center" style={{ gap: 10, flexWrap: 'wrap' }}>
-                {([['boy', '♂ BOY', '#60a5fa'], ['girl', '♀ GIRL', '#f472b6'], ['other', '✦ OTHER', '#a78bfa']] as [Gender, string, string][]).map(([g, label, col]) => {
+                {([['boy', 'BOY', '#60a5fa'], ['girl', 'GIRL', '#f472b6'], ['other', 'OTHER', '#a78bfa']] as [Gender, string, string][]).map(([g, label, col]) => {
                   const sel = newGender === g;
                   return (
                     <button key={g} onClick={() => setNewGender(sel ? null : g)} className="rounded-lg shrink-0"
