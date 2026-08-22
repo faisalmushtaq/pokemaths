@@ -213,7 +213,7 @@ const SPECS: Record<TopicId, Spec> = {
       const b = r(3, byLevel(lv, [4, 5, 6, 8, 9]));
       const q = r(2, clamp(2 + lv, 3, 9));
       const rem = r(1, b - 1);
-      return { text: `${b * q + rem} ÷ ${b} — remainder?`, answer: rem, hint: `${b} × ${q} = ${b * q}, what's left over?` };
+      return { text: `What is the remainder in ${b * q + rem} ÷ ${b}?`, answer: rem, hint: `${b} × ${q} = ${b * q}, what is left over?` };
     },
   },
 
@@ -439,7 +439,7 @@ const SPECS: Record<TopicId, Spec> = {
       const a = r(1, byLevel(lv, [2, 3, 3, 4, 5])), b = r(1, byLevel(lv, [2, 3, 4, 4, 5]));
       const part = r(2, clamp(2 + lv, 3, 9));
       const total = (a + b) * part;
-      return { text: `Share ${total} as ${a}:${b} — the ${a}-part?`, answer: a * part, hint: `${a + b} parts make ${total}, so 1 part = ${part}` };
+      return { text: `Share ${total} as ${a}:${b}. What is the ${a}-part?`, answer: a * part, hint: `${a + b} parts make ${total}, so 1 part = ${part}` };
     },
   },
 

@@ -528,7 +528,7 @@ export default function Home() {
   };
   const onSave = async () => {
     if (!cardTarget) return;
-    if (!cardBlob) { setShareMsg("COULDN'T MAKE IMAGE — TRY SHARE"); return; }
+    if (!cardBlob) { setShareMsg("COULDN'T MAKE IMAGE. TRY SHARE."); return; }
     const res = await saveCard(cardBlob, cardTarget.dex, nameOf(cardTarget.dex));
     setShareMsg(res === 'failed' ? "COULDN'T SAVE" : 'IMAGE SAVED!');
   };
@@ -568,7 +568,7 @@ export default function Home() {
   };
   const onSaveMega = async () => {
     if (!arcadeMega) return;
-    if (!megaBlob) { setMegaMsg("COULDN'T MAKE IMAGE — TRY SHARE"); return; }
+    if (!megaBlob) { setMegaMsg("COULDN'T MAKE IMAGE. TRY SHARE."); return; }
     const res = await saveCard(megaBlob, arcadeMega.formId, arcadeMega.name);
     setMegaMsg(res === 'failed' ? "COULDN'T SAVE" : 'IMAGE SAVED!');
   };
@@ -661,7 +661,7 @@ export default function Home() {
                 <div key={i} style={{ width: 'clamp(14px,4vw,20px)', height: 'clamp(14px,4vw,20px)', borderRadius: '50%', border: `2px solid ${pinError ? '#ef4444' : '#FFD700'}`, background: i < pinInput.length ? (pinError ? '#ef4444' : '#FFD700') : 'transparent' }} />
               ))}
             </div>
-            {pinError && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#ef4444' }}>WRONG PIN — TRY AGAIN</div>}
+            {pinError && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#ef4444' }}>WRONG PIN. TRY AGAIN.</div>}
             <PinPad accent="#a78bfa"
               onDigit={(d) => { const v = (pinInput + d).slice(0, 4); setPinInput(v); setPinError(false); if (v.length === 4) submitPin(v); }}
               onDelete={() => { setPinInput(pinInput.slice(0, -1)); setPinError(false); }} />
@@ -1164,7 +1164,7 @@ export default function Home() {
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: openable ? region.accentColor : '#666' }}>{region.name.toUpperCase()}</div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#888' }}>{region.gen} · {region.inspiration}</div>
             <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.6, color: '#666' }}>
-              {!openable ? 'SECRET — CLEAR ALL REGIONS' : `${caught}/${region.battles.length} CAUGHT${unlocked ? '' : ' · TEST OUT'}`}
+              {!openable ? 'SECRET. CLEAR ALL REGIONS' : `${caught}/${region.battles.length} CAUGHT${unlocked ? '' : ' · TEST OUT'}`}
             </div>
           </div>
         </button>
@@ -1277,7 +1277,7 @@ export default function Home() {
             </div>
             <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: arcCount === MEGA_COUNT ? '#eab308' : '#666', marginBottom: '1.5rem', textAlign: 'center', lineHeight: 1.7 }}>{arcCount === MEGA_COUNT ? 'COMPLETE 24 QUESTIONS TO MEGA-EVOLVE. ACCURACY IS RECORDED, NOT REQUIRED.' : 'PICK 24 TO UNLOCK MEGA EVOLUTION'}</p>
 
-            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK — PICK A LEVEL</p>
+            <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>QUICK SCORE ATTACK: PICK A LEVEL</p>
             <div className="flex flex-col gap-2 w-full">
               {ARCADE_LEVELS.map((lvl, i) => (
                 <button key={lvl.id} onClick={() => game.startArcade(lvl.id, arcCount, arcMon)} className="w-full rounded-xl text-left flex items-center gap-3 shrink-0"
@@ -1363,7 +1363,7 @@ export default function Home() {
                   {freezeUsedToday(save) && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
                       <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#38bdf8' }}><PixelIcon name="frost" size="0.9em" /></span>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED. STREAK SAFE!</span>
                     </div>
                   )}
                 </div>
@@ -1418,7 +1418,7 @@ export default function Home() {
                   {freezeUsedToday(save) && (
                     <div className="rounded-lg flex items-center justify-center" style={{ gap: 8, padding: '0.6rem', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.4)' }}>
                       <span style={{ fontSize: 'clamp(1rem,4vw,1.3rem)', color: '#38bdf8' }}><PixelIcon name="frost" size="0.9em" /></span>
-                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED — STREAK SAFE!</span>
+                      <span style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#38bdf8', lineHeight: 1.6 }}>FREEZE USED. STREAK SAFE!</span>
                     </div>
                   )}
                 </div>
@@ -1706,7 +1706,7 @@ export default function Home() {
                 return (
                   <div className="w-full rounded-xl text-center" style={{ padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', marginBottom: '1.5rem' }}>
                     <div style={{ fontSize: 'clamp(1.5rem,6vw,2rem)', marginBottom: 8, color: '#facc15' }}><PixelIcon name="search" size="0.92em" /></div>
-                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO POKÉMON YET —<br />WIN BATTLES TO CATCH THEM!</div>
+                    <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#888', lineHeight: 1.8 }}>NO POKÉMON YET.<br />WIN BATTLES TO CATCH THEM!</div>
                   </div>
                 );
               }
@@ -2034,19 +2034,19 @@ export default function Home() {
             <div className="flex flex-col gap-3 w-full">
               <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.title, color: '#FFD700', textAlign: 'center', textShadow: '0 0 14px rgba(255,215,0,0.5)', margin: '0.25rem 0 0.5rem' }}>POKÉMATHS</div>
               <Section title="WHAT IS IT?">
-                A maths adventure! Answer questions to battle and catch Pokémon across 11 regions, from Kanto to Terarium.
+                A maths adventure across 11 regions, from Kanto to Hisui. Build confidence through practice, then win battles to grow your Pokédex.
               </Section>
               <Section title="JOURNEY">
-                Travel region by region. Each battle is a maths topic — answer every question correctly (100%!) to catch that Pokémon into your Pokédex. Legendary bosses are timed. Clear all nine regions to unlock two secret regions.
+                Each new region and topic opens through a 3-question Readiness Trial. Every topic has Discover, Apply, Master, and sometimes Elite battles, followed by a timed legendary boss. Gym practice sits alongside the Journey, helping you explore each concept with models and explanations before returning to battle.
               </Section>
               <Section title="ARCADE">
-                Quick pick-up-and-play. Choose a level and race a fixed run of questions for score and accuracy — wrong answers are allowed, so it's great for practice.
+                Quick pick-up-and-play. Choose a level and race a fixed question run for score and accuracy. Wrong answers are allowed, making it useful for focused practice. A completed 24-question run earns the eligible Mega Evolution.
               </Section>
               <Section title={<PixelIconLabel name="flame" size="0.86em">DAILY STREAK</PixelIconLabel>}>
                 Play at least one battle or arcade run each day to build your streak. Reach 3, 7, 14, 30, 60, 100 and 365 days to earn milestone badges in the Pokédex. Every 5 days you also earn a streak freeze. If you miss a day, a freeze is spent automatically to keep your streak alive.
               </Section>
               <Section title="LEARNING">
-                37 topics span the primary maths curriculum, from counting and number bonds up to fractions, decimals, percentages, and early algebra.
+                37 topics span the primary maths curriculum, from counting and number bonds through fractions, decimals, percentages, ratio, and early algebra. Progression grows in manageable steps across the regional route.
               </Section>
               <Section title="CREDITS">
                 Made by Mushtaq Arcade Corp. © 2019–2026.<br />
@@ -2070,7 +2070,7 @@ export default function Home() {
       </button>
     );
     const Row = ({ title, desc, on, onToggle, accent }: { title: ReactNode; desc: string; on: boolean; onToggle: () => void; accent: string }) => (
-      <div onClick={onToggle} role="button" className="w-full rounded-xl flex items-center gap-3" style={{ padding: 'clamp(0.75rem,3vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${on ? accent : '#333'}`, cursor: 'pointer' }}>
+      <div onClick={onToggle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggle(); } }} role="button" tabIndex={0} aria-pressed={on} className="w-full rounded-xl flex items-center gap-3" style={{ padding: 'clamp(0.75rem,3vw,1.1rem)', background: 'rgba(255,255,255,0.04)', border: `2px solid ${on ? accent : '#333'}`, cursor: 'pointer' }}>
         <div className="flex-1" style={{ minWidth: 0 }}>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, lineHeight: 1.6, color: on ? accent : '#ccc' }}>{title}</div>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, lineHeight: 1.7, color: '#888', marginTop: 6 }}>{desc}</div>
@@ -2100,7 +2100,7 @@ export default function Home() {
                   <li>1. OPEN THIS PAGE IN SAFARI</li>
                   <li>2. TAP THE SHARE BUTTON <span style={{ color: '#38bdf8' }}><PixelIcon name="share" size="0.84em" /></span></li>
                   <li>3. CHOOSE "ADD TO HOME SCREEN"</li>
-                  <li>4. TAP "ADD" — DONE!</li>
+                  <li>4. TAP "ADD". DONE!</li>
                 </ol>
               </div>
               <div className="w-full rounded-xl" style={{ padding: 'clamp(0.85rem,3.5vw,1.2rem)', background: 'rgba(255,255,255,0.04)', border: '2px solid #333' }}>
@@ -2109,7 +2109,7 @@ export default function Home() {
                   <li>1. OPEN THIS PAGE IN CHROME</li>
                   <li>2. TAP THE CHROME MENU (TOP-RIGHT)</li>
                   <li>3. TAP "ADD TO HOME SCREEN" / "INSTALL APP"</li>
-                  <li>4. TAP "ADD" / "INSTALL" — DONE!</li>
+                  <li>4. TAP "ADD" / "INSTALL". DONE!</li>
                 </ol>
               </div>
               <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#777', textAlign: 'center', lineHeight: 1.9 }}>IT ADDS A POKÉMATHS ICON THAT OPENS FULLSCREEN, JUST LIKE A REAL APP.</div>
@@ -2281,7 +2281,7 @@ export default function Home() {
               <div className="flex gap-2" style={{ marginTop: 16 }}>
                 <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)' }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}><PixelIconLabel name="bolt" size="0.8em">FASTEST</PixelIconLabel></div>
-                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#eab308', marginTop: 5 }}>{entry.bestTime != null ? fmtTime(entry.bestTime) : '—'}</div>
+                  <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#eab308', marginTop: 5 }}>{entry.bestTime != null ? fmtTime(entry.bestTime) : 'NO TIME'}</div>
                 </div>
                 <div className="flex-1 rounded-lg" style={{ padding: 'clamp(0.6rem,2vw,0.9rem)', background: 'rgba(255,255,255,0.04)', border: '1px solid #333' }}>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888' }}>EARNED</div>
