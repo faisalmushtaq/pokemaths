@@ -1,11 +1,15 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { PixelIcon, PixelIconLabel } from '@/components/ui/PixelIcon';
 import { GYM_ENGINE_LABELS, getGymTopicsForRegion, type GymEngineId, type GymTopicConfig } from '@/lib/gymContent';
 import type { CurriculumRegion } from '@/lib/curriculumRegions';
 import { getGymBadge, type GymBadgeDefinition } from '@/lib/gymBadges';
 import { hasGymBadge, type SaveData } from '@/lib/pokedex';
-import { ViridianForestGym } from './ViridianForestGym';
+
+const ViridianForestGym = lazy(async () => {
+  const module = await import('./ViridianForestGym');
+  return { default: module.ViridianForestGym };
+});
 
 type CheckState = 'idle' | 'correct' | 'incorrect';
 type View = 'hub' | 'practice' | 'viridian' | 'johtoWorkshop';
@@ -327,7 +331,11 @@ export function RegionalGym({ region, save, onBack, onReturnToJourney, onRecordP
     return finalRoomForRegion ? regionalBadge : undefined;
   };
 
-  if (view === 'viridian') return <ViridianForestGym onBack={() => setView('hub')} onReturnToJourney={() => onReturnToJourney(topics[0]?.topic.id ?? '')} />;
+  if (view === 'viridian') return (
+    <Suspense fallback={<div className="flex-1 w-full flex items-center justify-center" role="status" aria-live="polite"><div className="rounded-xl" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.8vw,0.56rem)', color: '#86efac', padding: '1rem', background: 'rgba(5,20,31,0.9)', border: '2px solid #34d399' }}><PixelIconLabel name="forest" size="0.84em">LOADING FOREST STUDIO</PixelIconLabel></div></div>}>
+      <ViridianForestGym onBack={() => setView('hub')} onReturnToJourney={() => onReturnToJourney(topics[0]?.topic.id ?? '')} />
+    </Suspense>
+  );
   if (view === 'johtoWorkshop') return <JohtoWorkshop region={region} onBack={() => setView('hub')} onReturnToJourney={onReturnToJourney} onRecordPractice={onRecordPractice} />;
   if (view === 'practice' && active) return <TopicPractice config={active} region={region} onBack={() => { setActiveTopicId(null); setView('hub'); }} onJourney={() => onReturnToJourney(active.topic.id)} onComplete={(examples, hints) => onRecordPractice(active.stationId, examples, hints)} badgeAward={badgeAwardForRoom(active)} />;
 

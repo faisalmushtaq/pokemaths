@@ -9,10 +9,9 @@
  * Sizes use clamp() so text/keys grow on larger screens without overflowing.
  */
 
-import { useCallback, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { useGame } from '@/hooks/useGame';
-import { RegionalGym } from '@/components/gym/RegionalGym';
 import { PixelIcon, PixelIconLabel, type PixelIconName } from '@/components/ui/PixelIcon';
 import {
   REGIONS,
@@ -49,6 +48,11 @@ import {
 } from '@/lib/progress';
 
 const panelBg = 'linear-gradient(135deg, #0a0a1a 0%, #1a0a3e 50%, #0a0a1a 100%)';
+
+const RegionalGym = lazy(async () => {
+  const module = await import('@/components/gym/RegionalGym');
+  return { default: module.RegionalGym };
+});
 
 // Responsive font/size scale — clamp(min, preferred, max)
 const FS = {
@@ -212,6 +216,17 @@ function Frame({ children, className = '', style }: { children: ReactNode; class
   return (
     <div className={`w-full flex flex-col items-center ${className}`} style={{ width: FRAME, ...style }}>
       {children}
+    </div>
+  );
+}
+
+function RouteLoading({ label, accent }: { label: string; accent: string }) {
+  return (
+    <div className="flex-1 w-full flex items-center justify-center" role="status" aria-live="polite">
+      <div className="rounded-xl flex flex-col items-center" style={{ gap: '0.7rem', padding: 'clamp(1rem,4vw,1.5rem)', background: 'rgba(8,15,35,0.82)', border: `2px solid ${accent}`, boxShadow: `0 0 18px ${accent}33` }}>
+        <div style={{ color: accent }}><PixelIcon name="gym" size="clamp(1.5rem,8vw,2.15rem)" /></div>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#e2e8f0' }}>{label}</div>
+      </div>
     </div>
   );
 }
@@ -1058,13 +1073,15 @@ export default function Home() {
     return (
       <Screen bg={gymRegion.bgGradient}>
         <NavBar onHome={game.goMenu} onBack={() => game.openCurriculumRegion(gymRegion.id)} title={`${gymRegion.name.toUpperCase()} GYM`} accent={gymRegion.accentColor} />
-        <RegionalGym
-          region={gymRegion}
-          save={save}
-          onBack={() => game.openCurriculumRegion(gymRegion.id)}
-          onReturnToJourney={(topicId) => game.openCurriculumTopic(topicId)}
-          onRecordPractice={game.recordGymPractice}
-        />
+        <Suspense fallback={<RouteLoading label={`PREPARING ${gymRegion.name.toUpperCase()} GYM`} accent={gymRegion.accentColor} />}>
+          <RegionalGym
+            region={gymRegion}
+            save={save}
+            onBack={() => game.openCurriculumRegion(gymRegion.id)}
+            onReturnToJourney={(topicId) => game.openCurriculumTopic(topicId)}
+            onRecordPractice={game.recordGymPractice}
+          />
+        </Suspense>
       </Screen>
     );
   }

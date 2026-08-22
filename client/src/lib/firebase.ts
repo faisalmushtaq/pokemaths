@@ -1,14 +1,14 @@
 // =============================================================================
-// POKÉMATHS — FIREBASE
+// POKÉMATHS | FIREBASE
 // =============================================================================
-// Web config is public by design (security is enforced by Firestore rules +
-// authorized domains), so it's safe to ship in client code. Firebase is lazily
-// initialised the first time it's needed.
+// The public web configuration is safe to ship because Firestore rules and
+// authorised domains enforce access. The Firebase SDK itself loads only when
+// account or synchronisation features require it.
 // =============================================================================
 
-import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth, GoogleAuthProvider } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore/lite';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAwS40W4AmzELBNdImRW78WaKJAEuDxA7w',
@@ -20,22 +20,37 @@ const firebaseConfig = {
   measurementId: 'G-8JSGFN6EYF',
 };
 
-let app: FirebaseApp | null = null;
-let authInstance: Auth | null = null;
-let dbInstance: Firestore | null = null;
+let appPromise: Promise<FirebaseApp> | null = null;
+let authPromise: Promise<{ auth: Auth; googleProvider: GoogleAuthProvider }> | null = null;
+let firestorePromise: Promise<Firestore> | null = null;
 
-/** True when a real Firebase config is present (lets the app run without one). */
+/** True when a real Firebase configuration is present, allowing offline play without one. */
 export function firebaseReady(): boolean {
   return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 }
 
-export function getFirebase(): { app: FirebaseApp; auth: Auth; db: Firestore } {
-  if (!app) {
-    app = initializeApp(firebaseConfig);
-    authInstance = getAuth(app);
-    dbInstance = getFirestore(app);
+async function getApp(): Promise<FirebaseApp> {
+  if (!appPromise) {
+    appPromise = import('firebase/app').then(({ initializeApp }) => initializeApp(firebaseConfig));
   }
-  return { app, auth: authInstance!, db: dbInstance! };
+  return appPromise;
 }
 
-export const googleProvider = new GoogleAuthProvider();
+/** Loads Google account services only when authentication is needed. */
+export async function getFirebaseAuth(): Promise<{ auth: Auth; googleProvider: GoogleAuthProvider }> {
+  if (!authPromise) {
+    authPromise = Promise.all([getApp(), import('firebase/auth')]).then(([app, authModule]) => ({
+      auth: authModule.getAuth(app),
+      googleProvider: new authModule.GoogleAuthProvider(),
+    }));
+  }
+  return authPromise;
+}
+
+/** Loads Firestore only when a signed-in player's data must synchronise. */
+export async function getFirebaseDb(): Promise<Firestore> {
+  if (!firestorePromise) {
+    firestorePromise = Promise.all([getApp(), import('firebase/firestore/lite')]).then(([app, firestoreModule]) => firestoreModule.getFirestore(app));
+  }
+  return firestorePromise;
+}
