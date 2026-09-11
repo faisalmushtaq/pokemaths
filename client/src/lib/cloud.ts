@@ -39,6 +39,10 @@ function cloudRef(uid: string) {
   return doc(db, 'saves', uid);
 }
 
+function profileKey(profile: Profile): string {
+  return `${profile.name.trim().toLocaleLowerCase()}::${profile.avatarDex}`;
+}
+
 /**
  * Merge the account's cloud state with local storage and write the result to
  * both. Union rule: keep every profile (cloud first, adopt local up to 5) and
@@ -54,19 +58,38 @@ export async function pullAndMerge(uid: string): Promise<boolean> {
     return false; // offline / permission — stay local
   }
 
-  const byId = new Map<string, Profile>();
-  for (const p of cloud.profiles ?? []) byId.set(p.id, p);
-  for (const p of local.profiles) if (!byId.has(p.id)) byId.set(p.id, p); // adopt local
-  const profiles = Array.from(byId.values()).slice(0, MAX_PROFILES);
+  // Profile IDs are generated locally, so the same trainer created on two
+  // devices can have different IDs. Match exact IDs first, then reconcile an
+  // otherwise-unmatched trainer by name + avatar before treating it as new.
+  const localById = new Map(local.profiles.map((profile) => [profile.id, profile]));
+  const usedLocalIds = new Set<string>();
+  const localIdForCanonical = new Map<string, string>();
+  const profiles: Profile[] = [];
+  for (const cloudProfile of cloud.profiles ?? []) {
+    const exact = localById.get(cloudProfile.id);
+    const match = exact ?? local.profiles.find((profile) => !usedLocalIds.has(profile.id) && profileKey(profile) === profileKey(cloudProfile));
+    if (match) {
+      usedLocalIds.add(match.id);
+      localIdForCanonical.set(cloudProfile.id, match.id);
+    }
+    profiles.push(cloudProfile);
+  }
+  for (const localProfile of local.profiles) {
+    if (!usedLocalIds.has(localProfile.id) && !profiles.some((profile) => profile.id === localProfile.id)) profiles.push(localProfile);
+  }
+  profiles.splice(MAX_PROFILES);
 
   const saves: Record<string, SaveData> = {};
   for (const p of profiles) {
     const c = cloud.saves?.[p.id];
-    const l = local.saves[p.id];
+    const l = local.saves[localIdForCanonical.get(p.id) ?? p.id];
     saves[p.id] = c && l ? mergeSaves(c, l) : (c ?? l ?? { version: 1, caught: {}, wonBattles: [] });
   }
 
-  const activeId = local.activeId ?? profiles[0]?.id ?? null;
+  const activeId = profiles.find((profile) => profile.id === local.activeId)?.id
+    ?? profiles.find((profile) => localIdForCanonical.get(profile.id) === local.activeId)?.id
+    ?? profiles[0]?.id
+    ?? null;
   replaceLocal(profiles, saves, activeId);
   try {
     await setDoc(cloudRef(uid), { profiles, saves, updatedAt: Date.now() });
