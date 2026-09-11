@@ -87,10 +87,22 @@ export function pushAllDebounced(uid: string): void {
 
 export async function signInGoogle(): Promise<void> {
   const [{ auth, googleProvider }, authModule] = await Promise.all([getFirebaseAuth(), import('firebase/auth')]);
+  await authModule.setPersistence(auth, authModule.browserLocalPersistence);
   try {
     await authModule.signInWithPopup(auth, googleProvider);
-  } catch {
-    await authModule.signInWithRedirect(auth, googleProvider);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    const popupUnavailable = new Set([
+      'auth/popup-blocked',
+      'auth/popup-closed-by-user',
+      'auth/popup-timeout',
+      'auth/operation-not-supported-in-this-environment',
+    ]);
+    if (code && popupUnavailable.has(code)) {
+      await authModule.signInWithRedirect(auth, googleProvider);
+      return;
+    }
+    throw error;
   }
 }
 
@@ -112,12 +124,16 @@ export function useAuthUser(): { user: User | null; ready: boolean } {
     Promise.all([getFirebaseAuth(), import('firebase/auth')])
       .then(([{ auth }, authModule]) => {
         if (!active) return;
-        authModule.getRedirectResult(auth).catch(() => {});
-        unsubscribe = authModule.onAuthStateChanged(auth, (nextUser) => {
-          if (!active) return;
-          setUser(nextUser);
-          setReady(true);
-        });
+        return authModule.setPersistence(auth, authModule.browserLocalPersistence)
+          .then(() => authModule.getRedirectResult(auth))
+          .then(() => {
+            if (!active) return;
+            unsubscribe = authModule.onAuthStateChanged(auth, (nextUser) => {
+              if (!active) return;
+              setUser(nextUser);
+              setReady(true);
+            });
+          });
       })
       .catch(() => {
         if (active) setReady(true);
