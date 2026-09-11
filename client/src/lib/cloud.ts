@@ -88,22 +88,10 @@ export function pushAllDebounced(uid: string): void {
 export async function signInGoogle(): Promise<void> {
   const [{ auth, googleProvider }, authModule] = await Promise.all([getFirebaseAuth(), import('firebase/auth')]);
   await authModule.setPersistence(auth, authModule.browserLocalPersistence);
-  try {
-    await authModule.signInWithPopup(auth, googleProvider);
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    const popupUnavailable = new Set([
-      'auth/popup-blocked',
-      'auth/popup-closed-by-user',
-      'auth/popup-timeout',
-      'auth/operation-not-supported-in-this-environment',
-    ]);
-    if (code && popupUnavailable.has(code)) {
-      await authModule.signInWithRedirect(auth, googleProvider);
-      return;
-    }
-    throw error;
-  }
+  // GitHub Pages is a different origin from the Firebase auth helper domain.
+  // Redirect auth therefore fails on Safari when third-party sessionStorage is
+  // blocked. Popup auth avoids that cross-origin storage dependency.
+  await authModule.signInWithPopup(auth, googleProvider);
 }
 
 export async function signOutCloud(): Promise<void> {
@@ -124,16 +112,14 @@ export function useAuthUser(): { user: User | null; ready: boolean } {
     Promise.all([getFirebaseAuth(), import('firebase/auth')])
       .then(([{ auth }, authModule]) => {
         if (!active) return;
-        return authModule.setPersistence(auth, authModule.browserLocalPersistence)
-          .then(() => authModule.getRedirectResult(auth))
-          .then(() => {
+        return authModule.setPersistence(auth, authModule.browserLocalPersistence).then(() => {
+          if (!active) return;
+          unsubscribe = authModule.onAuthStateChanged(auth, (nextUser) => {
             if (!active) return;
-            unsubscribe = authModule.onAuthStateChanged(auth, (nextUser) => {
-              if (!active) return;
-              setUser(nextUser);
-              setReady(true);
-            });
+            setUser(nextUser);
+            setReady(true);
           });
+        });
       })
       .catch(() => {
         if (active) setReady(true);
