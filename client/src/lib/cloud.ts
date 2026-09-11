@@ -32,7 +32,7 @@ async function firestoreServices() {
  * Merge the account's cloud state with local storage and write the result to
  * both. Every profile and save is retained through the existing union rule.
  */
-export async function pullAndMerge(uid: string): Promise<void> {
+export async function pullAndMerge(uid: string): Promise<boolean> {
   const local = snapshotLocal();
   let cloud: CloudDoc = { profiles: [], saves: {}, updatedAt: 0 };
   let services: Awaited<ReturnType<typeof firestoreServices>>;
@@ -41,7 +41,7 @@ export async function pullAndMerge(uid: string): Promise<void> {
     const snap = await services.getDoc(services.doc(services.db, 'saves', uid));
     if (snap.exists()) cloud = snap.data() as CloudDoc;
   } catch {
-    return;
+    return false;
   }
 
   const byId = new Map<string, Profile>();
@@ -63,6 +63,7 @@ export async function pullAndMerge(uid: string): Promise<void> {
   } catch {
     // Local progress already contains the merged result.
   }
+  return true;
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;

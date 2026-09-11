@@ -590,21 +590,25 @@ export default function Home() {
 
   // ----- cloud sync (Google account) -----
   const { user: cloudUser } = useAuthUser();
+  const [syncReadyUid, setSyncReadyUid] = useState<string | null>(null);
   // On sign-in, merge local ⇄ cloud, then refresh profiles + active save.
   useEffect(() => {
+    setSyncReadyUid(null);
     if (!cloudUser) return;
     let alive = true;
-    pullAndMerge(cloudUser.uid).then(() => {
+    pullAndMerge(cloudUser.uid).then((ok) => {
       if (!alive) return;
+      if (ok) setSyncReadyUid(cloudUser.uid);
       setProfilesData(loadProfiles());
       game.reloadSave();
     });
     return () => { alive = false; };
   }, [cloudUser]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Push whenever profiles or the active save change while signed in.
+  // Never upload until the initial cloud read/merge has completed. This avoids
+  // a login-time upload overwriting cloud progress with stale local storage.
   useEffect(() => {
-    if (cloudUser) pushAllDebounced(cloudUser.uid);
-  }, [cloudUser, profilesData, save]);
+    if (cloudUser && syncReadyUid === cloudUser.uid) pushAllDebounced(cloudUser.uid);
+  }, [cloudUser, syncReadyUid, profilesData, save]);
 
   useEffect(() => { setInput(''); }, [state.question]);
 
