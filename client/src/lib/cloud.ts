@@ -12,6 +12,8 @@
 import { useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
+  browserLocalPersistence,
+  setPersistence,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -134,10 +136,15 @@ export function pushAllDebounced(uid: string): void {
 
 export async function signInGoogle(): Promise<void> {
   const { auth } = getFirebase();
+  await setPersistence(auth, browserLocalPersistence);
+  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   try {
     await signInWithPopup(auth, googleProvider);
   } catch {
-    // Popups are unreliable in installed PWAs / iOS Safari — fall back to redirect.
+    // iOS standalone apps cannot preserve Firebase's cross-origin redirect
+    // state in sessionStorage. Keep the popup result in the app instead.
+    if (isStandalone) throw new Error('Google sign-in was cancelled or blocked. Open this app in Safari to sign in.');
+    // Ordinary Safari can use the redirect fallback when popups are blocked.
     await signInWithRedirect(auth, googleProvider);
   }
 }

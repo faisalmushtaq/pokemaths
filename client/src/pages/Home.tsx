@@ -426,6 +426,7 @@ export default function Home() {
   const [newPin, setNewPin] = useState('');
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState<Gender | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const chooseProfile = (id: string) => {
     const p = getProfile(profilesData, id);
@@ -593,6 +594,14 @@ export default function Home() {
 
   // ----- cloud sync (Google account) -----
   const { user: cloudUser } = useAuthUser();
+  const handleSignIn = async () => {
+    setAuthError(null);
+    try {
+      await signInGoogle();
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'GOOGLE SIGN-IN FAILED');
+    }
+  };
   const [syncReadyUid, setSyncReadyUid] = useState<string | null>(null);
   // On sign-in, merge local ⇄ cloud, then refresh profiles + active save.
   useEffect(() => {
@@ -873,10 +882,11 @@ export default function Home() {
                 ) : (
                   <>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#38bdf8', textAlign: 'center', lineHeight: 1.7 }}><PixelIconLabel name="cloud" size="0.86em">SAVE ACROSS DEVICES</PixelIconLabel></div>
-                    <button onClick={() => signInGoogle()} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
+                    <button onClick={handleSignIn} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
                       style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', maxWidth: '16rem', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
                       <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
                     </button>
+                    {authError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, maxWidth: '18rem' }}>{authError}</div>}
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>WITHOUT AN ACCOUNT, PROGRESS STAYS ON THIS DEVICE</div>
                   </>
                 )}
