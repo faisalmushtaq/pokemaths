@@ -942,7 +942,7 @@ export default function Home() {
           </div>
 
           {/* Actions */}
-          <Frame className="items-center" style={{ maxWidth: '24rem' }}>
+          <Frame className="items-center" style={{ maxWidth: '24rem', flexShrink: 0 }}>
             <div className="flex flex-col gap-3 w-full">
               <button onClick={game.goCurriculumMap} className="w-full rounded-xl font-bold text-black"
                 style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer' }}>
@@ -960,7 +960,7 @@ export default function Home() {
           </Frame>
 
           {/* Footer: about / login + copyright */}
-          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1rem)' }}>
+          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1rem)', marginTop: 'clamp(0.65rem, 2vh, 1.25rem)', paddingBottom: '0.5rem', flexShrink: 0 }}>
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
               <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="stats" size="0.82em">MY STATS</PixelIconLabel></button>
               <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">LOG IN</PixelIconLabel></button>
