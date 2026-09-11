@@ -887,7 +887,7 @@ export default function Home() {
     const menuBg = 'radial-gradient(circle at 50% 22%, #241456 0%, #14093a 45%, #0a0a1a 100%)';
     return (
       <Screen bg={menuBg} scroll>
-        <div className="w-full flex flex-col items-center" style={{ position: 'relative', gap: 'clamp(0.85rem, 2.5vh, 1.5rem)', padding: 'clamp(1.25rem, 4vh, 2.5rem) 1rem clamp(1rem, 3vh, 2rem)' }}>
+        <div className="w-full flex flex-col items-center" style={{ position: 'relative', gap: 'clamp(0.65rem, 1.6vh, 1rem)', padding: 'max(0.85rem, env(safe-area-inset-top)) 1rem calc(0.85rem + env(safe-area-inset-bottom))' }}>
           {/* Mute toggle for the theme tune (top-right) */}
           <button onClick={toggleMute} aria-label={settings.muteTune ? 'Unmute theme' : 'Mute theme'} title={settings.muteTune ? 'Theme muted' : 'Theme on'}
             style={{ position: 'absolute', top: 'clamp(0.75rem,3vw,1.25rem)', right: 'clamp(0.75rem,3vw,1.25rem)', fontSize: 'clamp(1.1rem,4.5vw,1.5rem)', background: 'rgba(0,0,0,0.3)', border: '2px solid #444', borderRadius: 999, width: 'clamp(2.2rem,9vw,3rem)', height: 'clamp(2.2rem,9vw,3rem)', cursor: 'pointer', lineHeight: 1 }}>
@@ -895,7 +895,7 @@ export default function Home() {
           </button>
 
           {/* Hero: pokéball (tap to play the theme) + title */}
-          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1.25rem)' }}>
+          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.45rem, 1.35vh, 0.85rem)' }}>
             <button onClick={playTune} aria-label="Play theme tune" title="Tap for the theme tune!"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}>
               <PokeballLogo size="clamp(96px, 26vw, 180px)" />
@@ -945,22 +945,22 @@ export default function Home() {
           <Frame className="items-center" style={{ maxWidth: '24rem', flexShrink: 0 }}>
             <div className="flex flex-col gap-3 w-full">
               <button onClick={game.goCurriculumMap} className="w-full rounded-xl font-bold text-black"
-                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer' }}>
+                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.72rem,2.1vh,1.05rem) 0', background: 'linear-gradient(135deg, #FFD700, #FFA500)', border: '2px solid #FFD700', boxShadow: '0 0 24px rgba(255,215,0,0.45)', cursor: 'pointer' }}>
                 <PixelIconLabel name="map" size="0.82em">{activeProfile ? 'CONTINUE JOURNEY' : 'START JOURNEY'}</PixelIconLabel>
               </button>
               <button onClick={game.goArcadeSelect} className="w-full rounded-xl font-bold"
-                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'rgba(56,189,248,0.08)', border: '2px solid #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
+                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.72rem,2.1vh,1.05rem) 0', background: 'rgba(56,189,248,0.08)', border: '2px solid #38bdf8', color: '#38bdf8', cursor: 'pointer' }}>
                 <PixelIconLabel name="play" size="0.82em">ARCADE</PixelIconLabel>
               </button>
               <button onClick={game.goPokedex} className="w-full rounded-xl font-bold"
-                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.9rem,3vh,1.4rem) 0', background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#ef4444', cursor: 'pointer' }}>
+                style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: 'clamp(0.72rem,2.1vh,1.05rem) 0', background: 'rgba(239,68,68,0.08)', border: '2px solid #ef4444', color: '#ef4444', cursor: 'pointer' }}>
                 <PixelIconLabel name="book" size="0.82em">POKÉDEX ({caughtCount(save)}/{totalCatchable()})</PixelIconLabel>
               </button>
             </div>
           </Frame>
 
           {/* Footer: about / login + copyright */}
-          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.6rem, 2vh, 1rem)', marginTop: 'clamp(0.65rem, 2vh, 1.25rem)', paddingBottom: '0.5rem', flexShrink: 0 }}>
+          <div className="flex flex-col items-center" style={{ gap: 'clamp(0.45rem, 1.35vh, 0.8rem)', marginTop: 'clamp(0.35rem, 1vh, 0.65rem)', paddingBottom: '0.25rem', flexShrink: 0 }}>
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
               <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="stats" size="0.82em">MY STATS</PixelIconLabel></button>
               <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">LOG IN</PixelIconLabel></button>
