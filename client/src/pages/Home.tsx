@@ -110,14 +110,17 @@ function NavBar({ onHome, onBack, title, accent = '#FFD700', right }: {
         background: 'rgba(0,0,0,0.55)', borderBottom: `1px solid ${accent}44`,
       }}
     >
-      <div className="flex items-center" style={{ gap: 'clamp(0.25rem, 1.5vw, 0.75rem)' }}>
-        <button onClick={onHome} aria-label="Return to menu" title="Return to menu" style={homeBtn}>
-          <span aria-hidden="true" style={{ position: 'absolute', inset: '50% auto auto 50%', transform: 'translate(-50%, -50%)', width: 'clamp(0.5rem, 2.4vw, 0.72rem)', height: 'clamp(0.5rem, 2.4vw, 0.72rem)', borderRadius: '50%', background: '#f8fafc', border: '2px solid #101010', boxShadow: '0 0 0 1px rgba(255,215,0,0.7)' }} />
-        </button>
-        {onBack && <button onClick={onBack} aria-label="Back" title="Back" style={{ ...iconBtn, color: '#aaa', display: 'grid', placeItems: 'center' }}><PixelIcon name="arrowLeft" size="0.9em" /></button>}
-      </div>
       {title && <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.hud, color: accent, textAlign: 'center', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 0.5rem' }}>{title}</div>}
-      <div className="flex items-center justify-end" style={{ minWidth: 'clamp(1.5rem, 8vw, 3rem)', gap: '0.5rem' }}>{right}</div>
+      <div className="flex items-center justify-end" style={{ minWidth: 'clamp(1.5rem, 8vw, 3rem)', gap: 'clamp(0.25rem, 1.5vw, 0.75rem)' }}>
+        {right}
+        {onBack ? (
+          <button onClick={onBack} aria-label="Back" title="Back" style={{ ...iconBtn, color: '#aaa', display: 'grid', placeItems: 'center' }}><PixelIcon name="arrowLeft" size="0.9em" /></button>
+        ) : (
+          <button onClick={onHome} aria-label="Return to menu" title="Return to menu" style={homeBtn}>
+            <span aria-hidden="true" style={{ position: 'absolute', inset: '50% auto auto 50%', transform: 'translate(-50%, -50%)', width: 'clamp(0.5rem, 2.4vw, 0.72rem)', height: 'clamp(0.5rem, 2.4vw, 0.72rem)', borderRadius: '50%', background: '#f8fafc', border: '2px solid #101010', boxShadow: '0 0 0 1px rgba(255,215,0,0.7)' }} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -883,8 +886,8 @@ export default function Home() {
   if (state.screen === 'menu') {
     const menuBg = 'radial-gradient(circle at 50% 22%, #241456 0%, #14093a 45%, #0a0a1a 100%)';
     return (
-      <Screen bg={menuBg}>
-        <div className="flex-1 w-full flex flex-col items-center justify-between" style={{ position: 'relative', padding: 'clamp(1.25rem, 5vh, 3rem) 1rem clamp(1rem, 3vh, 2rem)' }}>
+      <Screen bg={menuBg} scroll>
+        <div className="w-full flex flex-col items-center" style={{ position: 'relative', gap: 'clamp(0.85rem, 2.5vh, 1.5rem)', padding: 'clamp(1.25rem, 4vh, 2.5rem) 1rem clamp(1rem, 3vh, 2rem)' }}>
           {/* Mute toggle for the theme tune (top-right) */}
           <button onClick={toggleMute} aria-label={settings.muteTune ? 'Unmute theme' : 'Mute theme'} title={settings.muteTune ? 'Theme muted' : 'Theme on'}
             style={{ position: 'absolute', top: 'clamp(0.75rem,3vw,1.25rem)', right: 'clamp(0.75rem,3vw,1.25rem)', fontSize: 'clamp(1.1rem,4.5vw,1.5rem)', background: 'rgba(0,0,0,0.3)', border: '2px solid #444', borderRadius: 999, width: 'clamp(2.2rem,9vw,3rem)', height: 'clamp(2.2rem,9vw,3rem)', cursor: 'pointer', lineHeight: 1 }}>
