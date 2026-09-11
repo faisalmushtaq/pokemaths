@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
+import { browserLocalPersistence, getAuth, GoogleAuthProvider, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -32,7 +32,10 @@ export function firebaseReady(): boolean {
 export function getFirebase(): { app: FirebaseApp; auth: Auth; db: Firestore } {
   if (!app) {
     app = initializeApp(firebaseConfig);
-    authInstance = getAuth(app);
+    const standalone = typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
+    authInstance = standalone
+      ? initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
+      : getAuth(app);
     dbInstance = getFirestore(app);
   }
   return { app, auth: authInstance!, db: dbInstance! };
