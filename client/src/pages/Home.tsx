@@ -223,6 +223,21 @@ function Frame({ children, className = '', style }: { children: ReactNode; class
   );
 }
 
+function LogoutConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="logout-title" className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '1rem', background: 'rgba(5,5,18,0.82)' }}>
+      <div className="w-full rounded-xl flex flex-col items-center" style={{ maxWidth: '22rem', gap: 'clamp(0.75rem,2vh,1rem)', padding: 'clamp(1.1rem,5vw,1.6rem)', background: 'linear-gradient(135deg, rgba(58,34,108,0.98), rgba(17,17,46,0.99))', border: '2px solid #ef4444', boxShadow: '0 0 24px rgba(239,68,68,0.28)' }}>
+        <div id="logout-title" style={{ fontFamily: PIXEL_FONT, fontSize: FS.body, color: '#ef4444', textAlign: 'center' }}>LOG OUT?</div>
+        <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#cbd5e1', textAlign: 'center', lineHeight: 1.8 }}>YOUR PROGRESS IS SAVED.<br />YOU CAN SIGN BACK IN ANY TIME.</div>
+        <div className="flex w-full" style={{ gap: '0.65rem' }}>
+          <button type="button" onClick={onCancel} className="flex-1 rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, padding: '0.75rem 0.5rem', color: '#38bdf8', background: 'rgba(56,189,248,0.12)', border: '2px solid #38bdf8', cursor: 'pointer' }}>CANCEL</button>
+          <button type="button" onClick={onConfirm} className="flex-1 rounded-lg" style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, padding: '0.75rem 0.5rem', color: '#fff', background: '#ef4444', border: '2px solid #ef4444', cursor: 'pointer' }}>LOG OUT</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RouteLoading({ label, accent }: { label: string; accent: string }) {
   return (
     <div className="flex-1 w-full flex items-center justify-center" role="status" aria-live="polite">
@@ -427,6 +442,7 @@ export default function Home() {
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState<Gender | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const chooseProfile = (id: string) => {
     const p = getProfile(profilesData, id);
@@ -601,6 +617,10 @@ export default function Home() {
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'GOOGLE SIGN-IN FAILED');
     }
+  };
+  const handleLogout = async () => {
+    setConfirmLogout(false);
+    await signOutCloud();
   };
   const [syncReadyUid, setSyncReadyUid] = useState<string | null>(null);
   // On sign-in, merge local ⇄ cloud, then refresh profiles + active save.
@@ -877,7 +897,7 @@ export default function Home() {
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e' }}><PixelIconLabel name="cloud" size="0.86em">SYNCED <PixelIcon name="check" size="0.82em" /></PixelIconLabel></div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', textAlign: 'center', lineHeight: 1.7, wordBreak: 'break-all' }}>{cloudUser.email ?? cloudUser.displayName ?? 'your account'}</div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>YOUR PROFILES SYNC TO EVERY DEVICE</div>
-                    <button onClick={() => signOutCloud()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2 }}>SIGN OUT</button>
+                    <button onClick={() => setConfirmLogout(true)} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2 }}>SIGN OUT</button>
                   </>
                 ) : (
                   <>
@@ -893,6 +913,7 @@ export default function Home() {
               </div>
             )}
           </Frame>
+          {confirmLogout && <LogoutConfirm onCancel={() => setConfirmLogout(false)} onConfirm={handleLogout} />}
         </div>
       </Screen>
     );
@@ -981,7 +1002,7 @@ export default function Home() {
           <div className="flex flex-col items-center" style={{ gap: 'clamp(0.45rem, 1.35vh, 0.8rem)', marginTop: 'clamp(0.35rem, 1vh, 0.65rem)', paddingBottom: '0.25rem', flexShrink: 0 }}>
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
               <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="stats" size="0.82em">MY STATS</PixelIconLabel></button>
-              <button onClick={() => cloudUser ? signOutCloud() : game.goLogin()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: cloudUser ? '#ef4444' : '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">{cloudUser ? 'LOG OUT' : 'LOG IN'}</PixelIconLabel></button>
+              <button onClick={() => cloudUser ? setConfirmLogout(true) : game.goLogin()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: cloudUser ? '#ef4444' : '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">{cloudUser ? 'LOG OUT' : 'LOG IN'}</PixelIconLabel></button>
               <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="info" size="0.82em">ABOUT</PixelIconLabel></button>
               <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="settings" size="0.82em">SETTINGS</PixelIconLabel></button>
             </div>
@@ -989,6 +1010,7 @@ export default function Home() {
               © 2019-2026 MUSHTAQ ARCADE CORP
             </p>
           </div>
+          {confirmLogout && <LogoutConfirm onCancel={() => setConfirmLogout(false)} onConfirm={handleLogout} />}
         </div>
       </Screen>
     );
