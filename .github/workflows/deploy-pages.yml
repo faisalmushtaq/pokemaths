@@ -44,5 +44,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: dist/public
-          force_orphan: true
           commit_message: Deploy ${{ github.sha }} to GitHub Pages
