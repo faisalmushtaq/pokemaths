@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence, type Auth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -33,10 +33,6 @@ export function getFirebase(): { app: FirebaseApp; auth: Auth; db: Firestore } {
   if (!app) {
     app = initializeApp(firebaseConfig);
     authInstance = getAuth(app);
-    // Start persistence during app initialization. Do not await this from the
-    // sign-in click handler: iOS requires the popup call to remain inside the
-    // original user gesture or it blocks the popup and triggers redirect auth.
-    void setPersistence(authInstance, browserLocalPersistence).catch(() => {});
     dbInstance = getFirestore(app);
   }
   return { app, auth: authInstance!, db: dbInstance! };
