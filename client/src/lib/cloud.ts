@@ -12,8 +12,6 @@
 import { useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
-  browserLocalPersistence,
-  setPersistence,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -136,7 +134,6 @@ export function pushAllDebounced(uid: string): void {
 
 export async function signInGoogle(): Promise<void> {
   const { auth } = getFirebase();
-  await setPersistence(auth, browserLocalPersistence);
   const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   try {
     await signInWithPopup(auth, googleProvider);
