@@ -7,12 +7,12 @@
 // =============================================================================
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { browserLocalPersistence, getAuth, GoogleAuthProvider, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAwS40W4AmzELBNdImRW78WaKJAEuDxA7w',
-  authDomain: 'pokemaths-e031e.web.app',
+  authDomain: 'pokemaths-e031e.firebaseapp.com',
   projectId: 'pokemaths-e031e',
   storageBucket: 'pokemaths-e031e.firebasestorage.app',
   messagingSenderId: '630803342938',
@@ -32,10 +32,7 @@ export function firebaseReady(): boolean {
 export function getFirebase(): { app: FirebaseApp; auth: Auth; db: Firestore } {
   if (!app) {
     app = initializeApp(firebaseConfig);
-    const standalone = typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
-    authInstance = standalone
-      ? initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
-      : getAuth(app);
+    authInstance = getAuth(app);
     dbInstance = getFirestore(app);
   }
   return { app, auth: authInstance!, db: dbInstance! };
