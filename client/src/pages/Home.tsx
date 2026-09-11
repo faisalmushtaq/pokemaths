@@ -971,7 +971,7 @@ export default function Home() {
           <div className="flex flex-col items-center" style={{ gap: 'clamp(0.45rem, 1.35vh, 0.8rem)', marginTop: 'clamp(0.35rem, 1vh, 0.65rem)', paddingBottom: '0.25rem', flexShrink: 0 }}>
             <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-2">
               <button onClick={game.goStats} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#FFD700', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="stats" size="0.82em">MY STATS</PixelIconLabel></button>
-              <button onClick={game.goLogin} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">LOG IN</PixelIconLabel></button>
+              <button onClick={() => cloudUser ? signOutCloud() : game.goLogin()} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: cloudUser ? '#ef4444' : '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="trainer" size="0.82em">{cloudUser ? 'LOG OUT' : 'LOG IN'}</PixelIconLabel></button>
               <button onClick={game.goAbout} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="info" size="0.82em">ABOUT</PixelIconLabel></button>
               <button onClick={game.goSettings} style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, color: '#22c55e', background: 'none', border: 'none', cursor: 'pointer' }}><PixelIconLabel name="settings" size="0.82em">SETTINGS</PixelIconLabel></button>
             </div>
