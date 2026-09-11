@@ -134,14 +134,11 @@ export function pushAllDebounced(uid: string): void {
 
 export async function signInGoogle(): Promise<void> {
   const { auth } = getFirebase();
-  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   try {
     await signInWithPopup(auth, googleProvider);
   } catch {
-    // iOS standalone apps cannot preserve Firebase's cross-origin redirect
-    // state in sessionStorage. Keep the popup result in the app instead.
-    if (isStandalone) throw new Error('Google sign-in was cancelled or blocked. Open this app in Safari to sign in.');
-    // Ordinary Safari can use the redirect fallback when popups are blocked.
+    // Home Screen apps commonly block popups. Standalone auth is initialized
+    // with IndexedDB persistence so the redirect result survives the return.
     await signInWithRedirect(auth, googleProvider);
   }
 }
