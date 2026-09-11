@@ -12,7 +12,7 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAwS40W4AmzELBNdImRW78WaKJAEuDxA7w',
-  authDomain: 'pokemaths-e031e.firebaseapp.com',
+  authDomain: 'pokemaths-e031e.web.app',
   projectId: 'pokemaths-e031e',
   storageBucket: 'pokemaths-e031e.firebasestorage.app',
   messagingSenderId: '630803342938',
