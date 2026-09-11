@@ -18,7 +18,7 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { firebaseReady, getFirebase, googleProvider } from './firebase';
 import { mergeSaves, type SaveData } from './pokedex';
 import {
@@ -57,6 +57,7 @@ export async function pullAndMerge(uid: string): Promise<boolean> {
   } catch {
     return false; // offline / permission — stay local
   }
+  syncMarker = { uid, updatedAt: cloud.updatedAt ?? 0 };
 
   // Profile IDs are generated locally, so the same trainer created on two
   // devices can have different IDs. Match exact IDs first, then reconcile an
@@ -92,7 +93,9 @@ export async function pullAndMerge(uid: string): Promise<boolean> {
     ?? null;
   replaceLocal(profiles, saves, activeId);
   try {
-    await setDoc(cloudRef(uid), { profiles, saves, updatedAt: Date.now() });
+    const updatedAt = Date.now();
+    await setDoc(cloudRef(uid), { profiles, saves, updatedAt });
+    syncMarker = { uid, updatedAt };
   } catch {
     /* write may fail if not permitted — local already updated */
   }
@@ -100,19 +103,32 @@ export async function pullAndMerge(uid: string): Promise<boolean> {
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let syncMarker: { uid: string; updatedAt: number } | null = null;
+
+/** Listen for changes made by another device and merge them into local state. */
+export function subscribeToCloud(uid: string, onMerged: () => void): () => void {
+  return onSnapshot(cloudRef(uid), async (snap) => {
+    if (!snap.exists()) return;
+    const cloud = snap.data() as CloudDoc;
+    if (syncMarker?.uid === uid && (cloud.updatedAt ?? 0) <= syncMarker.updatedAt) return;
+    if (await pullAndMerge(uid)) onMerged();
+  });
+}
 
 /** Push the whole account (profiles + saves) to the cloud, debounced. */
 export function pushAllDebounced(uid: string): void {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
     const local = snapshotLocal();
+    const updatedAt = Date.now();
     setDoc(cloudRef(uid), {
       profiles: local.profiles,
       saves: local.saves,
-      updatedAt: Date.now(),
+      updatedAt,
     }).catch(() => {
       /* offline — will re-push on next change */
     });
+    syncMarker = { uid, updatedAt };
   }, 1500);
 }
 

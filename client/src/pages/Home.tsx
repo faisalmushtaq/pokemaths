@@ -37,7 +37,7 @@ import {
   MAX_PROFILES, AVATAR_CHOICES, type Gender,
 } from '@/lib/profiles';
 import { MEGAS, getMega, ARCADE_COUNTS, MEGA_COUNT } from '@/lib/mega';
-import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, pushAllDebounced, firebaseReady } from '@/lib/cloud';
+import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, subscribeToCloud, pushAllDebounced, firebaseReady } from '@/lib/cloud';
 import { buildShareCard, shareCatch, saveCard } from '@/lib/shareCard';
 import {
   isBattlePlayable,
@@ -599,13 +599,21 @@ export default function Home() {
     setSyncReadyUid(null);
     if (!cloudUser) return;
     let alive = true;
+    let unsubscribe: (() => void) | undefined;
     pullAndMerge(cloudUser.uid).then((ok) => {
       if (!alive) return;
-      if (ok) setSyncReadyUid(cloudUser.uid);
+      if (ok) {
+        setSyncReadyUid(cloudUser.uid);
+        unsubscribe = subscribeToCloud(cloudUser.uid, () => {
+          if (!alive) return;
+          setProfilesData(loadProfiles());
+          game.reloadSave();
+        });
+      }
       setProfilesData(loadProfiles());
       game.reloadSave();
     });
-    return () => { alive = false; };
+    return () => { alive = false; unsubscribe?.(); };
   }, [cloudUser]); // eslint-disable-line react-hooks/exhaustive-deps
   // Never upload until the initial cloud read/merge has completed. This avoids
   // a login-time upload overwriting cloud progress with stale local storage.
