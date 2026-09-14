@@ -132,14 +132,35 @@ export function pushAllDebounced(uid: string): void {
   }, 1500);
 }
 
+/**
+ * Firebase auth errors carry a `code` (e.g. `auth/popup-blocked`) and often a
+ * message holding the detail that matters (e.g. "missing initial state"), so
+ * keep both. A sign-in that fails should say why on screen.
+ */
+function describeAuthError(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : '';
+  const message = error instanceof Error ? error.message : '';
+  if (code && message && !message.includes(code)) return `${code}: ${message}`;
+  return message || code || 'UNKNOWN ERROR';
+}
+
 export async function signInGoogle(): Promise<void> {
   const { auth } = getFirebase();
   try {
     await signInWithPopup(auth, googleProvider);
-  } catch {
-    // Home Screen apps commonly block popups. Standalone auth is initialized
-    // with IndexedDB persistence so the redirect result survives the return.
-    await signInWithRedirect(auth, googleProvider);
+  } catch (popupError) {
+    // Home Screen apps and some in-app browsers block the popup, so fall back
+    // to a full-page redirect; useAuthUser() completes it on the next load.
+    try {
+      await signInWithRedirect(auth, googleProvider);
+    } catch (redirectError) {
+      throw new Error(
+        `POPUP ${describeAuthError(popupError)} / REDIRECT ${describeAuthError(redirectError)}`,
+      );
+    }
   }
 }
 
@@ -148,21 +169,34 @@ export async function signOutCloud(): Promise<void> {
   await signOut(auth);
 }
 
-/** Current signed-in user (or null). `ready` flips true once auth is resolved. */
-export function useAuthUser(): { user: User | null; ready: boolean } {
+/**
+ * Current signed-in user (or null). `ready` flips true once auth is resolved,
+ * and `error` reports a redirect sign-in that came back without completing.
+ */
+export function useAuthUser(): {
+  user: User | null;
+  ready: boolean;
+  error: string | null;
+} {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(!firebaseReady());
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!firebaseReady()) return;
     const { auth } = getFirebase();
-    // Complete any pending redirect sign-in, then listen for state.
-    getRedirectResult(auth).catch(() => {});
+    // Complete any pending redirect sign-in, then listen for state. A failure
+    // here is the signal that the OAuth handoff lost its initial state, which
+    // is what happens when the flow starts in an iOS Home Screen app and
+    // returns through Safari, so report it rather than discarding it.
+    getRedirectResult(auth).catch((redirectError) => {
+      setError(describeAuthError(redirectError));
+    });
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setReady(true);
     });
   }, []);
-  return { user, ready };
+  return { user, ready, error };
 }
 
 export { firebaseReady };

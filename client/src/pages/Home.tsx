@@ -609,7 +609,11 @@ export default function Home() {
   };
 
   // ----- cloud sync (Google account) -----
-  const { user: cloudUser } = useAuthUser();
+  const { user: cloudUser, error: redirectAuthError } = useAuthUser();
+  // A failed sign-in attempt and a redirect that returned without
+  // completing are both worth showing; either one explains a login that
+  // silently bounces back to this screen.
+  const signInError = authError ?? redirectAuthError;
   const handleSignIn = async () => {
     setAuthError(null);
     try {
@@ -906,7 +910,7 @@ export default function Home() {
                       style={{ fontFamily: PIXEL_FONT, fontSize: FS.sub, padding: '0.7rem 0', maxWidth: '16rem', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
                       <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
                     </button>
-                    {authError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, maxWidth: '18rem' }}>{authError}</div>}
+                    {signInError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, maxWidth: '18rem' }}>{signInError}</div>}
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>WITHOUT AN ACCOUNT, PROGRESS STAYS ON THIS DEVICE</div>
                   </>
                 )}
@@ -2221,10 +2225,11 @@ export default function Home() {
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '1.25rem' }}>
                     Sign in with Google to sync your profiles and Pokédex to every device.
                   </p>
-                  <button onClick={() => signInGoogle()} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
+                  <button onClick={handleSignIn} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
                     style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
                     <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
                   </button>
+                  {signInError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, marginTop: '0.75rem' }}>{signInError}</div>}
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginTop: '1rem' }}>
                     Free while in testing. Without an account, progress is saved on this device.
                   </p>
