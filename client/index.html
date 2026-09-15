@@ -13,6 +13,34 @@
     <meta name="apple-mobile-web-app-title" content="Pokémaths" />
     <link rel="apple-touch-icon" href="/pokemaths/icon-180.png" />
     <link rel="manifest" href="/pokemaths/manifest.json" />
+    <script>
+      // A deploy renames the hashed bundles, so a copy of this page cached by
+      // the browser can ask for an asset that no longer exists. The stylesheet
+      // still loads and paints the dark background, leaving a black screen with
+      // nothing on it. Recover by fetching the page again past the cache, at
+      // most once per tab session so a genuine outage cannot loop.
+      (function () {
+        var KEY = 'pokemaths:stale-asset-reload';
+        window.addEventListener(
+          'error',
+          function (event) {
+            var el = event.target;
+            if (!el || (el.tagName !== 'SCRIPT' && el.tagName !== 'LINK')) return;
+            var url = el.src || el.href || '';
+            // Only our own hashed bundles; a blip from the font CDN is not this.
+            if (url.indexOf(location.origin) !== 0 || url.indexOf('/assets/') === -1) return;
+            try {
+              if (sessionStorage.getItem(KEY)) return;
+              sessionStorage.setItem(KEY, '1');
+            } catch (err) {
+              return;
+            }
+            location.replace(location.pathname + '?r=' + Date.now() + location.hash);
+          },
+          true,
+        );
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
