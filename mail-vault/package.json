@@ -1,0 +1,86 @@
+{
+  "name": "mail-vault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local-only email archive for approved EML and MBOX exports.",
+  "author": "Mail Vault",
+  "desktopName": "mail-vault",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faisalmushtaq/pokemaths.git"
+  },
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build:renderer": "vite build",
+    "build:main": "esbuild electron/main.ts --bundle --platform=node --target=node22 --format=esm --external:electron --external:better-sqlite3 --external:postal-mime --outdir=dist-electron",
+    "build:preload": "esbuild electron/preload.ts --bundle --platform=node --target=node22 --format=cjs --external:electron --outfile=dist-electron/preload.cjs",
+    "build": "npm run build:renderer && npm run build:main && npm run build:preload",
+    "start": "electron .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "rebuild:native": "electron-builder install-app-deps",
+    "prepare:mac:icon": "bash scripts/make-mac-icon.sh",
+    "package:mac": "npm run prepare:mac:icon && npm run build && electron-builder --mac --publish never",
+    "package:linux": "npm run build && electron-builder --linux --publish never"
+  },
+  "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "^5.2.7",
+    "@fontsource-variable/newsreader": "^5.2.7",
+    "better-sqlite3": "^12.4.1",
+    "lucide-react": "^0.468.0",
+    "postal-mime": "^2.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^3.0.1",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "uk.ac.personal.mailvault",
+    "productName": "Mail Vault",
+    "publish": [{ "provider": "generic", "url": "https://updates.invalid/mail-vault" }],
+    "icon": "assets/mail-vault-icon.png",
+    "asar": true,
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Office",
+      "syncDesktopName": true,
+      "synopsis": "Private local email archive"
+    }
+  }
+}
