@@ -37,7 +37,8 @@ import {
   MAX_PROFILES, AVATAR_CHOICES, type Gender,
 } from '@/lib/profiles';
 import { MEGAS, getMega, ARCADE_COUNTS, MEGA_COUNT } from '@/lib/mega';
-import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, subscribeToCloud, pushAllDebounced, firebaseReady } from '@/lib/cloud';
+import { useAuthUser, signInGoogle, signOutCloud, pullAndMerge, subscribeToCloud, pushAllDebounced, firebaseReady, isStandaloneApp } from '@/lib/cloud';
+import { AppPasswordSetup, EmailSignIn } from '@/components/AccountAccess';
 import { buildShareCard, shareCatch, saveCard } from '@/lib/shareCard';
 import {
   isBattlePlayable,
@@ -895,12 +896,13 @@ export default function Home() {
 
             {/* --- account / cloud sync (same page as the profiles they own) --- */}
             {firebaseReady() && (
-              <div className="w-full rounded-xl flex flex-col items-center" style={{ maxWidth: '26rem', marginTop: 'clamp(0.5rem,2vh,1rem)', padding: 'clamp(0.85rem,3.5vw,1.25rem)', background: cloudUser ? 'rgba(34,197,94,0.06)' : 'rgba(56,189,248,0.06)', border: `2px solid ${cloudUser ? 'rgba(34,197,94,0.4)' : '#38bdf8'}`, gap: 10 }}>
+              <div className="w-full rounded-xl flex flex-col items-center" style={{ maxWidth: '26rem', flexShrink: 0, marginTop: 'clamp(0.5rem,2vh,1rem)', padding: 'clamp(0.85rem,3.5vw,1.25rem)', background: cloudUser ? 'rgba(34,197,94,0.06)' : 'rgba(56,189,248,0.06)', border: `2px solid ${cloudUser ? 'rgba(34,197,94,0.4)' : '#38bdf8'}`, gap: 10 }}>
                 {cloudUser ? (
                   <>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#22c55e' }}><PixelIconLabel name="cloud" size="0.86em">SYNCED <PixelIcon name="check" size="0.82em" /></PixelIconLabel></div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#FFD700', textAlign: 'center', lineHeight: 1.7, wordBreak: 'break-all' }}>{cloudUser.email ?? cloudUser.displayName ?? 'your account'}</div>
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>YOUR PROFILES SYNC TO EVERY DEVICE</div>
+                    <AppPasswordSetup key={cloudUser.uid} user={cloudUser} />
                     <button onClick={() => setConfirmLogout(true)} style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2 }}>SIGN OUT</button>
                   </>
                 ) : (
@@ -911,6 +913,7 @@ export default function Home() {
                       <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
                     </button>
                     {signInError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, maxWidth: '18rem' }}>{signInError}</div>}
+                    <EmailSignIn initiallyOpen={isStandaloneApp()} />
                     <div style={{ fontFamily: PIXEL_FONT, fontSize: '0.5rem', color: '#888', textAlign: 'center', lineHeight: 1.8 }}>WITHOUT AN ACCOUNT, PROGRESS STAYS ON THIS DEVICE</div>
                   </>
                 )}
@@ -2214,6 +2217,9 @@ export default function Home() {
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginBottom: '1.25rem' }}>
                     Your {profilesData.profiles.length} profile{profilesData.profiles.length === 1 ? '' : 's'} sync to this account on every device.
                   </p>
+                  <div className="flex justify-center" style={{ marginBottom: '1rem' }}>
+                    <AppPasswordSetup key={cloudUser!.uid} user={cloudUser!} />
+                  </div>
                   <button onClick={() => signOutCloud()} className="w-full rounded-lg font-bold"
                     style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: 'transparent', color: '#ef4444', border: '2px solid #ef4444', cursor: 'pointer' }}>
                     SIGN OUT
@@ -2223,13 +2229,16 @@ export default function Home() {
                 <>
                   <div style={{ fontFamily: PIXEL_FONT, fontSize: FS.heading, color: '#38bdf8', marginBottom: '0.75rem' }}>SAVE ACROSS DEVICES</div>
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.small, color: '#cbd5e1', lineHeight: 2, marginBottom: '1.25rem' }}>
-                    Sign in with Google to sync your profiles and Pokédex to every device.
+                    Sign in to sync your profiles and Pokédex to every device.
                   </p>
                   <button onClick={handleSignIn} className="w-full rounded-lg font-bold flex items-center justify-center gap-2"
                     style={{ fontFamily: PIXEL_FONT, fontSize: FS.btn, padding: '0.9rem 0', background: '#fff', color: '#1a1a1a', border: '2px solid #fff', cursor: 'pointer' }}>
                     <span style={{ color: '#4285F4' }}>G</span> SIGN IN WITH GOOGLE
                   </button>
                   {signInError && <div role="alert" style={{ fontFamily: PIXEL_FONT, fontSize: '0.46rem', color: '#ef4444', textAlign: 'center', lineHeight: 1.7, marginTop: '0.75rem' }}>{signInError}</div>}
+                  <div className="flex justify-center" style={{ marginTop: '1rem' }}>
+                    <EmailSignIn initiallyOpen={isStandaloneApp()} />
+                  </div>
                   <p style={{ fontFamily: PIXEL_FONT, fontSize: FS.tiny, color: '#888', lineHeight: 2, marginTop: '1rem' }}>
                     Free while in testing. Without an account, progress is saved on this device.
                   </p>
