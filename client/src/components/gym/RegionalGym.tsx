@@ -1,9 +1,10 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { PIXEL_FONT } from '@/lib/gameConstants';
 import { PixelIcon, PixelIconLabel } from '@/components/ui/PixelIcon';
 import { GYM_ENGINE_LABELS, getGymTopicsForRegion, type GymEngineId, type GymTopicConfig } from '@/lib/gymContent';
 import type { CurriculumRegion } from '@/lib/curriculumRegions';
 import { getGymBadge, type GymBadgeDefinition } from '@/lib/gymBadges';
+import { gymTaskFor, gymTaskStart, type GymTask } from '@/lib/gymTasks';
 import { hasGymBadge, type SaveData } from '@/lib/pokedex';
 
 const ViridianForestGym = lazy(async () => {
@@ -11,7 +12,7 @@ const ViridianForestGym = lazy(async () => {
   return { default: module.ViridianForestGym };
 });
 
-type CheckState = 'idle' | 'correct' | 'incorrect';
+type CheckState = 'idle' | 'correct' | 'incorrect' | 'hint';
 type View = 'hub' | 'practice' | 'viridian' | 'johtoWorkshop';
 
 interface RegionalGymProps {
@@ -74,11 +75,15 @@ function Shell({
 
 function Feedback({ state, explanation, hint }: { state: CheckState; explanation: string; hint: string }) {
   if (state === 'idle') return null;
-  const correct = state === 'correct';
+  const tone = state === 'correct'
+    ? { title: 'CORRECT!', text: explanation, color: '#86efac', border: '#22c55e', bg: 'rgba(34,197,94,0.14)' }
+    : state === 'hint'
+      ? { title: 'HINT', text: hint, color: '#7dd3fc', border: '#38bdf8', bg: 'rgba(56,189,248,0.12)' }
+      : { title: 'NOT QUITE. TRY AGAIN', text: hint, color: '#fca5a5', border: '#ef4444', bg: 'rgba(239,68,68,0.14)' };
   return (
-    <div role="status" className="rounded-xl" style={{ marginTop: '0.85rem', padding: '0.78rem', background: correct ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)', border: `1px solid ${correct ? '#22c55e' : '#ef4444'}` }}>
-      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.9vw,0.56rem)', color: correct ? '#86efac' : '#fca5a5', lineHeight: 1.7 }}>{correct ? 'MODEL CONNECTED' : 'ADJUST THE MODEL'}</div>
-      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.58vw,0.47rem)', color: '#e2e8f0', lineHeight: 1.8, marginTop: '0.3rem' }}>{correct ? explanation : hint}</div>
+    <div role="status" className="rounded-xl" style={{ marginTop: '0.85rem', padding: '0.78rem', background: tone.bg, border: `1px solid ${tone.border}` }}>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.4rem,1.9vw,0.56rem)', color: tone.color, lineHeight: 1.7 }}>{tone.title}</div>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.33rem,1.58vw,0.47rem)', color: '#e2e8f0', lineHeight: 1.8, marginTop: '0.3rem' }}>{tone.text}</div>
     </div>
   );
 }
@@ -124,71 +129,79 @@ function CounterModel({ max, selected, onSelect, accent, label }: { max: number;
   );
 }
 
-function NumberLineModel({ min, max, selected, onSelect, accent, step = 1 }: { min: number; max: number; selected: number; onSelect: (value: number) => void; accent: string; step?: number }) {
+function formatUnits(units: number, scale = 1, decimals = 0, suffix = ''): string {
+  return `${(units * scale).toFixed(decimals)}${suffix}`;
+}
+
+/** Tick spacing (in units) giving at most ten labelled gaps. */
+function tickEvery(span: number): number {
+  for (const candidate of [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000]) if (span / candidate <= 10) return candidate;
+  return Math.ceil(span / 10);
+}
+
+const stepButton = (accent: string) => ({ ...controlStyle, minHeight: '2.6rem', minWidth: '3rem', padding: '0 0.6rem', color: '#f8fafc', background: 'rgba(15,23,42,0.85)', border: `1px solid ${accent}` }) as const;
+
+function NumberLineModel({ task, selected, onSelect, accent }: { task: GymTask; selected: number; onSelect: (value: number) => void; accent: string }) {
+  const { min, max, scale = 1, decimals = 0, suffix = '' } = task;
+  const span = max - min;
+  const every = tickEvery(span);
+  const ticks: number[] = [];
+  for (let unit = Math.ceil(min / every) * every; unit <= max; unit += every) ticks.push(unit);
+  // Label ticks only as precisely as their spacing: 0.1 steps read 1.1, not 1.10.
+  const tickDecimals = Math.min(decimals, Math.max(0, Math.ceil(-Math.log10(every * scale) - 1e-9)));
+  const labelEvery = ticks.length > 6 ? 2 : 1;
+  const clamp = (value: number) => Math.max(min, Math.min(max, value));
   return (
     <div style={{ marginTop: '0.95rem', padding: '0.75rem', borderRadius: '0.8rem', background: 'rgba(15,23,42,0.7)', border: `1px solid ${accent}88` }}>
-      <input type="range" min={min} max={max} step={step} value={selected} onChange={(event) => onSelect(Number(event.target.value))} aria-label="Move the number-line marker" style={{ width: '100%', accentColor: accent, minHeight: '2rem', cursor: 'pointer' }} />
-      <div className="flex justify-between" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.55vw,0.45rem)', color: '#cbd5e1' }}><span>{min}</span><span style={{ color: '#fef08a' }}>MARKER: {selected}</span><span>{max}</span></div>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.5rem,2.4vw,0.72rem)', color: '#fef08a', textAlign: 'center', marginBottom: '0.5rem' }}>MARKER: {formatUnits(selected, scale, decimals, suffix)}</div>
+      <input type="range" min={min} max={max} step={1} value={selected} onChange={(event) => onSelect(Number(event.target.value))} aria-label="Move the number-line marker" aria-valuetext={formatUnits(selected, scale, decimals, suffix)} style={{ width: '100%', accentColor: accent, minHeight: '2rem', cursor: 'pointer' }} />
+      {/* Ticks sit inside the slider's usable track (thumb radius ≈ 10px). */}
+      <div style={{ position: 'relative', height: '1.6rem', margin: '0 10px' }}>
+        {/* A short mark for every single step when there are few enough to count. */}
+        {every > 1 && span <= 40 && Array.from({ length: span + 1 }, (_, i) => min + i).filter((unit) => unit % every !== 0).map((unit) => (
+          <div key={`step-${unit}`} style={{ position: 'absolute', left: `${((unit - min) / span) * 100}%`, transform: 'translateX(-50%)', width: 1, height: 4, background: '#64748b' }} />
+        ))}
+        {ticks.map((unit, index) => (
+          <div key={unit} style={{ position: 'absolute', left: `${((unit - min) / span) * 100}%`, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: 2, height: index % labelEvery === 0 ? 8 : 5, background: '#94a3b8' }} />
+            {index % labelEvery === 0 && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.3rem,1.4vw,0.42rem)', color: '#cbd5e1', marginTop: 3, whiteSpace: 'nowrap' }}>{formatUnits(unit, scale, tickDecimals, suffix)}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center" style={{ gap: '0.5rem', marginTop: '0.6rem' }}>
+        <button type="button" onClick={() => onSelect(clamp(selected - 1))} aria-label="Move marker one step left" style={stepButton(accent)}>−</button>
+        <button type="button" onClick={() => onSelect(clamp(selected + 1))} aria-label="Move marker one step right" style={stepButton(accent)}>+</button>
+      </div>
     </div>
   );
 }
 
-function DigitModel({ value, selected, onSelect, accent, title }: { value: number; selected: number; onSelect: (value: number) => void; accent: string; title: string }) {
-  const digits = String(Math.abs(Math.trunc(value))).split('').map(Number);
-  const expected = digits[Math.min(digits.length - 1, 1)] ?? digits[0] ?? 0;
+function NumberStepper({ task, selected, onSelect, accent }: { task: GymTask; selected: number; onSelect: (value: number) => void; accent: string }) {
+  const clamp = (value: number) => Math.max(task.min, Math.min(task.max, value));
+  return (
+    <div style={{ marginTop: '0.95rem', padding: '0.75rem', borderRadius: '0.8rem', background: 'rgba(15,23,42,0.7)', border: `1px solid ${accent}88` }}>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.34rem,1.6vw,0.46rem)', color: '#cbd5e1', textAlign: 'center' }}>{task.label ?? 'YOUR ANSWER'}</div>
+      <div aria-live="polite" style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(1.1rem,6vw,1.8rem)', color: '#fef08a', textAlign: 'center', margin: '0.5rem 0 0.7rem' }}>{selected}</div>
+      <div className="flex justify-center" style={{ gap: '0.4rem' }}>
+        <button type="button" onClick={() => onSelect(clamp(selected - 10))} aria-label="Take away ten" style={stepButton(accent)}>−10</button>
+        <button type="button" onClick={() => onSelect(clamp(selected - 1))} aria-label="Take away one" style={stepButton(accent)}>−1</button>
+        <button type="button" onClick={() => onSelect(clamp(selected + 1))} aria-label="Add one" style={stepButton(accent)}>+1</button>
+        <button type="button" onClick={() => onSelect(clamp(selected + 10))} aria-label="Add ten" style={stepButton(accent)}>+10</button>
+      </div>
+    </div>
+  );
+}
+
+function DigitModel({ card, selected, onSelect, accent }: { card: string; selected: number; onSelect: (value: number) => void; accent: string }) {
   return (
     <div style={{ marginTop: '0.85rem' }}>
-      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.36rem,1.7vw,0.5rem)', color: '#bae6fd', lineHeight: 1.7 }}>{title}: {value}</div>
-      <div className="grid grid-cols-5" style={{ gap: '0.42rem', marginTop: '0.55rem' }}>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(1rem,5.5vw,1.6rem)', color: '#fef08a', textAlign: 'center', letterSpacing: '0.12em', padding: '0.7rem', borderRadius: '0.6rem', background: 'rgba(15,23,42,0.7)', border: `1px solid ${accent}88` }}>{card}</div>
+      <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.32rem,1.5vw,0.44rem)', color: '#cbd5e1', marginTop: '0.6rem' }}>TAP THE DIGIT</div>
+      <div className="grid grid-cols-5" style={{ gap: '0.42rem', marginTop: '0.45rem' }}>
         {Array.from({ length: 10 }, (_, digit) => <button key={digit} type="button" onClick={() => onSelect(digit)} aria-pressed={selected === digit} style={{ ...controlStyle, minHeight: '2.35rem', padding: '0.35rem', color: selected === digit ? '#fff' : '#cbd5e1', background: selected === digit ? `${accent}55` : 'rgba(15,23,42,0.78)', border: `1px solid ${selected === digit ? accent : '#475569'}` }}>{digit}</button>)}
       </div>
-      <div style={{ display: 'none' }}>{expected}</div>
     </div>
   );
-}
-
-function taskFor(config: GymTopicConfig, moduleIndex: number) {
-  const base = config.values[moduleIndex % config.values.length];
-  const stage = moduleIndex % 3;
-  const stageLabel = stage === 0 ? config.buildLabel : stage === 1 ? config.connectLabel : config.explainLabel;
-  if (config.engine === 'fraction') {
-    const denominator = Math.max(2, Math.min(10, Math.round(Math.abs(base)) || 2));
-    const numerator = Math.min(denominator, (moduleIndex % denominator) + 1);
-    return { kind: 'fraction' as const, stageLabel, expected: numerator, max: denominator, prompt: `${stageLabel}: show ${numerator}/${denominator} with equal parts.`, explanation: `${numerator} of the ${denominator} equal parts are selected. The whole has been divided fairly.`, hint: `Start with ${denominator} equal parts, then select ${numerator}.` };
-  }
-  if (config.engine === 'percentage') {
-    const expected = Math.max(0, Math.min(100, Math.round(base)));
-    return { kind: 'line' as const, stageLabel, expected, min: 0, max: 100, step: 1, prompt: `${stageLabel}: move the marker to ${expected}% on the hundred scale.`, explanation: `${expected}% means ${expected} parts out of 100 equal parts.`, hint: 'Use the ends of the scale as 0% and 100%, then place the marker.' };
-  }
-  if (config.engine === 'ratio') {
-    const a = Math.max(1, Math.round(config.values[0]));
-    const expected = Math.max(1, Math.round(config.values[1]));
-    return { kind: 'line' as const, stageLabel, expected, min: 0, max: Math.max(expected * 2, 10), step: 1, prompt: `${stageLabel}: keep ${a} amber tokens linked with ${expected} blue tokens. Move the blue counter.`, explanation: `The relationship is ${a} amber for every ${expected} blue. Both parts describe one linked recipe.`, hint: 'Read the relationship in order. Keep the amber amount fixed, then set the blue amount.' };
-  }
-  if (config.engine === 'decimal') {
-    const expected = Math.max(0, Math.min(50, Math.round(Math.abs(base) * 10)));
-    return { kind: 'line' as const, stageLabel, expected, min: 0, max: 50, step: 1, prompt: `${stageLabel}: represent ${expected}/10 as tenths on the decimal scale.`, explanation: `${expected}/10 has ${expected} tenths. The position shows its decimal value.`, hint: 'Each full step is one tenth. Count the tenths from zero.' };
-  }
-  if (config.engine === 'placeValue' || config.engine === 'column') {
-    const source = Math.abs(Math.trunc(base));
-    const digits = String(source).split('').map(Number);
-    const expected = digits[Math.min(digits.length - 1, 1)] ?? digits[0] ?? 0;
-    return { kind: 'digit' as const, stageLabel, expected, min: 0, max: 9, prompt: `${stageLabel}: select the highlighted place-value digit in ${source}.`, explanation: `The selected digit is ${expected}. Its value depends on the place it occupies in the number.`, hint: 'Read the number from right to left as ones, tens, hundreds, then thousands.' };
-  }
-  if (config.engine === 'function' || config.engine === 'pattern') {
-    const expected = Math.round(config.values[(moduleIndex + 1) % config.values.length]);
-    return { kind: 'line' as const, stageLabel, expected, min: Math.min(0, expected - 6), max: Math.max(20, expected + 6), step: 1, prompt: `${stageLabel}: move the marker to the next value, ${expected}, in the structure.`, explanation: `The next value is ${expected}. The rule connects each position to the next one.`, hint: 'Look for the repeated change, then continue it once.' };
-  }
-  if (config.engine === 'numberLine') {
-    const expected = Math.round(base);
-    return { kind: 'line' as const, stageLabel, expected, min: Math.min(-10, expected - 8), max: Math.max(20, expected + 8), step: 1, prompt: `${stageLabel}: place the marker at ${expected} on the line.`, explanation: `${expected} has a definite position. Moving right increases value and moving left decreases value.`, hint: 'Use zero as an anchor, then count equal steps.' };
-  }
-  if (config.engine === 'groups' || config.engine === 'division') {
-    const expected = Math.max(1, Math.min(24, Math.round(base)));
-    return { kind: 'counter' as const, stageLabel, expected, min: 0, max: Math.max(10, expected + 4), prompt: `${stageLabel}: build a model with ${expected} counters before checking the equal-group relationship.`, explanation: `${expected} counters can be arranged into equal groups. The arrangement shows the multiplication or division structure.`, hint: 'Count one counter at a time. Equal groups have the same number in each group.' };
-  }
-  const expected = Math.max(0, Math.min(24, Math.round(Math.abs(base))));
-  return { kind: 'counter' as const, stageLabel, expected, min: 0, max: Math.max(10, expected + 4), prompt: `${stageLabel}: build a model that shows ${expected}.`, explanation: `The model shows ${expected} as a structured quantity.`, hint: 'Use one item for each count and check that none have been skipped.' };
 }
 
 function TopicPractice({
@@ -214,14 +227,19 @@ function TopicPractice({
   const [finished, setFinished] = useState(false);
   const [newlyEarnedBadge, setNewlyEarnedBadge] = useState<GymBadgeDefinition | undefined>();
   const module = config.topic.modules[moduleIndex];
-  const task = useMemo(() => taskFor(config, moduleIndex * 3 + exampleIndex), [config, moduleIndex, exampleIndex]);
+  // Keyed on primitives: JohtoWorkshop builds a fresh config object each render.
+  const taskKey = `${config.stationId}:${moduleIndex}:${exampleIndex}`;
+  const task = useMemo(() => gymTaskFor(config, moduleIndex * 3 + exampleIndex), [taskKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A digit question starts with nothing picked, so 0 is never pre-selected.
+  const [picked, setPicked] = useState(false);
 
-  const reset = () => { setSelected(0); setState('idle'); };
-  const check = () => setState(selected === task.expected ? 'correct' : 'incorrect');
+  const reset = () => { setSelected(gymTaskStart(task)); setPicked(false); setState('idle'); };
+  useEffect(reset, [taskKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const choose = (value: number) => { setSelected(value); setPicked(true); setState('idle'); };
+  const check = () => setState(selected === task.expected && (picked || task.kind !== 'digit') ? 'correct' : 'incorrect');
   const next = () => {
     if (exampleIndex < 2) {
       setExampleIndex((current) => current + 1);
-      reset();
       return;
     }
     if (moduleIndex + 1 >= config.topic.modules.length) {
@@ -232,9 +250,8 @@ function TopicPractice({
     }
     setModuleIndex((current) => current + 1);
     setExampleIndex(0);
-    reset();
   };
-  const showHint = () => { setHints((current) => current + 1); setState('incorrect'); };
+  const showHint = () => { setHints((current) => current + 1); setState('hint'); };
 
   if (finished) {
     return (
@@ -264,14 +281,16 @@ function TopicPractice({
     <Shell region={region} title={`${config.room} · ${config.topic.id.toUpperCase()}`} subtitle={`${config.topic.title} · Module ${module.order}/${config.topic.modules.length}, example ${exampleIndex + 1}/3: ${module.title}`} onBack={onBack}>
       <section className="rounded-2xl" style={{ ...panel(config.accent), padding: 'clamp(0.95rem,4vw,1.35rem)' }}>
         <div className="flex items-center justify-between gap-3">
-          <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.39rem,1.85vw,0.54rem)', color: '#fef3c7' }}>{task.stageLabel.toUpperCase()}</div>
+          <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.39rem,1.85vw,0.54rem)', color: '#fef3c7' }}>QUESTION {exampleIndex + 1} OF 3</div>
           <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.31rem,1.5vw,0.43rem)', color: config.accent, border: `1px solid ${config.accent}88`, padding: '0.27rem 0.4rem', borderRadius: '0.35rem' }}>{GYM_ENGINE_LABELS[config.engine].toUpperCase()}</div>
         </div>
         <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.56rem,2.65vw,0.8rem)', color: '#f8fafc', lineHeight: 1.75, marginTop: '0.7rem' }}>{task.prompt}</div>
-        {task.kind === 'fraction' && <FractionModel denominator={task.max} selected={selected} onSelect={(value) => { setSelected(value); setState('idle'); }} accent={config.accent} />}
-        {task.kind === 'counter' && <CounterModel max={task.max} selected={selected} onSelect={(value) => { setSelected(value); setState('idle'); }} accent={config.accent} label="MODEL COUNTERS" />}
-        {task.kind === 'line' && <NumberLineModel min={task.min} max={task.max} step={task.step} selected={selected} onSelect={(value) => { setSelected(value); setState('idle'); }} accent={config.accent} />}
-        {task.kind === 'digit' && <DigitModel value={config.values[moduleIndex % config.values.length]} selected={selected} onSelect={(value) => { setSelected(value); setState('idle'); }} accent={config.accent} title="NUMBER CARD" />}
+        {task.display && <div style={{ fontFamily: PIXEL_FONT, fontSize: 'clamp(0.8rem,4.2vw,1.25rem)', color: '#fef08a', textAlign: 'center', marginTop: '0.8rem' }}>{task.display}</div>}
+        {task.kind === 'fraction' && <FractionModel denominator={task.max} selected={selected} onSelect={choose} accent={config.accent} />}
+        {task.kind === 'counter' && <CounterModel max={task.max} selected={selected} onSelect={choose} accent={config.accent} label={task.label ?? 'COUNTERS'} />}
+        {task.kind === 'line' && <NumberLineModel task={task} selected={selected} onSelect={choose} accent={config.accent} />}
+        {task.kind === 'number' && <NumberStepper task={task} selected={selected} onSelect={choose} accent={config.accent} />}
+        {task.kind === 'digit' && <DigitModel card={task.card ?? ''} selected={picked ? selected : -1} onSelect={choose} accent={config.accent} />}
         <Feedback state={state} explanation={task.explanation} hint={task.hint} />
         <div className="grid grid-cols-3" style={{ gap: '0.45rem', marginTop: '1rem' }}>
           <button type="button" onClick={reset} style={{ ...controlStyle, color: '#e2e8f0', background: 'rgba(148,163,184,0.13)', border: '1px solid #64748b' }}><PixelIconLabel name="reset" size="0.8em">RESET</PixelIconLabel></button>
