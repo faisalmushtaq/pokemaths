@@ -6,8 +6,8 @@
  * an email + "app password":
  *   - AppPasswordSetup: shown to a signed-in player; links a password to the
  *     current (Google) account, keeping one account and one set of saves.
- *   - EmailSignIn: signs in with that email + password, or creates an email
- *     account for players without Google. No popup, no redirect.
+ *   - EmailSignIn: signs in with an email + password, or creates a new
+ *     email-only account; Google is never needed. No popup, no redirect.
  */
 
 import { useState, type CSSProperties, type FormEvent } from 'react';
@@ -94,7 +94,7 @@ export function EmailSignIn({ initiallyOpen = false }: { initiallyOpen?: boolean
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} style={linkButton}>
-        OR USE EMAIL + APP PASSWORD
+        OR USE EMAIL + PASSWORD (NO GOOGLE NEEDED)
       </button>
     );
   }
@@ -130,10 +130,38 @@ export function EmailSignIn({ initiallyOpen = false }: { initiallyOpen?: boolean
     }
   };
 
+  const switchMode = (next: 'signIn' | 'create') => {
+    setMode(next);
+    setError(null);
+    setNotice(null);
+  };
+  const tab = (value: 'signIn' | 'create', label: string) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === value}
+      onClick={() => switchMode(value)}
+      style={{
+        flex: 1,
+        fontFamily: PIXEL_FONT,
+        fontSize: TEXT_TINY,
+        padding: '0.55rem 0.25rem',
+        borderRadius: 6,
+        cursor: 'pointer',
+        color: mode === value ? '#0a0a1a' : '#38bdf8',
+        background: mode === value ? '#38bdf8' : 'transparent',
+        border: '2px solid #38bdf8',
+      }}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <form onSubmit={submit} className="w-full flex flex-col items-center" style={{ gap: 8, maxWidth: '18rem', flexShrink: 0 }}>
-      <div style={{ fontFamily: PIXEL_FONT, fontSize: TEXT_SMALL, color: '#38bdf8', textAlign: 'center', lineHeight: 1.7 }}>
-        {mode === 'create' ? 'NEW EMAIL ACCOUNT' : 'EMAIL SIGN-IN'}
+      <div role="tablist" aria-label="Email account" className="w-full flex" style={{ gap: 6 }}>
+        {tab('signIn', 'SIGN IN')}
+        {tab('create', 'NEW ACCOUNT')}
       </div>
       <input
         type="email"
@@ -151,7 +179,7 @@ export function EmailSignIn({ initiallyOpen = false }: { initiallyOpen?: boolean
       <input
         type="password"
         autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
-        placeholder={mode === 'create' ? 'Choose a password (6+ characters)' : 'App password'}
+        placeholder={mode === 'create' ? 'New password (6+ characters)' : 'Password'}
         aria-label="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -164,22 +192,13 @@ export function EmailSignIn({ initiallyOpen = false }: { initiallyOpen?: boolean
       </button>
       {error && <Message tone="error">{error}</Message>}
       {notice && <Message tone="ok">{notice}</Message>}
-      <div className="flex flex-wrap justify-center" style={{ gap: '0.25rem 0.75rem' }}>
-        {mode === 'signIn' && (
-          <button type="button" onClick={forgot} style={linkButton}>FORGOT PASSWORD?</button>
-        )}
-        <button
-          type="button"
-          onClick={() => { setMode(mode === 'create' ? 'signIn' : 'create'); setError(null); setNotice(null); }}
-          style={linkButton}
-        >
-          {mode === 'create' ? 'I HAVE AN ACCOUNT' : 'NO GOOGLE? CREATE ACCOUNT'}
-        </button>
-      </div>
+      {mode === 'signIn' && (
+        <button type="button" onClick={forgot} style={linkButton}>FORGOT PASSWORD?</button>
+      )}
       <div style={noteStyle}>
         {mode === 'create'
-          ? 'ALREADY USE GOOGLE? DON\'T CREATE A NEW ACCOUNT. SIGN IN WITH GOOGLE ON THE WEBSITE AND SET AN APP PASSWORD THERE.'
-          : 'USE GOOGLE ON THE WEBSITE? SIGN IN THERE ONCE AND TAP "SET APP PASSWORD", THEN USE THAT EMAIL + PASSWORD HERE.'}
+          ? 'ANY EMAIL WORKS, NO GOOGLE NEEDED. SIGN IN WITH THE SAME EMAIL + PASSWORD ON EVERY DEVICE TO SYNC.'
+          : 'ALREADY SYNCING WITH GOOGLE? SET A PASSWORD FOR THAT ACCOUNT ON THE WEBSITE FIRST, THEN SIGN IN HERE WITH IT.'}
       </div>
     </form>
   );
@@ -187,6 +206,8 @@ export function EmailSignIn({ initiallyOpen = false }: { initiallyOpen?: boolean
 
 export function AppPasswordSetup({ user }: { user: User }) {
   const [hasPassword, setHasPassword] = useState(() => hasAppPassword(user));
+  // Email-only accounts already sign in with their password everywhere.
+  const emailOnly = user.providerData.every((provider) => provider.providerId === 'password');
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -200,7 +221,7 @@ export function AppPasswordSetup({ user }: { user: User }) {
       <div className="w-full flex flex-col items-center" style={{ gap: 4 }}>
         {notice && <Message tone="ok">{notice}</Message>}
         <button type="button" onClick={() => { setOpen(true); setNotice(null); }} style={linkButton}>
-          {hasPassword ? 'CHANGE APP PASSWORD' : 'USING THE HOME SCREEN APP? SET APP PASSWORD'}
+          {emailOnly ? 'CHANGE PASSWORD' : hasPassword ? 'CHANGE APP PASSWORD' : 'USING THE HOME SCREEN APP? SET APP PASSWORD'}
         </button>
       </div>
     );
@@ -215,7 +236,9 @@ export function AppPasswordSetup({ user }: { user: User }) {
       setHasPassword(true);
       setPassword('');
       setOpen(false);
-      setNotice(`APP PASSWORD SAVED. IN THE HOME SCREEN APP, SIGN IN WITH ${user.email!.toUpperCase()} + THIS PASSWORD.`);
+      setNotice(emailOnly
+        ? 'PASSWORD CHANGED. USE THE NEW ONE ON YOUR OTHER DEVICES.'
+        : `APP PASSWORD SAVED. IN THE HOME SCREEN APP, SIGN IN WITH ${user.email!.toUpperCase()} + THIS PASSWORD.`);
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
@@ -225,16 +248,18 @@ export function AppPasswordSetup({ user }: { user: User }) {
 
   return (
     <form onSubmit={submit} className="w-full flex flex-col items-center" style={{ gap: 8, maxWidth: '18rem', flexShrink: 0 }}>
-      <div style={noteStyle}>
-        GOOGLE SIGN-IN CAN'T FINISH INSIDE A HOME SCREEN APP. SET A PASSWORD HERE, THEN SIGN IN THERE WITH THIS EMAIL + PASSWORD. SAME ACCOUNT, SAME SAVES.
-      </div>
+      {!emailOnly && (
+        <div style={noteStyle}>
+          GOOGLE SIGN-IN CAN'T FINISH INSIDE A HOME SCREEN APP. SET A PASSWORD HERE, THEN SIGN IN THERE WITH THIS EMAIL + PASSWORD. SAME ACCOUNT, SAME SAVES.
+        </div>
+      )}
       {/* Hidden username lets password managers save the pair together. */}
       <input type="email" autoComplete="username" value={user.email} readOnly hidden />
       <input
         type="password"
         autoComplete="new-password"
-        placeholder="New app password (6+ characters)"
-        aria-label="New app password"
+        placeholder={emailOnly ? 'New password (6+ characters)' : 'New app password (6+ characters)'}
+        aria-label="New password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         minLength={6}
@@ -242,7 +267,7 @@ export function AppPasswordSetup({ user }: { user: User }) {
         style={inputStyle}
       />
       <button type="submit" disabled={busy} style={{ ...primaryButton('#22c55e'), opacity: busy ? 0.6 : 1 }}>
-        {busy ? 'SAVING…' : 'SAVE APP PASSWORD'}
+        {busy ? 'SAVING…' : emailOnly ? 'SAVE NEW PASSWORD' : 'SAVE APP PASSWORD'}
       </button>
       {error && <Message tone="error">{error}</Message>}
       <button type="button" onClick={() => { setOpen(false); setError(null); }} style={linkButton}>CANCEL</button>

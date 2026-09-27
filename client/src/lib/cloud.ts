@@ -179,7 +179,7 @@ export function friendlyAuthError(error: unknown): string {
     case 'auth/invalid-login-credentials':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'EMAIL OR PASSWORD NOT RECOGNISED. GOOGLE USERS: SIGN IN ON THE WEBSITE AND SET AN APP PASSWORD FIRST.';
+      return 'EMAIL OR PASSWORD NOT RECOGNISED. NEW HERE? TAP NEW ACCOUNT. USE GOOGLE? SET A PASSWORD ON THE WEBSITE FIRST.';
     case 'auth/invalid-email':
       return 'THAT EMAIL ADDRESS LOOKS WRONG.';
     case 'auth/missing-password':
@@ -187,11 +187,11 @@ export function friendlyAuthError(error: unknown): string {
     case 'auth/weak-password':
       return 'PASSWORD NEEDS AT LEAST 6 CHARACTERS.';
     case 'auth/email-already-in-use':
-      return 'THAT EMAIL ALREADY HAS AN ACCOUNT. SIGN IN INSTEAD. IF IT USES GOOGLE, SET AN APP PASSWORD ON THE WEBSITE.';
+      return 'THAT EMAIL ALREADY HAS AN ACCOUNT. TAP SIGN IN INSTEAD. IF IT USES GOOGLE, SET A PASSWORD ON THE WEBSITE FIRST.';
     case 'auth/credential-already-in-use':
       return 'THAT EMAIL IS ALREADY LINKED TO A DIFFERENT ACCOUNT.';
     case 'auth/requires-recent-login':
-      return 'FOR SECURITY, SIGN OUT, SIGN IN WITH GOOGLE AGAIN, THEN SET THE PASSWORD.';
+      return 'FOR SECURITY, SIGN OUT AND BACK IN, THEN SET THE PASSWORD AGAIN.';
     case 'auth/too-many-requests':
       return 'TOO MANY ATTEMPTS. WAIT A FEW MINUTES AND TRY AGAIN.';
     case 'auth/network-request-failed':
@@ -208,7 +208,11 @@ export async function signInEmail(email: string, password: string): Promise<void
   await signInWithEmailAndPassword(auth, email.trim(), password);
 }
 
-/** New email account for someone without Google; verified so it can't be taken over. */
+/**
+ * New email-only account, no Google needed. The verification email hardens it:
+ * Firebase drops an unverified password if someone later signs in with Google
+ * using the same address.
+ */
 export async function createEmailAccount(email: string, password: string): Promise<void> {
   const { auth } = getFirebase();
   const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -252,7 +256,7 @@ export async function signInGoogle(): Promise<void> {
     // its state, so don't strand the player there: point them at email.
     if (isStandaloneApp()) {
       throw new Error(
-        `GOOGLE SIGN-IN DOESN'T WORK IN THE HOME SCREEN APP. USE EMAIL + APP PASSWORD BELOW. (${describeAuthError(popupError)})`,
+        `GOOGLE SIGN-IN DOESN'T WORK IN THE HOME SCREEN APP. USE EMAIL + PASSWORD BELOW. (${describeAuthError(popupError)})`,
       );
     }
     // Some in-app browsers block the popup, so fall back to a full-page
